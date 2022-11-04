@@ -79,9 +79,9 @@ class BaseModel(ABC):
     _parse_many - re_models.parse_many
     """
     # http singleton sync requests class
-    HTTP = BaseHTTPSync()
+    _HTTP = BaseHTTPSync()
     # http singleton async requests class
-    HTTP_ASYNC = BaseHTTPAsync()
+    _HTTP_ASYNC = BaseHTTPAsync()
 
     _unescape = unescape
 
