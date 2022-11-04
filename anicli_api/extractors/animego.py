@@ -52,20 +52,6 @@ class Extractor(BaseAnimeExtractor):
         # {url: str, thumbnail: str, name: str, num: int, dub: str}
         return [Ongoing(**data) for data in result]
 
-    def iter_ongoing(self):
-        ongoings = self.ongoing()
-        for ong in ongoings:
-            anime = ong.get_anime()
-            for episode in anime.get_episodes():
-                for video in episode.get_videos():
-                    yield {
-                        "ongoing": ong.dict(),
-                        "anime": anime.dict(),
-                        "episode": episode.dict(),
-                        "video_meta": video.dict(),
-                        "video": video.get_source()
-                    }
-
 
 class AnimeParser(BaseModel):
     """avoid duplicate code"""
@@ -105,7 +91,7 @@ class AnimeParser(BaseModel):
         return cls._decode_table(dict(zip(keys, values)))
 
     def get_anime(self) -> "AnimeInfo":
-        response = self.HTTP.get(self.url).text
+        response = self._HTTP.get(self.url).text
         soup = self._soup(response)
         meta = self._soup_extract_table(soup)
 
@@ -181,8 +167,8 @@ class AnimeInfo(BaseAnimeInfo):
         pass
 
     def get_episodes(self) -> List[BaseEpisode]:
-        response = self.HTTP.get(f"https://animego.org/anime/{self.id}/player",
-                                 params={"_allow": "true"}).json()["content"]
+        response = self._HTTP.get(f"https://animego.org/anime/{self.id}/player",
+                                  params={"_allow": "true"}).json()["content"]
         episodes = self._ReFieldListDict(
             r'''data-episode="(?P<num>\d+)"
         \s*data-id="(?P<id>\d+)"
@@ -210,8 +196,8 @@ class Episode(BaseEpisode):
         pass
 
     def get_videos(self):
-        resp = self.HTTP.get("https://animego.org/anime/series",
-                             params={"dubbing": 2,
+        resp = self._HTTP.get("https://animego.org/anime/series",
+                              params={"dubbing": 2,
                                      "provider": 24,
                                      "episode": self.num, "id": self.id}).json()["content"]
 
