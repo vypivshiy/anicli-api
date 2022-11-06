@@ -10,8 +10,6 @@ Example usage:
     >>> # {'m3u8': {'360': 'https://kekistan.cdn-aniboom.com/pq/foobar/media_0.m3u8', '480': ..., '720': ..., '1080': ...},
     >>> # 'mpd': 'https://kekistan.cdn-aniboom.com/pq/PQmM3Dx0XDl/bazfoo.mpd'}
 """
-# TODO: add asyncio
-# TODO create custom error classes
 from abc import ABC, abstractmethod
 from base64 import b64decode
 import re
