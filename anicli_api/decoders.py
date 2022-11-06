@@ -161,7 +161,9 @@ class Aniboom(BaseDecoder):
         super().__init__()
         self.HTTP.headers.update({"referer": self.REFERER,
                                   "accept-language": self.ACCEPT_LANG,
+                                  "accept-encoding": "gzip, deflate, br",
                                   })
+        self.HTTP.timeout = 0.3  # server return response after timeout value elapsed
 
     @classmethod
     def parse(cls, url: str) -> Dict[str, Optional[str]]:
@@ -171,7 +173,6 @@ class Aniboom(BaseDecoder):
 
         * user-agent: any desktop/mobile
         * referer: https://aniboom.one/
-        * origin: https://aniboom.one
         * accept-language: ru-RU  # increase download speed
 
         Usage: Aniboom.parse(<url>)
@@ -181,15 +182,17 @@ class Aniboom(BaseDecoder):
         """
         if url != cls():
             raise DecoderError(f"{url} is not Aniboom")
+        url = unescape(url)
         cls_ = cls()
-        response = unescape(cls_.HTTP.get(url).text)
+        response = cls_.HTTP.get(url).text
+        response = unescape(response)
 
         links = cls_._extract_links(response)
         if len(links.keys()) == 0:
             raise RegexParseError("Failed extract aniboom video links")
 
-        m3u8_response = cls.HTTP.get(links["m3u8"], headers={"referer": cls.REFERER,
-                                                             "origin": cls.REFERER.rstrip("/"),
+        m3u8_response = cls.HTTP.get(links["m3u8"], headers={"referer": "https://aniboom.one",
+                                                             "origin": "https://aniboom.one/",
                                                              "accept-language": cls.ACCEPT_LANG}).text
         links["m3u8"] = cls_._parse_m3u8(links["m3u8"], m3u8_response)  # type: ignore # TODO
 
@@ -248,3 +251,7 @@ class Aniboom(BaseDecoder):
         for k, v in result.items():
             result[k] = v.replace("\\", "")
         return result
+
+
+if __name__ == '__main__':
+    print(Aniboom.parse('https://aniboom.one/embed/N9QdKm4Mwz1?episode=1&translation=2'))
