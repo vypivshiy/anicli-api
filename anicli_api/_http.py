@@ -1,11 +1,9 @@
-import warnings
 from typing import Dict
 from html import unescape
 
 from httpx import Client, AsyncClient, Response
 
 
-TIMEOUT: float = 30.0
 HEADERS: Dict[str, str] = {"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
                                          "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 "
                                          "Mobile Safari/537.36",
@@ -30,13 +28,9 @@ class Singleton:
 
 
 class BaseHTTPSync(Client):
-    _DEFAULT_HEADERS = HEADERS
-    _DEFAULT_TIMEOUT: float = TIMEOUT
-
     def __init__(self):
         super().__init__()
-        self.headers.update(self._DEFAULT_HEADERS)
-        self.timeout = self._DEFAULT_TIMEOUT
+        self.headers.update(HEADERS)
         self.follow_redirects = True
 
     @staticmethod
@@ -45,13 +39,9 @@ class BaseHTTPSync(Client):
 
 
 class BaseHTTPAsync(AsyncClient):
-    _DEFAULT_HEADERS = HEADERS
-    _DEFAULT_TIMEOUT: float = TIMEOUT
-
     def __init__(self):
         super().__init__()
-        self.headers.update(self._DEFAULT_HEADERS)
-        self.timeout = self._DEFAULT_TIMEOUT
+        self.headers.update(HEADERS)
         self.follow_redirects = True
 
     @staticmethod
