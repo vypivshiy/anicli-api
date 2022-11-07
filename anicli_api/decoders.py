@@ -1,15 +1,4 @@
-"""Decoders class for kodik, aniboom
-Example usage:
-    >>> kodik_links = Kodik.parse("https://kodik.info/seria/1026046/02a256101df196484d68d10d28987fbb/720p")
-    >>> aniboom_links = Aniboom.parse('https://aniboom.one/embed/N9QdKm4Mwz1?episode=1&translation=2')
-    >>> print(kodik_links)
-    >>> print(aniboom_links)
-    >>> # example output:
-    >>> # {'360': [{'src': 'https://cloud.kodik-storage.com/...',
-    >>> # 'type': 'application/x-mpegURL'}], '480': [{...}], '720': [{...}]}
-    >>> # {'m3u8': {'360': 'https://kekistan.cdn-aniboom.com/pq/foobar/media_0.m3u8', '480': ..., '720': ..., '1080': ...},
-    >>> # 'mpd': 'https://kekistan.cdn-aniboom.com/pq/PQmM3Dx0XDl/bazfoo.mpd'}
-"""
+"""Decoders class for kodik, aniboom"""
 from abc import ABC, abstractmethod
 from base64 import b64decode
 import re
@@ -17,6 +6,8 @@ from html import unescape
 from typing import Dict, Optional
 from urllib.parse import urlparse
 import json
+
+from httpx import Timeout  # fix aniboom timeouts
 
 from anicli_api._http import BaseHTTPSync, BaseHTTPAsync
 from anicli_api.exceptions import DecoderError, RegexParseError
@@ -161,7 +152,8 @@ class Aniboom(BaseDecoder):
                                   "accept-language": self.ACCEPT_LANG,
                                   "accept-encoding": "gzip, deflate, br",
                                   })
-        self.HTTP.timeout = 0.3  # server return response after timeout value elapsed
+        # client read response after timeout connect value elapsed
+        self.HTTP.timeout = Timeout(5.0, connect=0.3)
 
     @classmethod
     def parse(cls, url: str) -> Dict[str, Optional[str]]:
@@ -182,10 +174,11 @@ class Aniboom(BaseDecoder):
             raise DecoderError(f"{url} is not Aniboom")
         url = unescape(url)
         cls_ = cls()
-        response = cls_.HTTP.get(url).text
-        response = unescape(response)
+        response = cls_.HTTP.get(url)
+        if not response.is_success:
+            raise ConnectionError(f"{url} return {response.status_code} code")
 
-        links = cls_._extract_links(response)
+        links = cls_._extract_links(unescape(response.text))
         if len(links.keys()) == 0:
             raise RegexParseError("Failed extract aniboom video links")
 
@@ -202,8 +195,11 @@ class Aniboom(BaseDecoder):
             raise DecoderError(f"{url} is not Aniboom")
         cls_ = cls()
         async with cls.ASYNC_HTTP as session:
-            response = unescape((await session.get(url)).text)
-            links = cls_._extract_links(response)
+            response = await session.get(url)
+            if not response.is_success:
+                raise ConnectionError(f"{url} return {response.status_code} code")
+
+            links = cls_._extract_links(unescape(response.text))
             if len(links.keys()) == 0:
                 raise RegexParseError("Failed extract aniboom video links")
             m3u8_response = (await session.get(links["m3u8"],
