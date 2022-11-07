@@ -79,9 +79,9 @@ class BaseModel(ABC):
     _parse_many - re_models.parse_many
     """
     # http singleton sync requests class
-    _HTTP = BaseHTTPSync()
+    _HTTP = BaseHTTPSync
     # http singleton async requests class
-    _HTTP_ASYNC = BaseHTTPAsync()
+    _HTTP_ASYNC = BaseHTTPAsync
 
     _unescape = unescape
 
@@ -279,8 +279,8 @@ class BaseVideo(BaseModel):
 
 class BaseAnimeExtractor(ABC):
     """First extractor entrypoint class"""
-    HTTP = BaseHTTPSync()
-    ASYNC_HTTP = BaseHTTPAsync()
+    HTTP = BaseHTTPSync
+    ASYNC_HTTP = BaseHTTPAsync
 
     _unescape = unescape
 
