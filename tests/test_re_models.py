@@ -72,15 +72,14 @@ def test_re_field_list(field: ReFieldList, result):
                                       "end": lambda s: s.title()}
                      ),
      {'Twords': [
-         {'t_word': 4, 'end': 'Amet_ger'},
-         {'t_word': 4, 'end': 'Elit_ger'}
+         {'t_word': 4, 'end': 'Amet_Ger'},
+         {'t_word': 4, 'end': 'Elit_Ger'}
      ]}),
     (ReFieldListDict(r'failed_pattern', name="fail", default=[{"fail": "fail"}]), {"fail": [{"fail": "fail"}]})
 ])
 def test_re_field_list_dict(field: ReFieldListDict, result):
     text = """Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et 
     dolore magna aliqua."""
-    print(field.parse(text))
     assert field.parse(text) == result
 
 

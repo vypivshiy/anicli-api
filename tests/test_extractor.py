@@ -1,4 +1,6 @@
-from tests import *
+from tests import fake_extractor
+
+Extractor = fake_extractor.Extractor
 
 
 def test_extractor_search():
