@@ -56,7 +56,7 @@ class Extractor(BaseAnimeExtractor):
             r'</div><div class="[^>]+">\((?P<dub>[^>]+)\)',
             name="info",
             after_exec_type={"url": lambda s: f"https://animego.org{s}",
-                             "num": int}).parse_values(response.text)
+                             "num": lambda s: int(s.split()[0])}).parse_values(response.text)
         # {url: str, thumbnail: str, name: str, num: int, dub: str}
         return [Ongoing(**data) for data in result]
 
@@ -227,10 +227,10 @@ class Episode(BaseEpisode):
             return [Video(**vid) for vid in result]
 
     def get_videos(self):
-        resp = self._HTTP.get("https://animego.org/anime/series",
-                              params={"dubbing": 2,
-                                      "provider": 24,
-                                      "episode": self.num, "id": self.id}).json()["content"]
+        resp = self._HTTP().get("https://animego.org/anime/series",
+                                params={"dubbing": 2,
+                                        "provider": 24,
+                                        "episode": self.num, "id": self.id}).json()["content"]
 
         result = self._extract_metadata(resp)
         return [Video(**vid) for vid in result]
@@ -238,3 +238,34 @@ class Episode(BaseEpisode):
 
 class Video(BaseVideo):
     ...
+
+
+class TestCollections(BaseTestCollections):
+    def test_search(self):
+        resp = Extractor().search("lain")
+        assert resp[0].dict() == {
+            'thumbnail':
+                'https://animego.org/media/cache/thumbs_300x420/upload/anime/images/5d1b809ecb40b061887856.jpg',
+            'url': 'https://animego.org/anime/eksperimenty-leyn-1114',
+            'name': 'Эксперименты Лэйн',
+            'type': 'ТВ Сериал',
+            'year': 1998}
+
+    def test_ongoing(self):
+        ongs = Extractor().ongoing()
+        assert len(ongs) > 0
+
+    def test_extract_metadata(self):
+        for meta in Extractor().search("lain")[0]:
+            assert meta["search"]["url"] == 'https://animego.org/anime/eksperimenty-leyn-1114'
+            assert meta["anime"]["url"] == 'https://animego.org/anime/eksperimenty-leyn-1114'
+            assert meta["episode"]["num"] == 1
+            return
+
+    def test_extract_video(self):
+        for meta in Extractor().search("lain")[0]:
+            assert "kodik" in meta["video_meta"]["url"]
+            for v in meta["video"].values():
+                v: str
+                assert v.endswith(".m3u8")
+            return
