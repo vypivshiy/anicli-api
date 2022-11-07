@@ -1,19 +1,19 @@
 """base prototype architecture for anicli extractor
 
 Extractor works schema:
-    [Extractor]------------------download TODO add standard work implementation for download method
-        | search()/ongoing()        |
-        V                           |
-  [SearchResult | Ongoing]          |
-         | get_anime()              |
-         V                          |
-    [AnimeInfo]                     |
-        | get_episodes()            |
-        V                           |
-    [Episodes]                      |
-        | get_videos()              |
-        V                           |
-    [Video] <-----------------------
+    [Extractor]
+        | search()/ongoing()
+        V
+  [SearchResult | Ongoing]
+         | get_anime()
+         V
+    [AnimeInfo]
+        | get_episodes()
+        V
+    [Episodes]
+        | get_videos()
+        V
+    [Video]
         |
         V
     {quality: url, ...} or url
