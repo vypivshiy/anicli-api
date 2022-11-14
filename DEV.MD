@@ -1,208 +1,178 @@
 # low level
-Описание re_models, random_useragent и прочие low level классы с методами
-TODO
-
-# Разработка экстрактора
-
-## Почему такая структура?
-Проект изначально был небольшим скриптом на 300 строк кода под animego и 
-позже стал универсальным под сторонние источники.
-
-API для разработчиков там зачастую отсутствуют, поэтому применяются такие библиотеки как `re, bs4` 
-и результаты поиска поделены на этапы:
-1. Искать тайтл по строке или выбрать из доступных онгоингов
-2. Перейти на страницу с выбранным тайтлом, посмотреть описание, сколько серий и прочую мета информацию
-3. Получить все доступные эпизоды, выбрать эпизод
-4. Из выбранного эпизода получить доступные видеоплееры
-5. Выбрать видеоплеер, получить из него __прямые ссылки__ для просмотра
-
-## Структура экстрактора
-Экстрактор должен обладать следующими классами и определенными __публичными__ методами:
-```shell
-Extractor
-  def search
-  def ongoing
-  async async_search
-  async async_ongoing
-
-SearchResult
-  def get_anime
-  async a_get_anime
-
-Ongoing
-  def get_anime
-  async a_get_anime
-
-AnimeInfo
-  def get_episode
-  async a_get_episode
-
-Episode
-  def get_video
-  async a_get_video
-
-Video
-  def get_source
-  async a_get_source
-
-TestCollections
-  def test_search
-  def test_ongoing
-  def test_extract_metadata
-  def test_extract_video
-```
-
-* Асинхронные методы идентичны синхронным, только для запросов используется httpx.AsyncClient вместо httpx.Client
-
-### Имя файла-экстрактора:
-* должен быть расширения `.py`
-* не называться `base`
-* не должен начинаться и заканчиваться нижним подчёркиванием `_` 
-
-## Описание объектов
-
-### Extractor
-* Extractor - начальная точка входа в получении объектов SearchResult и Ongoing. 
-Наследуется от **extractors.base.BaseAnimeExtractor** и имеет встроенные методы и инстансы
-```shell
-  HTTP - сконфигурированный синглтон класс httpx.Client
-  HTTP_ASYNC - сконфигурированный синглтон класс httpx.AsyncClient
-  _unescape - html.unescape функция
-  _ReField - re_models.ReField
-  _ReFieldList - re_models.ReFieldList
-  _ReFieldListDict - re_models.ReFieldListDict
-  _parse_many - re_models.parse_many
-  _soup - возращает BeautifulSoap объект. По умолчанию использует html.parser
-```
-
-### Объекты
-
-Объекты **SearchResult, Ongoing, AnimeInfo, Episode, Video** наследуются от **extractors.base.BaseModel** класса. 
-Принимают произвольные kwargs аргументы. 
-Имеют следующие методы и инстансы:
-```shell
-_HTTP - сконфигурированный синглтон класс httpx.Client
-_HTTP_ASYNC - сконфигурированный синглтон класс httpx.AsyncClient
-_unescape - html.unescape функция
-_ReField - re_models.ReField
-_ReFieldList - re_models.ReFieldList
-_ReFieldListDict - re_models.ReFieldListDict
-_parse_many - re_models.parse_many
-_soup - возращает BeautifulSoap объект. По умолчанию использует html.parser
-```
-### TestCollections
-Вспомогательный класс для быстрого тестирования на работоспособность всего экстрактора.
-**Не применяется в CI/CD тестах, только локально. Они медленные и некоторые работают только с конкретными IP адресами**
-Минимально необходимо реализовать следующие тесты.
-```shell
-test_search - тест на поиск тайтлов
-test_ongoing - тест на получение онгоингов
-test_extract_metadata - тест на получение метаинформации
-test_extract_video - тест на получение прямых ссылок на видео
-```
-Можно добавить опционально дополнительные тесты.
-
-В тестах на поиск и получение видео рекомендуется проверять на тайтлы, которые вышли давно 
-и гарантированно будут на сайте. 
-
-Например, идеальный кандидат на это - `Serial of experiments lain` (Эксперименты Лейн) или аналогичный.
-
-В тесте на онгоинги проще: так как они регулярно обновляются, то рациональнее проверять по длине списка.
-
-## Рекомендации по написанию парсеров
-
-Конкретных требований на реализацию способов вытаскивания данных нет, можно применять 
-`json`, `bs4`, `re` или `re_models` модуль в зависимости от ситуации. Для `публичных методов`, 
-которые необходимо определить, для декомпозиции кода использовать скрытые методы (с `_` в начале).
-
-```python
-# BAD
-from anicli_api.extractors.base import BaseAnimeExtractor
-
-class Extractor(BaseAnimeExtractor):
-    ...
-    
-    def some_parser(self, resp: str) -> dict:
-        # parse response and return dict value
-
-        ...
-    
-    def search(self, query: str):
-        resp = self.HTTP.get("https://example.com")
-        data = self.some_parser(resp.text)
-        ...
-```
-```python
-# GOOD
-from anicli_api.extractors.base import BaseAnimeExtractor
-
-class Extractor(BaseAnimeExtractor):
-    ...
-    
-    def _some_parser(self, resp: str) -> dict:
-        # parse response and return dict value
-        ...
-    
-    def search(self, query: str):
-        resp = self.HTTP.get("https://example.com")
-        data = self._some_parser(resp.text)
-        ...
-```
-
-В классах SearchResult, Ongoing может дублироваться код. Можно создать вспомогательный класс для рефакторинга:
-```python
-# Before
-from anicli_api.extractors.base import BaseModel, BaseOngoing, BaseSearchResult
-...
-class Ongoing(BaseOngoing):
-    url: str
-    def get_anime(self):
-        resp = self._HTTP.get(self.url)
-        # parse methods
-        ...
-        
-
-class SearchResult(BaseSearchResult):
-    url: str
-    def get_anime(self):
-        resp = self._HTTP.get(self.url)
-        # parse methods
-        ...
-```
-```python
-# After
-from anicli_api.extractors.base import BaseModel, BaseOngoing, BaseSearchResult
-...
-
-class AnimeInfoParser(BaseModel):  # any class name
-    url: str
-    def get_anime(self):
-        resp = self._HTTP.get(self.url)
-        # parse methods
-        ...
-
-class Ongoing(AnimeInfoParser, BaseOngoing):
-    ...
-        
-# https://docs.python.org/3/tutorial/classes.html?highlight=inheritance#multiple-inheritance
-# слева-направо наследование идёт: сначала свой класс, потом базовый
-class SearchResult(AnimeInfoParser, BaseSearchResult):
-    ...
-```
-## Источники, полезные материалы
-### Regex
-* cool online regex tool tester [regex101](https://regex101.com)
-* official guide [HOW TO regex](https://docs.python.org/3/howto/regex.html)
-* yt-dlp readme, contains useful patterns [contribution guide](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#regular-expressions)
-* YT playlist [Indian Pythonista: RegEx in Python](https://www.youtube.com/playlist?list=PLyb_C2HpOQSDxe5Y9viJ0JDqGUCetboxB)
-* YT playlist [PyMoondra: Python Regular Expressions Made Easy](https://www.youtube.com/playlist?list=PLGKQkV4guDKH1TpfM-FvPGLUyjsPGdXOg)
-* YT playlist [selfedu: Python 3. Регулярные выражения](https://www.youtube.com/playlist?list=PLA0M1Bcd0w8w8gtWzf9YkfAxFCgDb09pA)
-
-### beautifulsoup4
-
-* [Official documentation](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
-* YT Video [John Watson Rooney: 5 Things You Might Not Be Using in BeautifulSoup](https://www.youtube.com/watch?v=3tUUVenpxbc)
-
 ### re_models
-* [example](examples/example_re_models.py)
-* [test](tests/test_re_models.py)
+Экспериментальная обёртка под `re` библиотеку, для получения словаря со значениями после поиска вхождений.
+Принцип работы следующий:
+1. Принимает на вход регулярное выражение или строку с регулярным выражением. 
+По умолчанию, берёт имя для ключа из идентификатора группы. Например, `r"(?P<integer>\d+)"` возьмет __integer__ для
+ключа. Также, можно указать имя, передав аргумент `name`. Если по каким-либо причинам регулярное выражение ничего 
+не найдет, то вернёт None. Это значение можно изменить передав аргумент `default`
+
+2 Шаги преобразований:
+
+2.1 `before_func` функция-параметр, если передан
+
+2.2 `before_func_call` метод (если объявлен)
+
+2.3 `result_type` меняет тип найденного результата (по умолчанию str)
+
+2.4 `after_func_call` метод (если объявлен)
+
+2.5 `after_func` функция-параметр, если передан
+
+3. Возвращает словарь типа {name: result}
+* ReBaseField - базовый класс. Доступные параметры:
+```shell
+Аргументы:
+
+pattern: Union[Pattern, AnyStr] - регулярное выражение. Принимает строку или re.complile объект
+# ниже передаются именованные аргументы
+name: Optional[str] - имя ключа, если не передано, по умолчанию берёт из идентификатора группы
+default: Optional[Any] - Значение, которое вернет, если регулярное выражение ничего не нашло. По умолчанию None
+type: Type - тип преобразования переменной. По умолчанию str,
+before_exec_type: Optional[T_BEFORE_EXEC] - функция преобразования результата поиска ДО ПРИВЕДЕНИЯ типа `type`, 
+если регулярное выражение нашло значение. Если значение None, игнорируется.
+after_exec_type: Optional[T_AFTER_EXEC] - функция преобразования результата поиска ПОСЛЕ ПРИВЕДЕНИЯ типа `type`, 
+если регулярное выражение нашло значение. Если значение None, игнорируется.
+
+Методы
+parse(text: str) - применяет поиск значения по переданному тексту, возвращает словарь со значениями.
+parse_values(text: str) - применяет поиск значения по переданному тексту, возвращает список со значениями, без ключей
+```
+#### Реализации на базе ReBaseField:
+* ReField
+Возвращает первое найденное значение
+```python
+from anicli_api.re_models import ReField
+sample_text = "digit=1 digitt=10"
+
+field = ReField(r"\w+=(?P<digit>\d+)",
+                type=int)
+# эквивалента записи:
+field_2 = ReField(r"\w+=(\d+)", name="digit",
+                    type=int)
+print(field.parse(sample_text), field_2.parse(sample_text)) # {"digit": 1} {"digit": 1}
+```
+
+Если ничего не найдет, по умолчанию вернёт `default` значение
+```python
+from anicli_api.re_models import ReField
+sample_text = "digit=1 digitt=10"
+
+field = ReField(r"failedpattern",
+                name="fail")
+# эквивалента записи:
+field_2 = ReField(r"failedpattern", 
+                  name="fail",
+                  default="EPIC FAIL!!!")
+print(field.parse(sample_text), field_2.parse(sample_text)) # {"fail": None} {"fail": "EPIC FAIL!!!"}
+```
+
+* ReFieldList
+Возвращает все найденные значения в виде {name: [result_1, result_2, ...]}. параметр `name` обязателен
+
+```python
+from anicli_api.re_models import ReFieldList
+sample_text = "digit=1 digitt=10"
+
+field = ReFieldList(r"\w+=(\d+)",
+                    type=int,
+                    name="digits")
+# эквивалента записи:
+print(field.parse(sample_text), field.parse_values(sample_text)) # {"digits": [1, 10]} [1, 10]
+```
+* ReFieldListDict
+Возвращает все найденные значения в виде {name: [{key1: value1}, {key2: value2}, ...]}. параметр `name` 
+и идентификаторы групп обязательны. Для преобразования в типы использовать after_exec_func
+
+```python
+from anicli_api.re_models import ReFieldListDict
+sample_text = "digit=1 digitt=10"
+
+field = ReFieldListDict(r"(?P<key>\w+)=(?P<value>\d+)",
+                        name="vals",
+                        after_exec_type={"key": lambda k: k.upper(),
+                                         "value": int})
+# эквивалента записи:
+print(field.parse(sample_text), field.parse_values(sample_text)) # {"vals": [{"DIGIT": 1}, {"DIGITT": 10}]} [{"DIGIT": 1}, {"DIGITT": 10}]
+```
+
+* parse_many
+Вспомогательная функция, принимает текст и произвольное число объектов типа `ReBaseField`. 
+Возвращает словарь со всеми найденными результатами.
+```python
+from anicli_api.re_models import ReField, ReFieldList, ReFieldListDict, parse_many
+sample_text = "digit=1 digitt=10"
+
+result = parse_many(sample_text,
+                    ReField(r"\w+=(?P<digit>\d+)",
+                            type=int),
+                    ReFieldList(r"\w+=(\d+)",
+                                type=int,
+                                name="digits"),
+                    ReFieldListDict(r"(?P<key>\w+)=(?P<value>\d+)",
+                                    name="vals",
+                                    after_exec_type={"key": lambda k: k.upper(),
+                                                     "value": int}),
+                    ReField(r"failedpattern",
+                                name="fail",
+                                ),
+                    ReFieldList(r"failedpattern",
+                                name="fail_list",
+                                ),
+                    ReFieldListDict(r"failedpattern",
+                                    name="fail_list_dict"))
+print(result)
+# {'digit': 1, 'digits': [1, 10], 
+# 'vals': [{'key': 'DIGIT', 'value': 1}, {'key': 'DIGITT', 'value': 10}], 
+# 'fail': None, 'fail_list': [], 'fail_list_dict': []}
+```
+
+### http
+Предварительно сконфигурированные объекты [httpx.Client](https://www.python-httpx.org/api/#client) и 
+[httpx.AsyncClient](https://www.python-httpx.org/api/#asyncclient)
+
+По умолчанию `allow_redirects=True` и `headers` имеет значение:
+`{"user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N)"
+                                         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 "
+                                         "Mobile Safari/537.36",
+                           "x-requested-with": "XMLHttpRequest"}`
+
+```shell
+BaseHTTPSync - httpx.Client, с включенными редиректами и установленным юзерагентом
+BaseHTTPAsync - httpx.AsyncClient, с включенными редиректами и установленным юзерагентом
+```
+Остальные модификации имеют singleton паттерн и простую проверку на наличие ddos защиты. 
+Если ddos защита присутствует (идёт проверка по заголовку сервера и коду 403 ) - выбросит ошибку ConnectionError
+```shell
+HTTPSync - httpx.Client, синглтон, включён редирект, есть юзерагент, установлен event_hook на проверку ddos защиты
+HTTPAsync - httpx.AsyncClient, синглтон, включён редирект, есть юзерагент, установлен event_hook на проверку ddos защиты
+```
+Работа с методами и сессиями аналогично оригинальным классам
+### loader
+Динамический загрузчик Экстракторов-парсеров с предварительной типизацией
+* ExtractorLoader - объект загрузчика
+```shell
+load(module_name: str) - загружает модуль по названию. Если модуль не имеет структуру экстрактора или он отсутствует - 
+вернёт ошибку
+load_all() - загружает все модули из папки extractors
+```
+### decoders
+модуль, в котором хранятся парсеры с видеохостингов.
+* BaseDecoder - базовый класс декодера
+```shell
+parse(cls, url: str, **kwargs) - возвращает все прямые ссылки на видео 
+async_parse(cls, url: str, **kwargs) - возвращает все прямые ссылки на видео асинхронно
+```
+```python
+from anicli_api.decoders import Kodik, Aniboom
+urls_a = Aniboom.parse('https://aniboom.one/embed/N9QdKm4Mwz1?episode=1&translation=2')
+urls_k = Kodik.parse("https://kodik.info/seria/1026046/02a256101df196484d68d10d28987fbb/720p")
+```
+### random_useragent
+Простой генератор случайных юзер агентов
+```python
+from anicli_api.random_useragent import Agent
+Agent.mobile()  # случайный мобильный юзерагент
+Agent.desktop() # случайный декстоп юзерагент
+Agent.random()  # случайный мобильный или декстопный юзерагент
+```
