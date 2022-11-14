@@ -28,8 +28,8 @@ class Singleton:
 
 
 class BaseHTTPSync(Client):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.headers.update(HEADERS)
         self.follow_redirects = True
 
@@ -39,8 +39,8 @@ class BaseHTTPSync(Client):
 
 
 class BaseHTTPAsync(AsyncClient):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.headers.update(HEADERS)
         self.follow_redirects = True
 
@@ -60,14 +60,14 @@ def check_ddos_protect_hook(resp: Response):
 class HTTPSync(Singleton, BaseHTTPSync):
     """Base singleton sync HTTP with recommended config"""
 
-    def __init__(self):
-        super(HTTPSync, self).__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.event_hooks.update({"response": [check_ddos_protect_hook]})
 
 
 class HTTPAsync(Singleton, BaseHTTPAsync):
     """Base singleton async HTTP class with recommended config"""
 
-    def __init__(self):
-        super(HTTPAsync, self).__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.event_hooks.update({"response": [check_ddos_protect_hook]})
