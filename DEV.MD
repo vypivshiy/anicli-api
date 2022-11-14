@@ -74,6 +74,7 @@ TestCollections
   _parse_many - re_models.parse_many
   _soup - возращает BeautifulSoap объект. По умолчанию использует html.parser
 ```
+
 ### Объекты
 
 Объекты **SearchResult, Ongoing, AnimeInfo, Episode, Video** наследуются от **extractors.base.BaseModel** класса. 
@@ -92,24 +93,26 @@ _soup - возращает BeautifulSoap объект. По умолчанию �
 ### TestCollections
 Вспомогательный класс для быстрого тестирования на работоспособность всего экстрактора.
 **Не применяется в CI/CD тестах, только локально. Они медленные и некоторые работают только с конкретными IP адресами**
-Минимально необходимо реализовать следующие тесты, можно добавить опционально ещё:
+Минимально необходимо реализовать следующие тесты.
 ```shell
 test_search - тест на поиск тайтлов
 test_ongoing - тест на получение онгоингов
 test_extract_metadata - тест на получение метаинформации
 test_extract_video - тест на получение прямых ссылок на видео
 ```
+Можно добавить опционально дополнительные тесты.
+
 В тестах на поиск и получение видео рекомендуется проверять на тайтлы, которые вышли давно 
 и гарантированно будут на сайте. 
 
-Например, идеальный кандидат на это - `Serial of experiments lain` (Эксперименты Лейн) или аналогичный по критериям.
+Например, идеальный кандидат на это - `Serial of experiments lain` (Эксперименты Лейн) или аналогичный.
 
 В тесте на онгоинги проще: так как они регулярно обновляются, то рациональнее проверять по длине списка.
 
 ## Рекомендации по написанию парсеров
 
-Конкретных требований на вытаскивание данных нет, можно применять `json`, `bs4`, `re` или `re_models` модуль 
-в зависимости от случая и ситуации. Для `публичных методов`, 
+Конкретных требований на реализацию способов вытаскивания данных нет, можно применять 
+`json`, `bs4`, `re` или `re_models` модуль в зависимости от ситуации. Для `публичных методов`, 
 которые необходимо определить, для декомпозиции кода использовать скрытые методы (с `_` в начале).
 
 ```python
@@ -119,7 +122,9 @@ from anicli_api.extractors.base import BaseAnimeExtractor
 class Extractor(BaseAnimeExtractor):
     ...
     
-    def some_parser(self, resp: str):
+    def some_parser(self, resp: str) -> dict:
+        # parse response and return dict value
+
         ...
     
     def search(self, query: str):
@@ -134,7 +139,8 @@ from anicli_api.extractors.base import BaseAnimeExtractor
 class Extractor(BaseAnimeExtractor):
     ...
     
-    def _some_parser(self, resp: str):
+    def _some_parser(self, resp: str) -> dict:
+        # parse response and return dict value
         ...
     
     def search(self, query: str):
@@ -178,7 +184,25 @@ class AnimeInfoParser(BaseModel):  # any class name
 class Ongoing(AnimeInfoParser, BaseOngoing):
     ...
         
-
+# https://docs.python.org/3/tutorial/classes.html?highlight=inheritance#multiple-inheritance
+# слева-направо наследование идёт: сначала свой класс, потом базовый
 class SearchResult(AnimeInfoParser, BaseSearchResult):
     ...
 ```
+## Источники, полезные материалы
+### Regex
+* cool online regex tool tester [regex101](https://regex101.com)
+* official guide [HOW TO regex](https://docs.python.org/3/howto/regex.html)
+* yt-dlp readme, contains useful patterns [contribution guide](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#regular-expressions)
+* YT playlist [Indian Pythonista: RegEx in Python](https://www.youtube.com/playlist?list=PLyb_C2HpOQSDxe5Y9viJ0JDqGUCetboxB)
+* YT playlist [PyMoondra: Python Regular Expressions Made Easy](https://www.youtube.com/playlist?list=PLGKQkV4guDKH1TpfM-FvPGLUyjsPGdXOg)
+* YT playlist [selfedu: Python 3. Регулярные выражения](https://www.youtube.com/playlist?list=PLA0M1Bcd0w8w8gtWzf9YkfAxFCgDb09pA)
+
+### beautifulsoup4
+
+* [Official documentation](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+* YT Video [John Watson Rooney: 5 Things You Might Not Be Using in BeautifulSoup](https://www.youtube.com/watch?v=3tUUVenpxbc)
+
+### re_models
+* [example](examples/example_re_models.py)
+* [test](tests/test_re_models.py)
