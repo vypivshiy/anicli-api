@@ -58,9 +58,9 @@ class BaseModel(ABC):
 
     instances:
 
-    HTTP = BaseHTTPSync() - http singleton sync requests class
+    HTTP = BaseHTTPSync - http singleton sync requests class
 
-    HTTP_ASYNC = BaseHTTPAsync() - http singleton async requests class
+    HTTP_ASYNC = BaseHTTPAsync - http singleton async requests class
 
     methods:
 
@@ -115,18 +115,7 @@ class BaseModel(ABC):
 
 
 class BaseSearchResult(BaseModel):
-    """Base search result class object.
-
-    required attributes:
-
-    url: str - url to main title page
-
-    name: str - anime title name
-
-    type: str - anime type: serial, film, OVA, etc"""
-    url: str
-    name: str
-    type: str
+    """Base search result class object."""
 
     @abstractmethod
     async def a_get_anime(self) -> BaseAnimeInfo:
@@ -167,18 +156,7 @@ class BaseSearchResult(BaseModel):
 
 
 class BaseOngoing(BaseSearchResult):
-    """Base ongoing class object.
-
-    required attributes:
-
-    url: str - url to main title page
-
-    title: str - anime title name
-
-    num: int - episode number"""
-    url: str
-    name: str
-    num: int
+    """Base ongoing class object"""
 
     @abstractmethod
     async def a_get_anime(self) -> BaseAnimeInfo:
@@ -280,7 +258,7 @@ class BaseVideo(BaseModel):
 class BaseAnimeExtractor(ABC):
     """First extractor entrypoint class"""
     HTTP = BaseHTTPSync
-    ASYNC_HTTP = BaseHTTPAsync
+    HTTP_ASYNC = BaseHTTPAsync
 
     _unescape = unescape
 
