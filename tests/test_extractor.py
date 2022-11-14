@@ -35,3 +35,40 @@ def test_get_episodes():
 def test_get_video():
     video = Extractor().search("")[0].get_anime().get_episodes()[0].get_videos()
     assert video[0].get_source() == 'video.mp4'
+
+
+def test_walk_search():
+    for i, meta in enumerate(Extractor().walk_search("")):
+        assert meta == Extractor.WALK_SEARCH[i]
+
+
+def test_walk_ongoing():
+    for i, meta in enumerate(Extractor().walk_ongoing()):
+        assert meta == Extractor.WALK_ONGOING[i]
+
+
+def test_anime_metadata():
+    search = Extractor().search("")[0]
+    for i, meta in enumerate(search):
+        assert meta == Extractor.SEARCH_META[i]
+
+
+def test_ongoing_metadata():
+    ongoing = Extractor().ongoing()[0]
+    for i, meta in enumerate(ongoing):
+        assert meta == Extractor.ONGOING_META[i]
+
+
+def test_anime_iterables():
+    anime = Extractor().search("")[0].get_anime()
+    assert [ep.dict() for ep in anime] == [ep.dict() for ep in anime.get_episodes()]
+    episode = anime.get_episodes()[0]
+    assert [video.dict() for video in episode] == [video.dict() for video in episode.get_videos()]
+
+
+def test_collections():
+    tests_coll = fake_extractor.TestCollections()
+    assert tests_coll.test_search()
+    assert tests_coll.test_ongoing()
+    assert tests_coll.test_extract_video()
+    assert tests_coll.test_extract_metadata()

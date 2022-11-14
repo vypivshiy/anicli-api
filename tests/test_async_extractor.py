@@ -47,3 +47,56 @@ async def test_get_video():
     eps = await a.a_get_episodes()
     video = await eps[0].a_get_videos()
     assert (await video[0].a_get_source()) == 'video.mp4'
+
+
+@pytest.mark.asyncio
+async def test_async_walk_search():
+    i = 0
+    async for meta in Extractor().async_walk_search(""):
+        assert meta == Extractor.WALK_SEARCH[i]
+        i += 1
+
+
+@pytest.mark.asyncio
+async def test_async_walk_ongoing():
+    i = 0
+    async for meta in Extractor().async_walk_ongoing():
+        assert meta == Extractor.WALK_ONGOING[i]
+        i += 1
+
+
+@pytest.mark.asyncio
+async def test_anime_metadata():
+    search = (await Extractor().async_search(""))[0]
+    i = 0
+    async for meta in search:
+        assert meta == Extractor.SEARCH_META[i]
+        i += 1
+
+
+@pytest.mark.asyncio
+async def test_ongoing_metadata():
+    ongoing = (await Extractor().async_ongoing())[0]
+    i = 0
+    async for meta in ongoing:
+        assert meta == Extractor.ONGOING_META[i]
+        i += 1
+
+
+@pytest.mark.asyncio
+async def test_anime_iterables():
+    anime = (await Extractor().async_search(""))[0]
+    anime = await anime.a_get_anime()
+
+    lst_1 = []
+    async for episode in anime:
+        lst_1.append(episode.dict())
+    lst_2 = [ep.dict() for ep in (await anime.a_get_episodes())]
+    assert lst_1 == lst_2
+
+    episode = (await anime.a_get_episodes())[0]
+    lst_3 = []
+    async for video in episode:
+        lst_3.append(video.dict())
+    lst_4 = [video.dict() for video in (await episode.a_get_videos())]
+    assert lst_3 == lst_4
