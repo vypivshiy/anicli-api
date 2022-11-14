@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "anicli_api"
+version = "0.1.0"
+description = "Anime extractor api implementation"
+authors = ["Georgiy aka Vypivshiy"]
+license = "MIT"
+readme = "README.MD"
+packages = [{include = "anicli_api"}]
+exclude = ["tests/"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+httpx = "^0.23.0"
+bs4 = "^0.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = {extras = ["coverage"], version = "^7.2.0"}
+pytest-cov = "^4.0.0"
+flake8 = "^5.0.0"
+mypy = "^0.982"
+pytest-asyncio = "^0.20.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--cov='anicli_api' --ignore-glob='_*.py'"
+
+
+[tool.mypy]
+python_version = 3.8
+exclude="(tests|venv)"
+ignore_missing_imports = true
+warn_no_return = false
+warn_return_any = false
+warn_unused_configs = true
+
+
+[[tool.mypy.overrides]]
+# Ignore tests, because we can use fixtures that not quite represent a real type
+module = "tests.*"
+ignore_errors = true
