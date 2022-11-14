@@ -1,6 +1,6 @@
 import pytest
 
-from tests import mock_kodik, mock_aniboom  # type: ignore
+from tests import mock_kodik_transport, mock_aniboom_transport
 from anicli_api.decoders import Aniboom, Kodik, BaseDecoder
 
 
@@ -30,13 +30,13 @@ def test_ne_cmp_aniboom():
     assert "https://google.com" != Aniboom()
 
 
-def test_parse_kodik(mock_kodik):
-    result = mock_kodik.parse("https://kodikfake.fake/seria/00/foobar/100p")
+def test_parse_kodik():
+    result = Kodik.parse("https://kodikfake.fake/seria/00/foobar/100p", transport=mock_kodik_transport())
     assert result == {'360': 'https://test_360.mp4', '480': 'https://test_480.mp4', '720': 'https://test_720.mp4'}
 
 
-def test_parse_aniboom(mock_aniboom):
-    result = mock_aniboom.parse("https://aniboom.one/embed/fake_aniboom_la-la-la")
+def test_parse_aniboom():
+    result = Aniboom.parse("https://fakeaniboom.one/embed/fake_aniboom_la-la-la", transport=mock_aniboom_transport())
     assert result == {'m3u8': {
         '360': 'https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_0.m3u8',
         '480': 'https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_2.m3u8',
@@ -48,11 +48,11 @@ def test_parse_aniboom(mock_aniboom):
 def test_custom_decoder():
     class MyDecoder(BaseDecoder):
         @classmethod
-        def parse(cls, url: str):
+        def parse(cls, url: str, **kwargs):
             return "test123"
 
         @classmethod
-        async def async_parse(cls, url: str):
+        async def async_parse(cls, url: str, **kwargs):
             ...
 
         def __eq__(self, other: str):  # type: ignore
