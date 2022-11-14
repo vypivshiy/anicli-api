@@ -23,18 +23,19 @@ class Extractor(BaseAnimeExtractor):
 
     async def async_search(self, query: str) -> List[BaseSearchResult]:
         # past async code here
-        pass
+        return [SearchResult(url="search_1", title="title_1", meta="search_1 mock meta")]
 
     async def async_ongoing(self) -> List[BaseOngoing]:
         # past async code here
-        pass
+        return [Ongoing(url="ongoing_1", title="title_1", description="ongoing_1 mock meta"),
+                Ongoing(url="ongoing_2", title="title_2", description="search_2 mock meta")]
 
 
 class SearchResult(BaseSearchResult):
     # optional past metadata attrs here
     async def a_get_anime(self) -> 'AnimeInfo':
         # past async code here
-        pass
+        return AnimeInfo(title="Some title name", meta="anime info meta")
 
     def get_anime(self) -> 'AnimeInfo':
         # past code here
@@ -45,7 +46,7 @@ class Ongoing(BaseOngoing):
     # optional past metadata attrs here
     async def a_get_anime(self) -> 'AnimeInfo':
         # past async code here
-        pass
+        return AnimeInfo(title="Some title name", meta="anime info meta")
 
     def get_anime(self) -> 'AnimeInfo':
         # past code here
@@ -56,7 +57,11 @@ class AnimeInfo(BaseAnimeInfo):
     # optional past metadata attrs here
     async def a_get_episodes(self) -> List['BaseEpisode']:
         # past async code here
-        pass
+        return [
+            Episode(title="episode_1", num=1, meta="episode_1 meta"),
+            Episode(title="episode_2", num=2, meta="episode_2 meta"),
+            Episode(title="episode_3", num=3, meta="episode_3 meta")
+        ]
 
     def get_episodes(self) -> List['BaseEpisode']:
         return [
@@ -70,7 +75,7 @@ class Episode(BaseEpisode):
     # optional past metadata attrs here
     async def a_get_videos(self) -> List['BaseVideo']:
         # past async code here
-        pass
+        return [Video(url="foobar")]
 
     def get_videos(self) -> List['BaseVideo']:
         # past code here
@@ -80,6 +85,9 @@ class Episode(BaseEpisode):
 class Video(BaseVideo):
     # optional past metadata attrs here
     def get_source(self):
+        return "video.mp4"
+
+    async def a_get_source(self):
         return "video.mp4"
 
 
