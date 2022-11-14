@@ -27,7 +27,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--cov='anicli_api' --ignore-glob='_*.py'"
+addopts = "--ignore-glob='_*.py'"  # --cov='anicli_api' TODO add coverage label
 
 
 [tool.mypy]
