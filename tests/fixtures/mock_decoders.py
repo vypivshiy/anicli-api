@@ -58,6 +58,7 @@ def mock_kodik():
     transport = httpx.MockTransport(handler)
     kodik = MockKodik
     kodik.HTTP._transport = transport
+    kodik.ASYNC_HTTP._transport = transport
     return kodik
 
 
@@ -73,4 +74,5 @@ def mock_aniboom():
     transport = httpx.MockTransport(handler)
     aniboom = MockAniboom
     aniboom.HTTP._transport = transport
+    aniboom.ASYNC_HTTP._transport = transport
     return aniboom
