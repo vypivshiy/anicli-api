@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from abc import abstractmethod
 import re
 from typing import Pattern, Optional, Any, Type, Union, AnyStr, Dict, Iterable, Callable, List, Generator
 
@@ -87,8 +87,9 @@ class ReBaseField:
         value = self._init_lambda_function(func=self.after_func, key=key, value=value)
         return value
 
+    @abstractmethod
     def parse(self, text: str) -> Dict[str, Any]:
-        raise NotImplementedError
+        ...
 
     def parse_values(self, text: str) -> List[Any]:
         rez = []
@@ -198,35 +199,3 @@ def parse_many(text: str, *re_fields: ReBaseField) -> dict[str, Any]:
     for re_field in re_fields:
         result.update(re_field.parse(text))
     return result
-
-
-if __name__ == '__main__':
-    tst = "foo=123, bar=based 9129 800 1 92"
-    f = ReField(r"foo=(?P<digit>\d+)",  # set key "digit"
-                type=int)  # convert result to int
-    f2 = ReField(r"foo=(\d+)",  # without pattern.groupindex
-                 type=float,  # convert to float
-                 name="float_digit")  # set key "float_digit"
-
-    f3 = ReFieldList(r"(\d+)",
-                     type=int,  # convert all result to int
-                     name="lst_digit",  # name
-                     before_exec_type=lambda s: f"{s}0",  # add "0" to match
-                     after_exec_type=lambda s: s * 5)  # mul integer result to 5
-
-    f4 = ReFieldListDict(r"(?P<key>\w+)=(?P<value>[\d\w]+)",
-                         name="lst_dict",
-                         # use lambda functions to result
-                         after_exec_type={"value": lambda s: int(s) if s.isdigit() else s.title(),
-                                          "key": lambda s: s.upper()})
-
-    f5 = ReField(r"patternnotexist", name="empty")  # default return None
-    print(f3.parse_values(tst))
-    print(f4.parse_values(tst))
-    print(f.parse_values(tst))
-    print(parse_many(tst, f, f2, f3, f4, f5))
-    # {'digit': 123,
-    # 'float_digit': 123.0,
-    # 'lst_digit': [6150, 456450, 40000, 50, 4600],
-    # 'lst_dict': [{'key': 'FOO', 'value': 123}, {'key': 'BAR', 'value': 'Based'}],
-    # 'empty': None}
