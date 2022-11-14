@@ -1,16 +1,5 @@
 from anicli_api.re_models import ReField, ReFieldList, ReFieldListDict, parse_many
-"""
-HOW TO regex Guides/Lessons, tools
 
-https://regex101.com
-https://docs.python.org/3/howto/regex.html
-
-https://www.youtube.com/watch?v=xp1vX15inBg&list=PLyb_C2HpOQSDxe5Y9viJ0JDqGUCetboxB
-https://www.youtube.com/watch?v=VU60rEXaOXk&list=PLGKQkV4guDKH1TpfM-FvPGLUyjsPGdXOg
-
-# russian
-https://www.youtube.com/watch?v=1SWGdyVwN3E&list=PLA0M1Bcd0w8w8gtWzf9YkfAxFCgDb09pA  
-"""
 
 sample_text = """
 Hello world
@@ -57,7 +46,7 @@ if __name__ == '__main__':
 
     field_4 = ReFieldListDict(r"var\d=(?P<count>\d+).*// (?P<name>\w+)",
                               name="somethings_half",
-                              after_exec_type={"count": lambda i: int(i)//2,  # div count group to 2
+                              after_exec_type={"count": lambda i: int(i) // 2,  # div count group to 2
                                                "name": lambda s: f"A half {s.title()}"})  # modify after search
     print(field_4.parse(sample_text))
     # {'somethings_half': [

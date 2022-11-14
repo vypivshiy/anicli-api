@@ -189,8 +189,8 @@ class Aniboom(BaseDecoder):
                 raise RegexParseError("Failed extract aniboom video links")
 
             m3u8_response = session.get(links["m3u8"], headers={"referer": "https://aniboom.one",
-                                                                 "origin": "https://aniboom.one/",
-                                                                 "accept-language": cls.ACCEPT_LANG}).text
+                                                                "origin": "https://aniboom.one/",
+                                                                "accept-language": cls.ACCEPT_LANG}).text
             links["m3u8"] = cls_._parse_m3u8(links["m3u8"], m3u8_response)  # type: ignore # TODO
 
             return links  # type: ignore  # TODO
