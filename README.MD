@@ -42,6 +42,9 @@
 # DEV
  [Читайте инструкцию здесь](DEV.MD)
 
+# Contributing
+TODO
+
 # TODO
 * CI CD автотестов
 * Получение видео по ссылке (like yt-dlp)
