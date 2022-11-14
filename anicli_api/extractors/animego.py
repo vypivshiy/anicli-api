@@ -21,7 +21,7 @@ class Extractor(BaseAnimeExtractor):
 
     async def async_search(self, query: str) -> List['BaseSearchResult']:  # type: ignore
         # TODO refactoring duplicate code
-        async with self.ASYNC_HTTP() as session:
+        async with self.HTTP_ASYNC() as session:
             response = await session.get(f"{self.BASE_URL}search/anime", params={"q": query})
             result = self._ReFieldListDict(
                 r'data-original="(?P<thumbnail>https://animego\.org/media/[^>]+\.\w{2,4})".*'
@@ -34,7 +34,7 @@ class Extractor(BaseAnimeExtractor):
         return [SearchResult(**data) for data in result]
 
     async def async_ongoing(self) -> List['BaseOngoing']:  # type: ignore
-        async with self.ASYNC_HTTP() as session:
+        async with self.HTTP_ASYNC() as session:
             response = await session.get(f"{self.BASE_URL}search/anime")
             result = self._ReFieldListDict(
                 r'onclick="location\.href=\'(?P<url>[^>]+)\'.*?url\((?P<thumbnail>[^>]+)\);.*?'
