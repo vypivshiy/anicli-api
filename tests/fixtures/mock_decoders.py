@@ -1,7 +1,4 @@
 import httpx
-import pytest
-
-from anicli_api.decoders import Kodik, Aniboom
 
 
 KODIK_RAW_RESPONSE = """
@@ -28,9 +25,11 @@ KODIK_API_JSON = {"advert_script": "", "default": 360, "domain": "animeeee.kek",
                             "720": [{"src": "=QDct5CMyczX0NXZ09yL", "type": "application/x-mpegURL"}]}
                   }
 
+
 ANIBOOM_RAW_RESPONSE = """
 <div id="video" data-parameters="{&quot;id&quot;:&quot;Jo9ql8ZeqnW&quot;,&quot;error&quot;:&quot;\/video-error\/Jo9ql8ZeqnW&quot;,&quot;domain&quot;:&quot;animego.org&quot;,&quot;cdn&quot;:&quot;\/cdn\/foobarW&quot;,&quot;counter&quot;:&quot;\/counter\/foobar&quot;,&quot;duration&quot;:1511,&quot;poster&quot;:&quot;https:\/\/i1.fakeboom-img.com\/jo\/foobar\/mqdefault.jpg&quot;,&quot;thumbnails&quot;:&quot;https:\/\/i1.fakeboom-img.com\/jo\/foobar\/thumbnails\/thumbnails.vtt&quot;,&quot;dash&quot;:&quot;{\&quot;src\&quot;:\&quot;https:\\\/\\\/kekistan.cdn-fakeaniboom.com\\\/jo\\\/abcdef123\\\/111hash.mpd\&quot;,\&quot;type\&quot;:\&quot;application\\\/dash+xml\&quot;}&quot;,&quot;hls&quot;:&quot;{\&quot;src\&quot;:\&quot;https:\\\/\\\/kekistan.cdn-fakeaniboom.com\\\/jo\\\/abcdefg123\\\/master.m3u8\&quot;,\&quot;type\&quot;:\&quot;application\\\/x-mpegURL\&quot;}&quot;,&quot;quality&quot;:true,&quot;qualityVideo&quot;:1080,&quot;vast&quot;:true,&quot;country&quot;:&quot;RU&quot;,&quot;platform&quot;:&quot;Android&quot;,&quot;rating&quot;:&quot;16+&quot;}"></div><div class="vjs-contextmenu" id="contextmenu">aniboom.one</div>
 """
+
 
 ANIBOOM_M3U8_DATA = """#EXTM3U
 #EXT-X-VERSION:7
@@ -46,33 +45,21 @@ media_6.m3u8
 """
 
 
-@pytest.fixture()
-def mock_kodik():
-    class MockKodik(Kodik): ...
-
+def mock_kodik_transport():
     def handler(request: httpx.Request):
         if request.method == "GET":
             return httpx.Response(200, text=KODIK_RAW_RESPONSE)
         return httpx.Response(200, json=KODIK_API_JSON)
 
     transport = httpx.MockTransport(handler)
-    kodik = MockKodik
-    kodik.HTTP._transport = transport
-    kodik.ASYNC_HTTP._transport = transport
-    return kodik
+    return transport
 
 
-@pytest.fixture()
-def mock_aniboom():
-    class MockAniboom(Aniboom): ...
-
+def mock_aniboom_transport():
     def handler(request: httpx.Request):
         if str(request.url).endswith("m3u8"):
             return httpx.Response(200, text=ANIBOOM_M3U8_DATA)
         return httpx.Response(200, text=ANIBOOM_RAW_RESPONSE)
 
     transport = httpx.MockTransport(handler)
-    aniboom = MockAniboom
-    aniboom.HTTP._transport = transport
-    aniboom.ASYNC_HTTP._transport = transport
-    return aniboom
+    return transport
