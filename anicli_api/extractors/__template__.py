@@ -1,6 +1,4 @@
-"""Template extractor
-
-"""
+"""Template extractor"""
 from anicli_api.extractors.base import *
 
 __all__ = (
@@ -84,13 +82,17 @@ class Video(BaseVideo):
 
 class TestCollections(BaseTestCollections):
     def test_search(self):
+        # test search
         pass
 
     def test_ongoing(self):
+        # test get ongoing
         pass
 
     def test_extract_metadata(self):
+        # test get metadata
         pass
 
     def test_extract_video(self):
+        # test extract video
         pass
