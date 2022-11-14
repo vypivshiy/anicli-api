@@ -1,5 +1,4 @@
 import pytest
-import httpx
 
 from tests import mock_kodik, mock_aniboom  # type: ignore
 from anicli_api.decoders import Aniboom, Kodik, BaseDecoder
