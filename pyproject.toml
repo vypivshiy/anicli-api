@@ -27,19 +27,23 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--ignore-glob='_*.py'"  # --cov='anicli_api' TODO add coverage label
+addopts = "--ignore-glob='_*.py' --ignore='__version__.py' --cov='anicli_api'"
 
 
 [tool.mypy]
 python_version = 3.8
-exclude="(tests|venv)"
+exclude="(tests|venv|.venv)"
 ignore_missing_imports = true
 warn_no_return = false
 warn_return_any = false
 warn_unused_configs = true
 
+[flake8]
+exclude = '.git,__pycache__,env,venv,tests,.venv'
+max-line-length = 120
+max-complexity = 8
+ignore = 'F405, F403, W503, E501, F401, E203'
 
 [[tool.mypy.overrides]]
-# Ignore tests, because we can use fixtures that not quite represent a real type
 module = "tests.*"
 ignore_errors = true
