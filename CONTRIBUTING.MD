@@ -1,4 +1,14 @@
 Перед разработкой ознакомьтесь с [dev](DEV.MD) документацией
+# Quickstart:
+1. Сделайте fork
+2. Клонируйте свой fork
+3. Установите виртуальное окружение: `python3 -m venv venv` или средствами IDE
+4. Установите poetry: `pip install poetry`
+5. переключиться на `dev` ветку
+6. установить все зависимости `poetry install`
+7. внести изменения, сделать commit, создать pull request
+8. **!!! ваши изменения должны пройти CI/CD проверку в github actions. Предварительно, можно проверить командами:
+`poetry run flake8 .` `poetry run mypy .` `poetry run pytest`**
 # Разработка экстрактора
 
 ## Почему такая структура?
@@ -117,11 +127,9 @@ test_extract_video - тест на получение прямых ссылок 
 from anicli_api.extractors.base import BaseAnimeExtractor
 
 class Extractor(BaseAnimeExtractor):
-    ...
     
     def some_parser(self, resp: str) -> dict:
         # parse response and return dict value
-
         ...
     
     def search(self, query: str):
@@ -134,7 +142,6 @@ class Extractor(BaseAnimeExtractor):
 from anicli_api.extractors.base import BaseAnimeExtractor
 
 class Extractor(BaseAnimeExtractor):
-    ...
     
     def _some_parser(self, resp: str) -> dict:
         # parse response and return dict value
