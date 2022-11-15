@@ -6,6 +6,7 @@ from anicli_api.extractors import animego
 async def step_by_step_search():
     """simple usage api search example"""
     # init extractor
+    print("RUN ASYNC STEP BY STEP SEARCH")
     extractor = animego.Extractor()
     # search by string query
     search = await extractor.async_search("lain")
@@ -21,7 +22,7 @@ async def step_by_step_search():
 
 async def step_by_step_ongoing():
     """simple usage api ongoing example"""
-
+    print("RUN ASYNC STEP BY STEP ONGOING")
     extractor = animego.Extractor()
     # get all available ongoings
     ongoings = await extractor.async_ongoing()
@@ -35,6 +36,7 @@ async def step_by_step_ongoing():
 
 async def walk_search():
     """simple usage api async_walk_search example"""
+    print("RUN ASYNC WALK SEARCH")
     extractor = animego.Extractor()
     # method return all raw data
     async for meta in extractor.async_walk_search("school"):
@@ -43,6 +45,7 @@ async def walk_search():
 
 async def walk_ongoing():
     """simple usage api async_walk_ongoing example"""
+    print("RUN ASYNC WALK ONGOING")
     extractor = animego.Extractor()
     # method return all raw data
     # TODO implements check duplicates url
@@ -51,28 +54,33 @@ async def walk_ongoing():
 
 
 async def example_iter_objects():
+    print("RUN ASYNC ITER OBJECTS")
     extractor = animego.Extractor()
     search = (await extractor.async_search("lain"))[0]
     ongoing = (await extractor.async_ongoing())[0]
     # return raw dict all metadata
+    print("RUN SEARCH EXTRACT ALL METADATA")
     async for meta in search:
         print(meta)
 
     # return raw dict all metadata
+    print("RUN ONGOING EXTRACT ALL METADATA")
     async for meta in ongoing:
         print(meta)
 
     anime = await search.a_get_anime()
     # iter search objects
+    print("RUN ITER ANIME, EPISODE")
     async for episode in anime:
         async for video in episode:
-            print(video.get_source())
+            print(await video.a_get_source())
 
     # iter ongoing objects
+    print("RUN ITER ANIME, EPISODE")
     anime_ongoing = await ongoing.a_get_anime()
     async for episode in anime_ongoing:
         async for video in episode:
-            print(video.get_source())
+            print(await video.a_get_source())
 
 
 async def main():
