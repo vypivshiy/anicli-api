@@ -1,4 +1,5 @@
 # anicli-api
+[![CI](https://github.com/vypivshiy/anicli-api/actions/workflows/ci.yml/badge.svg)](https://github.com/vypivshiy/anicli-api/actions/workflows/ci.yml)
 
 Программный интерфейс парсера аниме с различных источников.
 
