@@ -1,5 +1,6 @@
 # anicli-api
 [![CI](https://github.com/vypivshiy/anicli-api/actions/workflows/ci.yml/badge.svg)](https://github.com/vypivshiy/anicli-api/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/vypivshiy/anicli-api/branch/master/graph/badge.svg?token=GH788Q80G2)](https://codecov.io/github/vypivshiy/anicli-api)
 
 Программный интерфейс парсера аниме с различных источников.
 
