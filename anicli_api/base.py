@@ -20,7 +20,7 @@ Extractor works schema:
 """
 from __future__ import annotations
 
-from typing import Union, Dict, Any, List, Generator, Awaitable, AsyncGenerator, TypedDict
+from typing import Union, Dict, Any, List, Generator, Awaitable, AsyncGenerator, TypedDict, Generic, TypeVar
 from html import unescape
 
 from bs4 import BeautifulSoup
@@ -45,6 +45,9 @@ __all__ = (
 )
 
 
+T = TypeVar("T")
+
+
 class RawData(TypedDict):
     search: Dict[str, Any]  # Ongoing.dict() | SearchResult.dict()
     anime: Dict[str, Any]  # AnimeInfo.dict()
@@ -53,7 +56,7 @@ class RawData(TypedDict):
     video: Union[str, Dict[str, Any]]  # Video.get_source()
 
 
-class BaseModel(ABC):
+class BaseModel(ABC, Generic[T]):
     """Base Model class
 
     instances:
@@ -114,7 +117,7 @@ class BaseModel(ABC):
         return f"[{self.__class__.__name__}] " + ", ".join((f"{k}={v}" for k, v in self.dict().items()))
 
 
-class BaseSearchResult(BaseModel):
+class BaseSearchResult(BaseModel, Generic[T]):
     """Base search result class object."""
 
     @abstractmethod
@@ -155,7 +158,7 @@ class BaseSearchResult(BaseModel):
         return self._async_full_parse()
 
 
-class BaseOngoing(BaseSearchResult):
+class BaseOngoing(BaseSearchResult, Generic[T]):
     """Base ongoing class object"""
 
     @abstractmethod
@@ -196,7 +199,7 @@ class BaseOngoing(BaseSearchResult):
         return self._async_full_parse()
 
 
-class BaseAnimeInfo(BaseModel):
+class BaseAnimeInfo(BaseModel, Generic[T]):
     @abstractmethod
     async def a_get_episodes(self) -> List[BaseEpisode]:
         pass
@@ -213,7 +216,7 @@ class BaseAnimeInfo(BaseModel):
         return self._async_generator(self.a_get_episodes())
 
 
-class BaseEpisode(BaseModel):
+class BaseEpisode(BaseModel, Generic[T]):
     @abstractmethod
     async def a_get_videos(self) -> List[BaseVideo]:
         pass
@@ -230,7 +233,7 @@ class BaseEpisode(BaseModel):
         return self._async_generator(self.a_get_videos())
 
 
-class BaseVideo(BaseModel):
+class BaseVideo(BaseModel, Generic[T]):
     """Base video class object.
 
     minimum required attributes:

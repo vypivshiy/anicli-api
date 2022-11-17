@@ -66,17 +66,17 @@ class Extractor(BaseAnimeExtractor):
     BASE_URL = "https://api.anilibria.tv/v2/"
     ANILIBRIA = Anilibria()
 
-    def search(self, query: str) -> List[BaseSearchResult]:
+    def search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         return [SearchResult(**kw) for kw in self.ANILIBRIA.search_titles(search=query)]
 
-    def ongoing(self) -> List[BaseOngoing]:
+    def ongoing(self) -> List['Ongoing']:  # type: ignore[override]
         return [Ongoing(**kw) for kw in self.ANILIBRIA.get_updates()]
 
-    async def async_search(self, query: str) -> List[BaseSearchResult]:
+    async def async_search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         # past async code here
         return [SearchResult(**kw) for kw in (await self.ANILIBRIA.a_search_titles(search=query))]
 
-    async def async_ongoing(self) -> List[BaseOngoing]:
+    async def async_ongoing(self) -> List['Ongoing']:  # type: ignore[override]
         # past async code here
         return [Ongoing(**kw) for kw in (await self.ANILIBRIA.a_get_updates())]
 
@@ -155,12 +155,12 @@ class AnimeInfo(BaseAnimeInfo):
     player: dict
     torrents: dict
 
-    async def a_get_episodes(self) -> List['BaseEpisode']:
+    async def a_get_episodes(self) -> List['Episode']:  # type: ignore[override]
         return [Episode(alternative_player=self.player["alternative_player"],
                         host=self.player["host"],
                         torrents=self.torrents["list"], **p) for p in self.player["playlist"].values()]
 
-    def get_episodes(self) -> List['BaseEpisode']:
+    def get_episodes(self) -> List['Episode']:  # type: ignore[override]
         return [Episode(alternative_player=self.player["alternative_player"],
                         host=self.player["host"],
                         torrents=self.torrents["list"], **p) for p in self.player["playlist"].values()]
@@ -176,11 +176,11 @@ class Episode(BaseEpisode):
     hls: dict
     torrents: dict
 
-    async def a_get_videos(self) -> List['BaseVideo']:
+    async def a_get_videos(self) -> List['Video']:  # type: ignore[override]
         return [Video(torrents=self.torrents,
                 **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()})]
 
-    def get_videos(self) -> List['BaseVideo']:
+    def get_videos(self) -> List['Video']:  # type: ignore[override]
         return [Video(torrents=self.torrents,
                 **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()})]
 
@@ -219,6 +219,6 @@ class TestCollections(BaseTestCollections):
         anime = search.get_anime()
         episodes = anime.get_episodes()
         video = episodes[0].get_videos()[0]
-        assert video.dict()["fhd"] is None
-        assert "libria.fun" in video.dict()["hd"]
-        assert "libria.fun" in video.dict()["sd"]
+        assert video.fhd is None
+        assert "libria.fun" in video.hd
+        assert "libria.fun" in video.sd

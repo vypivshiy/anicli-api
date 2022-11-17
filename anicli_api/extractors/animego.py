@@ -6,7 +6,7 @@ from anicli_api.base import *
 class Extractor(BaseAnimeExtractor):
     BASE_URL = "https://animego.org/"
 
-    def search(self, query: str) -> List['BaseSearchResult']:
+    def search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         response = self.HTTP().get(f"{self.BASE_URL}search/anime", params={"q": query})
         result = self._ReFieldListDict(
             r'data-original="(?P<thumbnail>https://animego\.org/media/[^>]+\.\w{2,4})".*'
@@ -19,7 +19,7 @@ class Extractor(BaseAnimeExtractor):
         # {thumbnail:str, url: str, name: str, type: str, year: int}
         return [SearchResult(**data) for data in result]
 
-    async def async_search(self, query: str) -> List['BaseSearchResult']:  # type: ignore
+    async def async_search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         # TODO refactoring duplicate code
         async with self.HTTP_ASYNC() as session:
             response = await session.get(f"{self.BASE_URL}search/anime", params={"q": query})
@@ -33,7 +33,7 @@ class Extractor(BaseAnimeExtractor):
                 after_exec_type={"year": lambda i: int(i)}).parse_values(response.text)
         return [SearchResult(**data) for data in result]
 
-    async def async_ongoing(self) -> List['BaseOngoing']:  # type: ignore
+    async def async_ongoing(self) -> List['Ongoing']:  # type: ignore[override]
         async with self.HTTP_ASYNC() as session:
             response = await session.get(f"{self.BASE_URL}search/anime")
             result = self._ReFieldListDict(
@@ -47,7 +47,7 @@ class Extractor(BaseAnimeExtractor):
             # {url: str, thumbnail: str, name: str, num: int, dub: str}
             return [Ongoing(**data) for data in result]
 
-    def ongoing(self) -> List['BaseOngoing']:
+    def ongoing(self) -> List['Ongoing']:  # type: ignore[override]
         response = self.HTTP().get(self.BASE_URL)
         result = self._ReFieldListDict(
             r'onclick="location\.href=\'(?P<url>[^>]+)\'.*?url\((?P<thumbnail>[^>]+)\);.*?'
@@ -155,7 +155,7 @@ class AnimeInfo(BaseAnimeInfo):
     id: str
     url: str
 
-    async def a_get_episodes(self) -> List[BaseEpisode]:
+    async def a_get_episodes(self) -> List['Episode']:  # type: ignore[override]
         # TODO
         async with self._HTTP_ASYNC() as session:
             response = (await session.get(
@@ -172,7 +172,7 @@ class AnimeInfo(BaseAnimeInfo):
                 after_exec_type={"num": int, "id": int, "type": int}).parse_values(response)
         return [Episode(url=self.url, **ep) for ep in episodes]
 
-    def get_episodes(self) -> List[BaseEpisode]:
+    def get_episodes(self) -> List['Episode']:  # type: ignore[override]
         response = self._HTTP().get(f"https://animego.org/anime/{self.id}/player",
                                     params={"_allow": "true"}).json()["content"]
         episodes = self._ReFieldListDict(
@@ -215,7 +215,7 @@ class Episode(BaseEpisode):
             result.extend({**dub, **video} for dub in dubs if video["dub_id"] == dub["dub_id"])
         return result
 
-    async def a_get_videos(self) -> List[BaseVideo]:
+    async def a_get_videos(self) -> List['Video']:  # type: ignore[override]
         # TODO
         async with self._HTTP_ASYNC() as session:
             resp = (await session.get(
@@ -226,7 +226,7 @@ class Episode(BaseEpisode):
             result = self._extract_metadata(resp)
             return [Video(**vid) for vid in result]
 
-    def get_videos(self):
+    def get_videos(self) -> List['Video']:  # type: ignore[override]
         resp = self._HTTP().get("https://animego.org/anime/series",
                                 params={"dubbing": 2,
                                         "provider": 24,

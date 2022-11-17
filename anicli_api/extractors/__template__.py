@@ -14,19 +14,19 @@ __all__ = (
 
 class Extractor(BaseAnimeExtractor):
     # optional constants, HTTP configuration here
-    def search(self, query: str) -> List[BaseSearchResult]:
+    def search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         # past code here
         pass
 
-    def ongoing(self) -> List[BaseOngoing]:
+    def ongoing(self) -> List['Ongoing']:  # type: ignore[override]
         # past code here
         pass
 
-    async def async_search(self, query: str) -> List[BaseSearchResult]:
+    async def async_search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         # past async code here
         pass
 
-    async def async_ongoing(self) -> List[BaseOngoing]:
+    async def async_ongoing(self) -> List['Ongoing']:  # type: ignore[override]
         # past async code here
         pass
 
@@ -55,22 +55,22 @@ class Ongoing(BaseOngoing):
 
 class AnimeInfo(BaseAnimeInfo):
     # optional past metadata attrs here
-    async def a_get_episodes(self) -> List['BaseEpisode']:
+    async def a_get_episodes(self) -> List['Episode']:  # type: ignore[override]
         # past async code here
         pass
 
-    def get_episodes(self) -> List['BaseEpisode']:
+    def get_episodes(self) -> List['Episode']:  # type: ignore[override]
         # past code here
         pass
 
 
 class Episode(BaseEpisode):
     # optional past metadata attrs here
-    async def a_get_videos(self) -> List['BaseVideo']:
+    async def a_get_videos(self) -> List['Video']:  # type: ignore[override]
         # past async code here
         pass
 
-    def get_videos(self) -> List['BaseVideo']:
+    def get_videos(self) -> List['Video']:  # type: ignore[override]
         # past code here
         pass
 
