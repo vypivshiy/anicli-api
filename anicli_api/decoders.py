@@ -251,7 +251,3 @@ class Aniboom(BaseDecoder):
         for k, v in result.items():
             result[k] = v.replace("\\", "")
         return result
-
-
-if __name__ == '__main__':
-    print(Aniboom.parse('https://aniboom.one/embed/N9QdKm4Mwz1?episode=1&translation=2'))

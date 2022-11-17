@@ -1,7 +1,7 @@
 """Dynamic import extractor form **anicli_api/extractors** directory"""
 
 from abc import ABC, abstractmethod
-from typing import cast, Protocol, Type, Tuple, Union, get_args
+from typing import cast, Protocol, Type
 import importlib
 import pathlib
 
@@ -34,6 +34,7 @@ class ModuleExtractor(Protocol):
     AnimeInfo: Type[BaseAnimeInfo]
     Episode: Type[BaseEpisode]
     Video: Type[BaseVideo]
+    TestCollections: Type[BaseTestCollections]
 
 
 class BaseExtractorLoader(ABC):
@@ -99,7 +100,3 @@ class ExtractorLoader(BaseExtractorLoader):
                 cls._validate(mdl, file_import)
                 modules.append(cls._import(file_import))
         return modules
-
-
-if __name__ == '__main__':
-    print(ExtractorLoader.load_all())
