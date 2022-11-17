@@ -1,6 +1,6 @@
 """THIS EXTRACTOR WORKS ONLY MOBILE USERAGENT!!!"""
 
-from anicli_api.extractors.base import *
+from anicli_api.base import *
 
 
 class Extractor(BaseAnimeExtractor):

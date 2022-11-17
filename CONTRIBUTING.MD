@@ -124,29 +124,32 @@ test_extract_video - тест на получение прямых ссылок 
 
 ```python
 # BAD
-from anicli_api.extractors.base import BaseAnimeExtractor
+from anicli_api.base import BaseAnimeExtractor
+
 
 class Extractor(BaseAnimeExtractor):
-    
+
     def some_parser(self, resp: str) -> dict:
         # parse response and return dict value
         ...
-    
+
     def search(self, query: str):
         resp = self.HTTP.get("https://example.com")
         data = self.some_parser(resp.text)
         ...
 ```
+
 ```python
 # GOOD
-from anicli_api.extractors.base import BaseAnimeExtractor
+from anicli_api.base import BaseAnimeExtractor
+
 
 class Extractor(BaseAnimeExtractor):
-    
+
     def _some_parser(self, resp: str) -> dict:
         # parse response and return dict value
         ...
-    
+
     def search(self, query: str):
         resp = self.HTTP.get("https://example.com")
         data = self._some_parser(resp.text)
@@ -154,40 +157,52 @@ class Extractor(BaseAnimeExtractor):
 ```
 
 В классах SearchResult, Ongoing может дублироваться код. Можно создать вспомогательный класс для рефакторинга:
+
 ```python
 # Before
-from anicli_api.extractors.base import BaseModel, BaseOngoing, BaseSearchResult
+from anicli_api.base import BaseModel, BaseOngoing, BaseSearchResult
+
 ...
+
+
 class Ongoing(BaseOngoing):
     url: str
+
     def get_anime(self):
         resp = self._HTTP.get(self.url)
         # parse methods
         ...
-        
+
 
 class SearchResult(BaseSearchResult):
     url: str
+
     def get_anime(self):
         resp = self._HTTP.get(self.url)
         # parse methods
         ...
 ```
+
 ```python
 # After
-from anicli_api.extractors.base import BaseModel, BaseOngoing, BaseSearchResult
+from anicli_api.base import BaseModel, BaseOngoing, BaseSearchResult
+
 ...
+
 
 class AnimeInfoParser(BaseModel):  # any class name
     url: str
+
     def get_anime(self):
         resp = self._HTTP.get(self.url)
         # parse methods
         ...
 
+
 class Ongoing(AnimeInfoParser, BaseOngoing):
     ...
-        
+
+
 # https://docs.python.org/3/tutorial/classes.html?highlight=inheritance#multiple-inheritance
 # слева-направо наследование идёт: сначала свой класс, потом базовый
 class SearchResult(AnimeInfoParser, BaseSearchResult):

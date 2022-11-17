@@ -5,7 +5,7 @@ from typing import cast, Protocol, Type
 import importlib
 import pathlib
 
-from anicli_api.extractors.base import *
+from anicli_api.base import *
 
 
 __all__ = (

@@ -3,7 +3,7 @@ TODO sort keys for objects
 """
 from typing import Optional, Any
 
-from anicli_api.extractors.base import *
+from anicli_api.base import *
 
 __all__ = (
     'Extractor',

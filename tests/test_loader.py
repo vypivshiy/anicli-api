@@ -6,7 +6,7 @@ FAKE_WRONG_EXTRACTOR = "tests.fixtures.fake_extractor_bad"
 
 
 @pytest.mark.parametrize("module", ["math", "urllib", "json", "csv", FAKE_WRONG_EXTRACTOR,
-                                    "anicli_api.extractors.base",
+                                    "anicli_api.base",
                                     "anicli_api.extractors.__template__"])
 def test_wrong_load_extractor(module: str):
     with pytest.raises(AttributeError):
