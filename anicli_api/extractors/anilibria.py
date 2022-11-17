@@ -42,6 +42,10 @@ class Anilibria:
         params = self._kwargs_pop_params(kwargs, search=search, limit=limit)
         return self.api_request(api_method="searchTitles", params=params, **kwargs)
 
+    async def a_search_titles(self, *, search: str, limit: int = -1, **kwargs) -> dict:
+        params = self._kwargs_pop_params(kwargs, limit=limit)
+        return await self.a_api_request(api_method="searchTitles", params=params, **kwargs)
+
     def get_updates(self, *, limit: int = -1, **kwargs) -> dict:
         """getUpdates method
         :param limit:
@@ -50,6 +54,10 @@ class Anilibria:
         """
         params = self._kwargs_pop_params(kwargs, limit=limit)
         return self.api_request(api_method="getUpdates", data=params, **kwargs)
+
+    async def a_get_updates(self, *, limit: int = -1, **kwargs) -> dict:
+        params = self._kwargs_pop_params(kwargs, limit=limit)
+        return await self.a_api_request(api_method="getUpdates", data=params, **kwargs)
 
 
 class Extractor(BaseAnimeExtractor):
@@ -66,11 +74,11 @@ class Extractor(BaseAnimeExtractor):
 
     async def async_search(self, query: str) -> List[BaseSearchResult]:
         # past async code here
-        pass
+        return [SearchResult(**kw) for kw in (await self.ANILIBRIA.a_search_titles(search=query))]
 
     async def async_ongoing(self) -> List[BaseOngoing]:
         # past async code here
-        pass
+        return [Ongoing(**kw) for kw in (await self.ANILIBRIA.a_get_updates())]
 
 
 class SearchResult(BaseSearchResult):
