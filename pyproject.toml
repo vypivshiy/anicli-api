@@ -27,7 +27,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "--ignore-glob='_*.py' --ignore='__version__.py' --cov='anicli_api'"
+addopts = "--ignore='anicli_api.extractors.*' --cov='anicli_api._http' --cov='anicli_api.base' --cov='anicli_api.decoders' --cov='anicli_api.loader' --cov='anicli_api.random_useragent' --cov='anicli_api.re_models'"
 
 
 [tool.mypy]
