@@ -12,8 +12,6 @@ __all__ = (
     'ModuleExtractor',
     'BaseExtractorLoader',
     'ExtractorLoader',
-    'run_extractor_test',
-    'run_all_extractors_tests'
 )
 
 # check Extractor signature
