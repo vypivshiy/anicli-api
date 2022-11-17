@@ -1,6 +1,6 @@
 import pytest
 
-from anicli_api.loader import ExtractorLoader, run_extractor_test
+from anicli_api.loader import ExtractorLoader
 
 FAKE_WRONG_EXTRACTOR = "tests.fixtures.fake_extractor_bad"
 
@@ -30,4 +30,4 @@ def test_success_import_extractor(module):
 
 
 def test_extractor_tester():
-    run_extractor_test("tests.fixtures.fake_extractor")
+    ExtractorLoader.run_test("tests.fixtures.fake_extractor")

@@ -78,7 +78,7 @@ class ExtractorLoader(BaseExtractorLoader):
         return module_path.replace('/', '.').replace('\\', '.').rstrip('.py')
 
     @classmethod
-    def load(cls, *, module_name: str) -> ModuleExtractor:
+    def load(cls, module_name: str) -> ModuleExtractor:
         if cls._check_module_name(module_name):
             file_import = cls._path_to_import(module_name)
             mdl = cls._import(file_import)
@@ -103,29 +103,9 @@ class ExtractorLoader(BaseExtractorLoader):
                 modules.append(cls._import(file_import))
         return modules
 
-
-def run_extractor_test(module_name: str, throw_exception: bool = True):
-    # sourcery skip: use-fstring-for-formatting
-    module = ExtractorLoader.load(module_name=module_name)
-    test_class = module.TestCollections
-    for attr in test_class.__dict__.keys():
-        if attr.startswith("test"):
-            logging.debug("MODULE {} RUN {}".format(module.__str__().split("/")[-1], attr))
-            try:
-                getattr(test_class(), attr)()
-            except AssertionError as e:
-                if throw_exception:
-                    raise e
-                else:
-                    logging.error(e)
-            else:
-                logging.debug("[OK] {} {}".format(module.__str__().split("/")[-1], attr))
-
-
-def run_all_extractors_tests(*, throw_exception: bool = True):
-    # sourcery skip: use-fstring-for-formatting
-    modules = ExtractorLoader.load_all()
-    for module in modules:
+    @staticmethod
+    def _test_module(module: ModuleExtractor, throw_exception: bool = True) -> None:
+        # sourcery skip: use-fstring-for-formatting
         test_class = module.TestCollections
         for attr in test_class.__dict__.keys():
             if attr.startswith("test"):
@@ -139,3 +119,13 @@ def run_all_extractors_tests(*, throw_exception: bool = True):
                         logging.error(e)
                 else:
                     logging.debug("[OK] {} {}".format(module.__str__().split("/")[-1], attr))
+
+    @classmethod
+    def run_test(cls, module_name: str, *, throw_exception: bool = True):
+        module = cls.load(module_name)
+        cls._test_module(module, throw_exception)
+
+    @classmethod
+    def run_test_all(cls, *, throw_exception: bool = True):
+        for module in cls.load_all():
+            cls._test_module(module, throw_exception)
