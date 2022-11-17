@@ -8,7 +8,6 @@ import logging
 
 from anicli_api.base import *
 
-
 __all__ = (
     'ModuleExtractor',
     'BaseExtractorLoader',
@@ -105,20 +104,38 @@ class ExtractorLoader(BaseExtractorLoader):
         return modules
 
 
-def run_extractor_test(module_name: str):
+def run_extractor_test(module_name: str, throw_exception: bool = True):
+    # sourcery skip: use-fstring-for-formatting
     module = ExtractorLoader.load(module_name=module_name)
     test_class = module.TestCollections
     for attr in test_class.__dict__.keys():
         if attr.startswith("test"):
-            logging.debug("MODULE {} RUN {}".format(module.__str__(), attr))
-            getattr(test_class(), attr)()
+            logging.debug("MODULE {} RUN {}".format(module.__str__().split("/")[-1], attr))
+            try:
+                getattr(test_class(), attr)()
+            except AssertionError as e:
+                if throw_exception:
+                    raise e
+                else:
+                    logging.error(e)
+            else:
+                logging.debug("[OK] {} {}".format(module.__str__().split("/")[-1], attr))
 
 
-def run_all_extractors_tests():
+def run_all_extractors_tests(*, throw_exception: bool = True):
+    # sourcery skip: use-fstring-for-formatting
     modules = ExtractorLoader.load_all()
     for module in modules:
         test_class = module.TestCollections
         for attr in test_class.__dict__.keys():
             if attr.startswith("test"):
-                logging.debug("MODULE {} RUN {}".format(module.__str__(), attr))
-                getattr(test_class(), attr)()
+                logging.debug("MODULE {} RUN {}".format(module.__str__().split("/")[-1], attr))
+                try:
+                    getattr(test_class(), attr)()
+                except AssertionError as e:
+                    if throw_exception:
+                        raise e
+                    else:
+                        logging.error(e)
+                else:
+                    logging.debug("[OK] {} {}".format(module.__str__().split("/")[-1], attr))
