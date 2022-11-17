@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import cast, Protocol, Type
 import importlib
 import pathlib
+import logging
 
 from anicli_api.base import *
 
@@ -11,7 +12,9 @@ from anicli_api.base import *
 __all__ = (
     'ModuleExtractor',
     'BaseExtractorLoader',
-    'ExtractorLoader'
+    'ExtractorLoader',
+    'run_extractor_test',
+    'run_all_extractors_tests'
 )
 
 # check Extractor signature
@@ -100,3 +103,22 @@ class ExtractorLoader(BaseExtractorLoader):
                 cls._validate(mdl, file_import)
                 modules.append(cls._import(file_import))
         return modules
+
+
+def run_extractor_test(module_name: str):
+    module = ExtractorLoader.load(module_name=module_name)
+    test_class = module.TestCollections
+    for attr in test_class.__dict__.keys():
+        if attr.startswith("test"):
+            logging.debug("MODULE {} RUN {}".format(module.__str__(), attr))
+            getattr(test_class(), attr)()
+
+
+def run_all_extractors_tests():
+    modules = ExtractorLoader.load_all()
+    for module in modules:
+        test_class = module.TestCollections
+        for attr in test_class.__dict__.keys():
+            if attr.startswith("test"):
+                logging.debug("MODULE {} RUN {}".format(module.__str__(), attr))
+                getattr(test_class(), attr)()

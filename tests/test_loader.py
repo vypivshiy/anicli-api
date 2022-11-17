@@ -1,6 +1,6 @@
 import pytest
 
-from anicli_api.loader import ExtractorLoader
+from anicli_api.loader import ExtractorLoader, run_extractor_test
 
 FAKE_WRONG_EXTRACTOR = "tests.fixtures.fake_extractor_bad"
 
@@ -27,3 +27,7 @@ def test_not_exist_load_extractor(module: str):
                                     "tests.fixtures.fake_extractor"])
 def test_success_import_extractor(module):
     ExtractorLoader.load(module_name=module)
+
+
+def test_extractor_tester():
+    run_extractor_test("tests.fixtures.fake_extractor")
