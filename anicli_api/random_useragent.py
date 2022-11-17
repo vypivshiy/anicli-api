@@ -35,7 +35,7 @@ class Agent:
 
     Basic Usage::
 
-      >>> from anicli_ru.utils.random_agent import Agent
+      >>> from anicli_api.random_useragent import Agent
       >>> agent = Agent.desktop()
       Mozilla/5.0 (X11; Linux x86_64) ...
 
