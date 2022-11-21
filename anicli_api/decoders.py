@@ -138,7 +138,8 @@ class Kodik(BaseDecoder):
     @classmethod
     def is_kodik(cls, url: str) -> bool:
         """return True if url player is kodik."""
-        return bool(re.match(r"https://\w+\.\w{2,6}/seria/\d+/\w+/\d{3,4}p", url))
+        return bool(re.match(r"https://\w{5,32}\.\w{2,6}/(?:seria|video|film)/\d+/\w+/\d{3,4}p", url))
+        return bool(re.match(r"https://\w{5,32}\.\w{2,6}/(?:seria|video|film)/\d+/\w+/\d{3,4}p", url))
 
     @classmethod
     def is_banned(cls, response: str):
@@ -150,7 +151,7 @@ class Kodik(BaseDecoder):
             url = f"//{url}"
         if not url.startswith("https:"):
             url = f"https:{url}"
-        if url_ := re.search(r"https://\w+\.\w{2,6}/seria/\d+/\w+/\d{3,4}p", url):
+        if url_ := re.search(r"https://\w{5,32}\.\w{2,6}/(?:seria|video|film)/\d+/\w+/\d{3,4}p", url):
             return f"https://{urlparse(url_.group()).netloc}/gvi"
         raise DecoderError(f"{url} is not Kodik")
 
