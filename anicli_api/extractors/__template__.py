@@ -1,4 +1,6 @@
 """Template extractor"""
+from __future__ import annotations
+
 from anicli_api.base import *
 
 __all__ = (
@@ -8,12 +10,13 @@ __all__ = (
     'AnimeInfo',
     'Episode',
     'Video',
-    'TestCollections'
+    'TestCollections',
 )
 
 
 class Extractor(BaseAnimeExtractor):
     # optional constants, HTTP configuration here
+
     def search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         # past code here
         pass

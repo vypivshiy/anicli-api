@@ -1,4 +1,5 @@
 """THIS EXTRACTOR WORKS ONLY MOBILE USERAGENT!!!"""
+from __future__ import annotations
 
 from anicli_api.base import *
 
@@ -257,15 +258,12 @@ class TestCollections(BaseTestCollections):
 
     def test_extract_metadata(self):
         for meta in Extractor().search("lain")[0]:
-            assert meta["search"]["url"] == 'https://animego.org/anime/eksperimenty-leyn-1114'
-            assert meta["anime"]["url"] == 'https://animego.org/anime/eksperimenty-leyn-1114'
-            assert meta["episode"]["num"] == 1
-            return
+            assert meta.search.url == 'https://animego.org/anime/eksperimenty-leyn-1114'
+            assert meta.anime.url == 'https://animego.org/anime/eksperimenty-leyn-1114'
+            assert meta.episode.num == 1
+            break
 
     def test_extract_video(self):
         for meta in Extractor().search("lain")[0]:
-            assert "kodik" in meta["video_meta"]["url"]
-            for v in meta["video"].values():
-                v: str
-                assert v.endswith(".m3u8")
-            return
+            assert "kodik" in meta.video.url
+            assert meta.video.get_source()[0].url.endswith(".m3u8")

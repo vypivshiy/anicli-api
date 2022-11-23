@@ -39,24 +39,36 @@ def test_get_video():
 
 def test_walk_search():
     for i, meta in enumerate(Extractor().walk_search("")):
-        assert meta == Extractor.WALK_SEARCH[i]
+        assert {"search": meta.search.dict(),
+                "anime": meta.anime.dict(),
+                "episode": meta.episode.dict(),
+                "video": meta.video.dict()} == Extractor.WALK_SEARCH[i]
 
 
 def test_walk_ongoing():
     for i, meta in enumerate(Extractor().walk_ongoing()):
-        assert meta == Extractor.WALK_ONGOING[i]
+        assert {"search": meta.search.dict(),
+                "anime": meta.anime.dict(),
+                "episode": meta.episode.dict(),
+                "video": meta.video.dict()} == Extractor.WALK_ONGOING[i]
 
 
 def test_anime_metadata():
     search = Extractor().search("")[0]
     for i, meta in enumerate(search):
-        assert meta == Extractor.SEARCH_META[i]
+        assert {"search": meta.search.dict(),
+                "anime": meta.anime.dict(),
+                "episode": meta.episode.dict(),
+                "video": meta.video.dict()} == Extractor.SEARCH_META[i]
 
 
 def test_ongoing_metadata():
     ongoing = Extractor().ongoing()[0]
     for i, meta in enumerate(ongoing):
-        assert meta == Extractor.ONGOING_META[i]
+        assert {"search": meta.search.dict(),
+                "anime": meta.anime.dict(),
+                "episode": meta.episode.dict(),
+                "video": meta.video.dict()} == Extractor.ONGOING_META[i]
 
 
 def test_anime_iterables():

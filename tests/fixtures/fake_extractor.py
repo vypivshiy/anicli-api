@@ -20,69 +20,69 @@ class Extractor(BaseAnimeExtractor):
         {'search': {'url': 'search_1', 'title': 'title_1', 'meta': 'search_1 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_1', 'num': 1, 'meta': 'episode_1 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+         'video': {'url': 'foobar'}},
 
         {'search': {'url': 'search_1', 'title': 'title_1', 'meta': 'search_1 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_2', 'num': 2, 'meta': 'episode_2 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+         'video': {'url': 'foobar'}},
 
         {'search': {'url': 'search_1', 'title': 'title_1', 'meta': 'search_1 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_3', 'num': 3, 'meta': 'episode_3 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'}]
+         'video': {'url': 'foobar'}}]
 
     WALK_ONGOING = [
         {'search': {'url': 'ongoing_1', 'title': 'title_1', 'description': 'ongoing_1 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_1', 'num': 1, 'meta': 'episode_1 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+         'video': {'url': 'foobar'}},
         {'search': {'url': 'ongoing_1', 'title': 'title_1', 'description': 'ongoing_1 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_2', 'num': 2, 'meta': 'episode_2 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+         'video': {'url': 'foobar'}},
         {'search': {'url': 'ongoing_1', 'title': 'title_1', 'description': 'ongoing_1 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_3', 'num': 3, 'meta': 'episode_3 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+         'video': {'url': 'foobar'}},
         {'search': {'url': 'ongoing_2', 'title': 'title_2', 'description': 'search_2 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_1', 'num': 1, 'meta': 'episode_1 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+         'video': {'url': 'foobar'}},
         {'search': {'url': 'ongoing_2', 'title': 'title_2', 'description': 'search_2 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_2', 'num': 2, 'meta': 'episode_2 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+         'video': {'url': 'foobar'}},
         {'search': {'url': 'ongoing_2', 'title': 'title_2', 'description': 'search_2 mock meta'},
          'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
          'episode': {'title': 'episode_3', 'num': 3, 'meta': 'episode_3 meta'},
-         'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'}]
+         'video': {'url': 'foobar'}}]
 
     SEARCH_META = [{'search': {'url': 'search_1', 'title': 'title_1', 'meta': 'search_1 mock meta'},
                     'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
                     'episode': {'title': 'episode_1', 'num': 1, 'meta': 'episode_1 meta'},
-                    'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
-                   dict(search={'url': 'search_1', 'title': 'title_1', 'meta': 'search_1 mock meta'},
-                        anime={'title': 'Some title name', 'meta': 'anime info meta'},
-                        episode={'title': 'episode_2', 'num': 2, 'meta': 'episode_2 meta'},
-                        video_meta={'url': 'foobar'}, video='video.mp4'),
+                    'video': {'url': 'foobar'}},
+                   {'search': {'url': 'search_1', 'title': 'title_1', 'meta': 'search_1 mock meta'},
+                    'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
+                    'episode': {'title': 'episode_2', 'num': 2, 'meta': 'episode_2 meta'},
+                    'video': {'url': 'foobar'}},
                    {'search': {'url': 'search_1', 'title': 'title_1', 'meta': 'search_1 mock meta'},
                     'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
                     'episode': {'title': 'episode_3', 'num': 3, 'meta': 'episode_3 meta'},
-                    'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'}]
+                    'video': {'url': 'foobar'}}]
 
     ONGOING_META = [{'search': {'url': 'ongoing_1', 'title': 'title_1', 'description': 'ongoing_1 mock meta'},
                      'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
                      'episode': {'title': 'episode_1', 'num': 1, 'meta': 'episode_1 meta'},
-                     'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+                     'video': {'url': 'foobar'}},
                     {'search': {'url': 'ongoing_1', 'title': 'title_1', 'description': 'ongoing_1 mock meta'},
                      'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
                      'episode': {'title': 'episode_2', 'num': 2, 'meta': 'episode_2 meta'},
-                     'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'},
+                     'video': {'url': 'foobar'}},
                     {'search': {'url': 'ongoing_1', 'title': 'title_1', 'description': 'ongoing_1 mock meta'},
                      'anime': {'title': 'Some title name', 'meta': 'anime info meta'},
                      'episode': {'title': 'episode_3', 'num': 3, 'meta': 'episode_3 meta'},
-                     'video_meta': {'url': 'foobar'}, 'video': 'video.mp4'}]
+                     'video': {'url': 'foobar'}}]
 
     def search(self, query: str) -> List[BaseSearchResult]:
         return [SearchResult(url="search_1", title="title_1", meta="search_1 mock meta")]

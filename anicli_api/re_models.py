@@ -1,12 +1,12 @@
 from __future__ import annotations
+
+import builtins
 from abc import abstractmethod
 import re
-from typing import Pattern, Optional, Any, Type, Union, AnyStr, Dict, Iterable, Callable, List, Generator
+from typing import Pattern, Optional, Any, Type, Union, AnyStr, Dict, Iterable, Callable, List
 
 T_BEFORE_EXEC = Union[Callable[[str], str], Dict[str, Callable[[str], str]]]
 T_AFTER_EXEC = Union[Callable[[Any], Any], Dict[str, Callable[[Any], Any]]]
-
-# TODO write docstring, add tests
 
 __all__ = (
     'ReBaseField',
@@ -18,34 +18,38 @@ __all__ = (
 
 
 class ReBaseField:
-    """base regex parser and dict converter
+    """Базовый класс парсера регулярных выражений с конвертацией в словарь
 
-    work strategy:
-        1. set regex pattern and set name. if pattern not found, return  {name: default} dict
+    Базовый принцип работы:
+        1. Установить re.Pattern, и имя ключа нового аргумента.
 
-        2. functions convert priority:
+        2. Приоритет преобразований функциями, после нахождения регулярными выражениями result:
 
-        2.1  before_func attr, if set
+        2.1 Если регулярное выражение ничего не нашло, вернёт  {name: default} словарь
 
-        2.2  before_func_call method
+        2.2  before_func параметр, если передан
 
-        2.3 result_type set type (default str)
+        2.3  before_func_call метод, если объявлен
 
-        2.4 after_func_call method
+        2.4 result_type тип (по умолчанию str)
 
-        2.5 after_func attr, if set
+        2.5 after_func_call метод, если объявлен
 
-        3. return {name: result}
+        2.6 after_func attr, если передан
+
+        3. вернуть {name: result}
     """
 
-    def __init__(self,
-                 pattern: Union[Pattern, AnyStr],
-                 *,
-                 name: Optional[str] = None,
-                 default: Optional[Any] = None,
-                 type: Type = str,
-                 before_exec_type: Optional[T_BEFORE_EXEC] = None,
-                 after_exec_type: Optional[T_AFTER_EXEC] = None):
+    def __init__(
+            self,
+            pattern: Union[Pattern, AnyStr],
+            *,
+            name: Optional[str] = None,
+            default: Optional[Any] = None,
+            type: Type = str,
+            before_exec_type: Optional[T_BEFORE_EXEC] = None,
+            after_exec_type: Optional[T_AFTER_EXEC] = None
+    ) -> None:
         self.pattern = pattern if isinstance(pattern, Pattern) else re.compile(pattern)
 
         self.name = self._set_name(name)
@@ -63,15 +67,17 @@ class ReBaseField:
             return name
 
     @staticmethod
-    def _init_lambda_function(*,
-                              value: Any,
-                              func: Optional[Union[Dict[str, Callable[[Any], Any]], Callable[[Any], Any]]] = None,
-                              key: str = "",
-                              ) -> Any:
+    def _init_lambda_function(
+            *,
+            value: Any,
+            # {"group_name or name": func, ...} or func
+            func: Optional[Union[T_BEFORE_EXEC, T_AFTER_EXEC]] = None,
+            key: str = "",
+    ) -> Any:
         if func:
             if isinstance(func, dict) and func.get(key):
                 if not callable(func.get(key)):
-                    raise TypeError
+                    raise TypeError(f"{func.get(key)} must be callable")
                 value = func.get(key)(value)  # type: ignore
             elif callable(func):
                 value = func(value)
@@ -113,6 +119,7 @@ class ReBaseField:
 
 
 class ReField(ReBaseField):
+    """Возвращает первый найденный результат, найденный регулярным выражением"""
 
     def parse(self, text: str) -> Dict[str, Any]:
         if not (result := self.pattern.search(text)):
@@ -125,33 +132,42 @@ class ReField(ReBaseField):
         elif result:
             rez = dict(zip(self.name.split(","), result.groups()))
         else:
-            raise RuntimeError
+            raise TypeError("Missing name attribute. Add param name or set groupname in pattern")
         for k in rez.keys():
             rez[k] = self._enchant_value(key=k, value=rez[k])
         return rez
 
 
 class ReFieldList(ReBaseField):
-    def __init__(self,
-                 pattern: Union[Pattern, AnyStr],
-                 *,
-                 name: str,
-                 default: Optional[Iterable[Any]] = None,
-                 type: Type = str,
-                 before_exec_type: Optional[Callable] = None,
-                 after_exec_type: Optional[Callable] = None):
+    """Возвращает список всех найденных результатов"""
 
+    def __init__(
+            self,
+            pattern: Union[Pattern, AnyStr],
+            *,
+            name: str,
+            default: Optional[Iterable[Any]] = None,
+            type: Type = str,
+            before_exec_type: Optional[Callable] = None,
+            after_exec_type: Optional[Callable] = None
+    ) -> None:
         if not default:
             default = []
 
-        if not isinstance(default, Iterable):
-            raise TypeError
+        if not isinstance(default, Iterable) and not isinstance(default, str):
+            raise TypeError(
+                f"{self.__class__.__name__} default param must be iterable not {builtins.type(default).__name__}"
+            )
 
         if not isinstance(default, list):
             default = list(default)
 
-        super().__init__(pattern, name=name, default=default,
-                         type=type, before_exec_type=before_exec_type, after_exec_type=after_exec_type)
+        super().__init__(pattern,
+                         name=name,
+                         default=default,
+                         type=type,
+                         before_exec_type=before_exec_type,
+                         after_exec_type=after_exec_type)
 
     def parse(self, text: str) -> Dict[str, List]:
         if not (result := self.pattern.findall(text)):
@@ -163,28 +179,43 @@ class ReFieldList(ReBaseField):
 
 
 class ReFieldListDict(ReBaseField):
-    def __init__(self,
-                 pattern: Union[Pattern, AnyStr],
-                 *,
-                 name: str,
-                 default: Optional[Iterable[Any]] = None,
-                 type: Type = str,
-                 before_exec_type: Optional[Dict[str, Callable]] = None,
-                 after_exec_type: Optional[Dict[str, Callable]] = None):
+    """Возвращает список словарей найденных выражений"""
+
+    def __init__(
+            self,
+            pattern: Union[Pattern, AnyStr],
+            *,
+            name: str,
+            default: Optional[Iterable[Any]] = None,
+            type: Type = str,
+            before_exec_type: Optional[Dict[str, Callable]] = None,
+            after_exec_type: Optional[Dict[str, Callable]] = None
+    ) -> None:
+
         if not default:
             default = []
 
-        if not isinstance(default, Iterable):
-            raise TypeError
+        if not isinstance(default, Iterable) and not isinstance(default, str):
+            raise TypeError(
+                f"{self.__class__.__name__} default param must be iterable, not {builtins.type(default)}"
+            )
 
-        super().__init__(pattern, name=name, default=default,
-                         type=type, before_exec_type=before_exec_type, after_exec_type=after_exec_type)
+        if not isinstance(default, list):
+            default = list(default)
+
+        super().__init__(pattern,
+                         name=name,
+                         default=default,
+                         type=type,
+                         before_exec_type=before_exec_type,
+                         after_exec_type=after_exec_type
+                         )
 
     def parse(self, text: str) -> Dict[str, List[Any]]:
         if not self.pattern.search(text):
             return {self.name: self.default}  # type: ignore
         if not self.pattern.groupindex:
-            raise TypeError
+            raise TypeError("Missing pattern.groupindex value")
         values = []
         for result in self.pattern.finditer(text):
             rez = result.groupdict()
@@ -195,6 +226,12 @@ class ReFieldListDict(ReBaseField):
 
 
 def parse_many(text: str, *re_fields: ReBaseField) -> dict[str, Any]:
+    """ Accumulate all re_fields results to dict
+
+    :param text: target string
+    :param re_fields: ReFields classes
+    :return: dict with re_fields values
+    """
     result = {}
     for re_field in re_fields:
         result.update(re_field.parse(text))

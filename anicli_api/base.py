@@ -20,16 +20,34 @@ Extractor works schema:
 """
 from __future__ import annotations
 
-from typing import Union, Dict, Any, List, Generator, Awaitable, AsyncGenerator, TypedDict, Generic, TypeVar
+from dataclasses import dataclass
+from typing import (
+    Union,
+    Dict,
+    Any,
+    List,
+    Generator,
+    AsyncGenerator,
+    Awaitable,
+    Generic,
+    TypeVar,
+    Tuple,
+    Type
+)
+
 from html import unescape
+import warnings
 
 from bs4 import BeautifulSoup
 
 from abc import ABC, abstractmethod
 from anicli_api.re_models import ReField, ReFieldList, ReFieldListDict, parse_many
 from anicli_api._http import BaseHTTPSync, BaseHTTPAsync
-from anicli_api.decoders import Kodik, Aniboom
-
+from anicli_api.decoders import (
+    ALL_DECODERS,
+    MetaVideo,
+    BaseDecoder
+)
 
 __all__ = (
     'BaseModel',
@@ -40,20 +58,19 @@ __all__ = (
     'BaseAnimeInfo',
     'BaseAnimeExtractor',
     'BaseTestCollections',
-    'RawData',
+    'IterData',
     'List'  # python 3.8 support typehint
 )
-
 
 T = TypeVar("T")
 
 
-class RawData(TypedDict):
-    search: Dict[str, Any]  # Ongoing.dict() | SearchResult.dict()
-    anime: Dict[str, Any]  # AnimeInfo.dict()
-    episode: Dict[str, Any]  # Episode.dict()
-    video_meta: Dict[str, Any]  # Video.dict()
-    video: Union[str, Dict[str, Any]]  # Video.get_source()
+@dataclass
+class IterData:
+    search: Union[BaseSearchResult, BaseOngoing]
+    anime: Union[BaseAnimeInfo]
+    episode: BaseEpisode
+    video: BaseVideo
 
 
 class BaseModel(ABC, Generic[T]):
@@ -129,27 +146,23 @@ class BaseSearchResult(BaseModel, Generic[T]):
         """return BaseAnimeInfo object"""
         pass
 
-    def _full_parse(self) -> Generator[RawData, None, None]:
+    def _full_parse(self) -> Generator[IterData, None, None]:
         anime = self.get_anime()
         for episode in anime.get_episodes():
-            for video_meta in episode.get_videos():
-                video = video_meta.get_source()
-                yield {"search": self.dict(),
-                       "anime": anime.dict(),
-                       "episode": episode.dict(),
-                       "video_meta": video_meta.dict(),
-                       "video": video}
+            for video in episode.get_videos():
+                yield IterData(search=self,
+                               anime=anime,
+                               episode=episode,
+                               video=video)
 
-    async def _async_full_parse(self) -> AsyncGenerator[RawData, None]:
+    async def _async_full_parse(self) -> AsyncGenerator[IterData, None]:
         anime = await self.a_get_anime()  # type: ignore
         for episode in (await anime.a_get_episodes()):
-            for video_meta in (await episode.a_get_videos()):
-                video = await video_meta.a_get_source()
-                yield {"search": self.dict(),
-                       "anime": anime.dict(),
-                       "episode": episode.dict(),
-                       "video_meta": video_meta.dict(),
-                       "video": video}
+            for video in (await episode.a_get_videos()):
+                yield IterData(search=self,
+                               anime=anime,
+                               episode=episode,
+                               video=video)
 
     def __iter__(self):
         return self._full_parse()
@@ -159,44 +172,13 @@ class BaseSearchResult(BaseModel, Generic[T]):
 
 
 class BaseOngoing(BaseSearchResult, Generic[T]):
-    """Base ongoing class object"""
-
     @abstractmethod
     async def a_get_anime(self) -> BaseAnimeInfo:
         pass
 
     @abstractmethod
     def get_anime(self) -> BaseAnimeInfo:
-        """return BaseAnimeInfo object"""
         pass
-
-    def _full_parse(self) -> Generator[RawData, None, None]:
-        anime = self.get_anime()
-        for episode in anime.get_episodes():
-            for video_meta in episode.get_videos():
-                video = video_meta.get_source()
-                yield {"search": self.dict(),
-                       "anime": anime.dict(),
-                       "episode": episode.dict(),
-                       "video_meta": video_meta.dict(),
-                       "video": video}
-
-    async def _async_full_parse(self) -> AsyncGenerator[RawData, None]:
-        anime = await self.a_get_anime()
-        for episode in (await anime.a_get_episodes()):
-            for video_meta in (await episode.a_get_videos()):
-                video = await video_meta.a_get_source()
-                yield {"search": self.dict(),
-                       "anime": anime.dict(),
-                       "episode": episode.dict(),
-                       "video_meta": video_meta.dict(),
-                       "video": video}
-
-    def __iter__(self):
-        return self._full_parse()
-
-    def __aiter__(self):
-        return self._async_full_parse()
 
 
 class BaseAnimeInfo(BaseModel, Generic[T]):
@@ -241,20 +223,22 @@ class BaseVideo(BaseModel, Generic[T]):
     url: str - url to balancer or direct video
     """
     url: str
+    _DECODERS: Tuple[Type[BaseDecoder], ...] = ALL_DECODERS
 
-    async def a_get_source(self) -> Union[Dict[str, Any], str]:
-        if self.url == Kodik():
-            return await Kodik.async_parse(self.url)
-        elif self.url == Aniboom():
-            return await Aniboom.async_parse(self.url)
+    async def a_get_source(self) -> Union[str, List[MetaVideo]]:
+        for decoder in self._DECODERS:
+            if self.url == decoder():
+                return await decoder.async_parse(self.url)
+        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
         return self.url
 
-    def get_source(self) -> Union[Dict[str, Any], str]:
+    def get_source(self) -> Union[str, List[MetaVideo]]:
+        # sourcery skip: use-next
         """if video is Kodik or Aniboom, return dict with videos. Else, return direct url"""
-        if self.url == Kodik():
-            return Kodik.parse(self.url)
-        elif self.url == Aniboom():
-            return Aniboom.parse(self.url)
+        for decoder in self._DECODERS:
+            if self.url == decoder():
+                return decoder.parse(self.url)
+        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
         return self.url
 
 
@@ -287,49 +271,48 @@ class BaseAnimeExtractor(ABC):
         pass
 
     @staticmethod
-    def _iter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> Generator[RawData, None, None]:
+    def _iter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> Generator[IterData, None, None]:
         anime = obj.get_anime()
         for episode in anime.get_episodes():
             for video in episode.get_videos():
-                yield {
-                    "search": obj.dict(),
-                    "anime": anime.dict(),
-                    "episode": episode.dict(),
-                    "video_meta": video.dict(),
-                    "video": video.get_source()}
+                yield IterData(search=obj,
+                               anime=anime,
+                               episode=episode,
+                               video=video)
 
     @staticmethod
-    async def _aiter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> AsyncGenerator[RawData, None]:
+    async def _aiter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> AsyncGenerator[IterData, None]:
         anime = await obj.a_get_anime()
         for episode in (await anime.a_get_episodes()):
             for video in (await episode.a_get_videos()):
-                yield {
-                    "search": obj.dict(),
-                    "anime": anime.dict(),
-                    "episode": episode.dict(),
-                    "video_meta": video.dict(),
-                    "video": video.get_source()}
+                yield IterData(search=obj,
+                               anime=anime,
+                               episode=episode,
+                               video=video)
 
-    def walk_search(self, query: str) -> Generator[RawData, None, None]:
+    def walk_search(self, query: str) -> Generator[IterData, None, None]:
         for search_result in self.search(query):
             yield from self._iter_from_result(search_result)
 
-    def walk_ongoing(self) -> Generator[RawData, None, None]:
+    def walk_ongoing(self) -> Generator[IterData, None, None]:
         for ongoing in self.ongoing():
             yield from self._iter_from_result(ongoing)
 
-    async def async_walk_search(self, query: str) -> AsyncGenerator[RawData, None]:
+    async def async_walk_search(self, query: str) -> AsyncGenerator[IterData, None]:
         for search_result in (await self.async_search(query)):
             async for data in self._aiter_from_result(search_result):
                 yield data
 
-    async def async_walk_ongoing(self) -> AsyncGenerator[RawData, None]:
+    async def async_walk_ongoing(self) -> AsyncGenerator[IterData, None]:
         for ongoing in (await self.async_ongoing()):
             async for data in self._aiter_from_result(ongoing):
                 yield data
 
     @staticmethod
-    def _soup(markup: Union[str, bytes], *, parser: str = "html.parser", **kwargs) -> BeautifulSoup:
+    def _soup(markup: Union[str, bytes],
+              *, parser: str = "html.parser",
+              **kwargs
+              ) -> BeautifulSoup:
         """return BeautifulSoup instance"""
         return BeautifulSoup(markup, parser, **kwargs)
 

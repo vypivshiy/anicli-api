@@ -2,6 +2,12 @@
 
 from random import choice
 
+
+__all__ = (
+    "Agent"
+)
+
+
 CHROME_VERSIONS = (
     '98.0.4758.108', '98.0.4758.107', '98.0.4758.106', '97.0.4692.108', '98.0.4758.105', '98.0.4758.104',
     '98.0.4758.103', '98.0.4758.102', '98.0.4758.101', '98.0.4758.100', '98.0.4758.99', '97.0.4692.107', '98.0.4758.98',
@@ -30,16 +36,16 @@ DESKTOP_STRINGS = (
 )
 
 
-class Agent:
+class RandomAgent:
     """Simple UserAgent string generator noname chromium based browser for desktop or mobile
 
     Basic Usage::
 
-      >>> from anicli_api.random_useragent import Agent
-      >>> agent = Agent.desktop()
+      >>> from anicli_api import RandomAgent
+      >>> agent = RandomAgent.desktop()
       Mozilla/5.0 (X11; Linux x86_64) ...
 
-      >>> agent = Agent.mobile()
+      >>> agent = RandomAgent.mobile()
       Mozilla/5.0 (Linux; Android 6.0; Nexus 5) ...
     """
     @classmethod
@@ -48,8 +54,7 @@ class Agent:
 
         :return: useragent string
         """
-        device = choice(MOBILE_STRINGS)
-        chrome = choice(CHROME_VERSIONS)
+        device, chrome = choice(MOBILE_STRINGS), choice(CHROME_VERSIONS)
         return f"Mozilla/5.0 {device} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{chrome} Mobile Safari/537.36"
 
     @classmethod
@@ -57,8 +62,7 @@ class Agent:
         """Generate chromium based useragent for desktop
 
         :return: useragent string"""
-        device = choice(DESKTOP_STRINGS)
-        chrome = choice(CHROME_VERSIONS)
+        device, chrome = choice(DESKTOP_STRINGS), choice(CHROME_VERSIONS)
         return f"Mozilla/5.0 {device} AppleWebKit/537.36 (KHTML, like Gecko) Chrome/{chrome} Safari/537.36"
 
     @classmethod
