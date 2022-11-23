@@ -19,7 +19,7 @@ class Kodik(BaseDecoder):
         if response.get("720") and "480.mp4" in response.get("720"):  # type: ignore
             response["720"] = response.get("720").replace("/480.mp4", "/720.mp4")  # type: ignore
         # noinspection PyTypeChecker
-        return [MetaVideo(type="m3u8", quality=int(quality), url=video_url)
+        return [MetaVideo(type="m3u8", quality=int(quality), url=video_url)  # type: ignore
                 for quality, video_url in response.items()]
 
     @classmethod

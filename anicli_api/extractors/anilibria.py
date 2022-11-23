@@ -1,7 +1,9 @@
 """
 TODO sort keys for objects
 """
+from __future__ import annotations
 from typing import Optional, Any
+from typing import Protocol, AsyncGenerator, Generator
 
 from anicli_api.base import *
 
@@ -14,6 +16,20 @@ __all__ = (
     'Video',
     'TestCollections'
 )
+
+
+class SearchIterData(Protocol):
+    search: SearchResult
+    anime: AnimeInfo
+    episode: Episode
+    video: Video
+
+
+class OngoingIterData(Protocol):
+    search: Ongoing
+    anime: AnimeInfo
+    episode: Episode
+    video: Video
 
 
 class Anilibria:
@@ -66,17 +82,29 @@ class Extractor(BaseAnimeExtractor):
     BASE_URL = "https://api.anilibria.tv/v2/"
     ANILIBRIA = Anilibria()
 
-    def search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
+    def async_walk_search(self, query: str) -> AsyncGenerator[SearchIterData, None]:
+        return super().async_walk_search(query)
+
+    def async_walk_ongoing(self) -> AsyncGenerator[OngoingIterData, None]:
+        return super().async_walk_ongoing()
+
+    def walk_search(self, query: str) -> Generator[SearchIterData, None, None]:
+        return super().walk_search(query)
+
+    def walk_ongoing(self) -> Generator[OngoingIterData, None, None]:
+        return super().walk_ongoing()
+
+    def search(self, query: str) -> List['SearchResult']:
         return [SearchResult(**kw) for kw in self.ANILIBRIA.search_titles(search=query)]
 
-    def ongoing(self) -> List['Ongoing']:  # type: ignore[override]
+    def ongoing(self) -> List['Ongoing']:
         return [Ongoing(**kw) for kw in self.ANILIBRIA.get_updates()]
 
-    async def async_search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
+    async def async_search(self, query: str) -> List['SearchResult']:
         # past async code here
         return [SearchResult(**kw) for kw in (await self.ANILIBRIA.a_search_titles(search=query))]
 
-    async def async_ongoing(self) -> List['Ongoing']:  # type: ignore[override]
+    async def async_ongoing(self) -> List['Ongoing']:
         # past async code here
         return [Ongoing(**kw) for kw in (await self.ANILIBRIA.a_get_updates())]
 
@@ -100,6 +128,12 @@ class SearchResult(BaseSearchResult):
     blocked: dict
     player: dict
     torrents: dict
+
+    def __iter__(self) -> Generator[SearchIterData, None, None]:
+        return super().__iter__()
+
+    def __aiter__(self) -> AsyncGenerator[SearchIterData, None]:
+        return super().__aiter__()
 
     async def a_get_anime(self) -> 'AnimeInfo':
         return AnimeInfo(**self.dict())
@@ -128,6 +162,12 @@ class Ongoing(BaseOngoing):
     player: dict
     torrents: dict
 
+    def __iter__(self) -> Generator[OngoingIterData, None, None]:
+        return super().__iter__()
+
+    def __aiter__(self) -> AsyncGenerator[OngoingIterData, None]:
+        return super().__aiter__()
+
     async def a_get_anime(self) -> 'AnimeInfo':
         return AnimeInfo(**self.dict())
 
@@ -155,12 +195,12 @@ class AnimeInfo(BaseAnimeInfo):
     player: dict
     torrents: dict
 
-    async def a_get_episodes(self) -> List['Episode']:  # type: ignore[override]
+    async def a_get_episodes(self) -> List['Episode']:
         return [Episode(alternative_player=self.player["alternative_player"],
                         host=self.player["host"],
                         torrents=self.torrents["list"], **p) for p in self.player["playlist"].values()]
 
-    def get_episodes(self) -> List['Episode']:  # type: ignore[override]
+    def get_episodes(self) -> List['Episode']:
         return [Episode(alternative_player=self.player["alternative_player"],
                         host=self.player["host"],
                         torrents=self.torrents["list"], **p) for p in self.player["playlist"].values()]
@@ -176,11 +216,11 @@ class Episode(BaseEpisode):
     hls: dict
     torrents: dict
 
-    async def a_get_videos(self) -> List['Video']:  # type: ignore[override]
+    async def a_get_videos(self) -> List['Video']:
         return [Video(torrents=self.torrents,
                 **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()})]
 
-    def get_videos(self) -> List['Video']:  # type: ignore[override]
+    def get_videos(self) -> List['Video']:
         return [Video(torrents=self.torrents,
                 **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()})]
 

@@ -1,11 +1,38 @@
 """THIS EXTRACTOR WORKS ONLY MOBILE USERAGENT!!!"""
 from __future__ import annotations
+from typing import Protocol, AsyncGenerator, Generator
 
 from anicli_api.base import *
 
 
+class SearchIterData(Protocol):
+    search: SearchResult
+    anime: AnimeInfo
+    episode: Episode
+    video: Video
+
+
+class OngoingIterData(Protocol):
+    search: Ongoing
+    anime: AnimeInfo
+    episode: Episode
+    video: Video
+
+
 class Extractor(BaseAnimeExtractor):
     BASE_URL = "https://animego.org/"
+
+    def async_walk_search(self, query: str) -> AsyncGenerator[SearchIterData, None]:
+        return super().async_walk_search(query)
+
+    def async_walk_ongoing(self) -> AsyncGenerator[OngoingIterData, None]:
+        return super().async_walk_ongoing()
+
+    def walk_search(self, query: str) -> Generator[SearchIterData, None, None]:
+        return super().walk_search(query)
+
+    def walk_ongoing(self) -> Generator[OngoingIterData, None, None]:
+        return super().walk_ongoing()
 
     def search(self, query: str) -> List['SearchResult']:  # type: ignore[override]
         response = self.HTTP().get(f"{self.BASE_URL}search/anime", params={"q": query})
@@ -134,22 +161,32 @@ class AnimeParser(BaseModel):
 
 
 class SearchResult(AnimeParser, BaseSearchResult):
-    url: str
     name: str
     type: str
     # meta
     year: int
     thumbnail: str
 
+    def __iter__(self) -> Generator[SearchIterData, None, None]:
+        return super().__iter__()
+
+    def __aiter__(self) -> AsyncGenerator[SearchIterData, None]:
+        return super().__aiter__()
+
 
 class Ongoing(AnimeParser, BaseOngoing):
-    url: str
     name: str
     num: int
 
     # meta
     thumbnail: str
     dub: str
+
+    def __iter__(self) -> Generator[OngoingIterData, None, None]:
+        return super().__iter__()
+
+    def __aiter__(self) -> AsyncGenerator[OngoingIterData, None]:
+        return super().__aiter__()
 
 
 class AnimeInfo(BaseAnimeInfo):

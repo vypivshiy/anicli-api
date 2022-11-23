@@ -29,10 +29,8 @@ from typing import (
     Generator,
     AsyncGenerator,
     Awaitable,
-    Generic,
-    TypeVar,
     Tuple,
-    Type
+    Type,
 )
 
 from html import unescape
@@ -58,11 +56,8 @@ __all__ = (
     'BaseAnimeInfo',
     'BaseAnimeExtractor',
     'BaseTestCollections',
-    'IterData',
     'List'  # python 3.8 support typehint
 )
-
-T = TypeVar("T")
 
 
 @dataclass
@@ -73,7 +68,7 @@ class IterData:
     video: BaseVideo
 
 
-class BaseModel(ABC, Generic[T]):
+class BaseModel(ABC):
     """Base Model class
 
     instances:
@@ -134,7 +129,7 @@ class BaseModel(ABC, Generic[T]):
         return f"[{self.__class__.__name__}] " + ", ".join((f"{k}={v}" for k, v in self.dict().items()))
 
 
-class BaseSearchResult(BaseModel, Generic[T]):
+class BaseSearchResult(BaseModel):
     """Base search result class object."""
 
     @abstractmethod
@@ -146,7 +141,7 @@ class BaseSearchResult(BaseModel, Generic[T]):
         """return BaseAnimeInfo object"""
         pass
 
-    def _full_parse(self) -> Generator[IterData, None, None]:
+    def _full_parse(self) -> Generator:
         anime = self.get_anime()
         for episode in anime.get_episodes():
             for video in episode.get_videos():
@@ -155,7 +150,7 @@ class BaseSearchResult(BaseModel, Generic[T]):
                                episode=episode,
                                video=video)
 
-    async def _async_full_parse(self) -> AsyncGenerator[IterData, None]:
+    async def _async_full_parse(self) -> AsyncGenerator:
         anime = await self.a_get_anime()  # type: ignore
         for episode in (await anime.a_get_episodes()):
             for video in (await episode.a_get_videos()):
@@ -171,7 +166,7 @@ class BaseSearchResult(BaseModel, Generic[T]):
         return self._async_full_parse()
 
 
-class BaseOngoing(BaseSearchResult, Generic[T]):
+class BaseOngoing(BaseSearchResult):
     @abstractmethod
     async def a_get_anime(self) -> BaseAnimeInfo:
         pass
@@ -181,13 +176,13 @@ class BaseOngoing(BaseSearchResult, Generic[T]):
         pass
 
 
-class BaseAnimeInfo(BaseModel, Generic[T]):
+class BaseAnimeInfo(BaseModel):
     @abstractmethod
-    async def a_get_episodes(self) -> List[BaseEpisode]:
+    async def a_get_episodes(self) -> List:
         pass
 
     @abstractmethod
-    def get_episodes(self) -> List[BaseEpisode]:
+    def get_episodes(self) -> List:
         """return List[Episodes] objects"""
         pass
 
@@ -198,13 +193,13 @@ class BaseAnimeInfo(BaseModel, Generic[T]):
         return self._async_generator(self.a_get_episodes())
 
 
-class BaseEpisode(BaseModel, Generic[T]):
+class BaseEpisode(BaseModel):
     @abstractmethod
-    async def a_get_videos(self) -> List[BaseVideo]:
+    async def a_get_videos(self) -> List:
         pass
 
     @abstractmethod
-    def get_videos(self) -> List[BaseVideo]:
+    def get_videos(self) -> List:
         """return List[BaseVideo] objects"""
         pass
 
@@ -215,7 +210,7 @@ class BaseEpisode(BaseModel, Generic[T]):
         return self._async_generator(self.a_get_videos())
 
 
-class BaseVideo(BaseModel, Generic[T]):
+class BaseVideo(BaseModel):
     """Base video class object.
 
     minimum required attributes:
@@ -255,23 +250,23 @@ class BaseAnimeExtractor(ABC):
     _parse_many = parse_many
 
     @abstractmethod
-    def search(self, query: str) -> List[BaseSearchResult]:
+    def search(self, query: str) -> List:
         pass
 
     @abstractmethod
-    def ongoing(self) -> List[BaseOngoing]:
+    def ongoing(self) -> List:
         pass
 
     @abstractmethod
-    async def async_search(self, query: str) -> List[BaseSearchResult]:
+    async def async_search(self, query: str) -> List:
         pass
 
     @abstractmethod
-    async def async_ongoing(self) -> List[BaseOngoing]:
+    async def async_ongoing(self) -> List:
         pass
 
     @staticmethod
-    def _iter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> Generator[IterData, None, None]:
+    def _iter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> Generator:
         anime = obj.get_anime()
         for episode in anime.get_episodes():
             for video in episode.get_videos():
@@ -281,7 +276,7 @@ class BaseAnimeExtractor(ABC):
                                video=video)
 
     @staticmethod
-    async def _aiter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> AsyncGenerator[IterData, None]:
+    async def _aiter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> AsyncGenerator:
         anime = await obj.a_get_anime()
         for episode in (await anime.a_get_episodes()):
             for video in (await episode.a_get_videos()):
@@ -290,20 +285,20 @@ class BaseAnimeExtractor(ABC):
                                episode=episode,
                                video=video)
 
-    def walk_search(self, query: str) -> Generator[IterData, None, None]:
+    def walk_search(self, query: str) -> Generator:
         for search_result in self.search(query):
             yield from self._iter_from_result(search_result)
 
-    def walk_ongoing(self) -> Generator[IterData, None, None]:
+    def walk_ongoing(self) -> Generator:
         for ongoing in self.ongoing():
             yield from self._iter_from_result(ongoing)
 
-    async def async_walk_search(self, query: str) -> AsyncGenerator[IterData, None]:
+    async def async_walk_search(self, query: str) -> AsyncGenerator:
         for search_result in (await self.async_search(query)):
             async for data in self._aiter_from_result(search_result):
                 yield data
 
-    async def async_walk_ongoing(self) -> AsyncGenerator[IterData, None]:
+    async def async_walk_ongoing(self) -> AsyncGenerator:
         for ongoing in (await self.async_ongoing()):
             async for data in self._aiter_from_result(ongoing):
                 yield data
