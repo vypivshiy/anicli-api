@@ -1,6 +1,6 @@
 """THIS EXTRACTOR WORKS ONLY MOBILE USERAGENT!!!"""
 from __future__ import annotations
-from typing import Protocol, AsyncGenerator, Generator
+from typing import Protocol, AsyncGenerator, Generator, Dict
 
 from anicli_api.base import *
 
@@ -71,9 +71,25 @@ class Extractor(BaseAnimeExtractor):
                 r'</div><div class="[^>]+">\((?P<dub>[^>]+)\)',
                 name="info",
                 after_exec_type={"url": lambda s: f"https://animego.org{s}",
-                                 "num": int}).parse_values(response.text)
+                                 "num": lambda s: int(s.split()[0])}).parse_values(response.text)
             # {url: str, thumbnail: str, name: str, num: int, dub: str}
-            return [Ongoing(**data) for data in result]
+            # return [Ongoing(**data) for data in result]
+            return self._ongoing_sort(result)
+
+    @staticmethod
+    def _ongoing_sort(raw_parsed_data: List[Dict]) -> List['Ongoing']:
+        # remove url duplicates
+        seen: Dict[str, Dict] = {}
+        for ong in raw_parsed_data:
+            if not seen.get(ong["url"]):
+                seen[ong["url"]] = ong
+            else:
+                old_ong = seen[ong["url"]]
+                if seen[ong["url"]]["num"] < ong["num"]:
+                    # set max available episode num
+                    seen[ong["url"]]["num"] = ong["num"]
+                old_ong["dub"] = f'{old_ong["dub"]}, {ong["dub"]}'
+        return [Ongoing(**kw) for kw in seen.values()]
 
     def ongoing(self) -> List['Ongoing']:  # type: ignore[override]
         response = self.HTTP().get(self.BASE_URL)
@@ -86,7 +102,8 @@ class Extractor(BaseAnimeExtractor):
             after_exec_type={"url": lambda s: f"https://animego.org{s}",
                              "num": lambda s: int(s.split()[0])}).parse_values(response.text)
         # {url: str, thumbnail: str, name: str, num: int, dub: str}
-        return [Ongoing(**data) for data in result]
+        # return [Ongoing(**data) for data in result]
+        return self._ongoing_sort(result)
 
 
 class AnimeParser(BaseModel):
@@ -176,7 +193,7 @@ class SearchResult(AnimeParser, BaseSearchResult):
 
 class Ongoing(AnimeParser, BaseOngoing):
     name: str
-    num: int
+    num: str
 
     # meta
     thumbnail: str
@@ -291,14 +308,13 @@ class TestCollections(BaseTestCollections):
 
     def test_ongoing(self):
         ongs = Extractor().ongoing()
-        assert len(ongs) > 0
+        assert len(ongs) > 1
 
     def test_extract_metadata(self):
         for meta in Extractor().search("lain")[0]:
             assert meta.search.url == 'https://animego.org/anime/eksperimenty-leyn-1114'
             assert meta.anime.url == 'https://animego.org/anime/eksperimenty-leyn-1114'
             assert meta.episode.num == 1
-            break
 
     def test_extract_video(self):
         for meta in Extractor().search("lain")[0]:
