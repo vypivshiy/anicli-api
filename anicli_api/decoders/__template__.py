@@ -6,7 +6,7 @@ from anicli_api.decoders.base import BaseDecoder, MetaVideo
 
 class MyDecoder(BaseDecoder):
     # past regex url rule validator here
-    URL_RULE = re.compile(r".*")
+    URL_VALIDATOR = re.compile(r".*")
 
     @classmethod
     def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
