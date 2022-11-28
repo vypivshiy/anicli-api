@@ -15,8 +15,8 @@ __all__ = (
 )
 
 
-# for help typing
 class SearchIterData(Protocol):
+    # help typing walk search, __iter__ Search
     search: SearchResult
     anime: AnimeInfo
     episode: Episode
@@ -24,6 +24,7 @@ class SearchIterData(Protocol):
 
 
 class OngoingIterData(Protocol):
+    # help typing walk ongoing, __iter__ Ongoing
     search: Ongoing
     anime: AnimeInfo
     episode: Episode
@@ -125,17 +126,25 @@ class Video(BaseVideo):
 
 class TestCollections(BaseTestCollections):
     def test_search(self):
-        # test search
-        pass
+        # rewrite testcase search here
+        result = Extractor().search("serial experiments lain")
+        # past metadata dict
+        assert result[0].get_anime().dict() == {}
 
     def test_ongoing(self):
         # test get ongoing
-        pass
+        assert len(Extractor().ongoing()) > 1
 
     def test_extract_metadata(self):
-        # test get metadata
-        pass
+        # rewrite testcase get metadata here
+        for meta in Extractor().search("serial experiments lain")[0]:
+            # past metadata dict here
+            assert meta.search.dict() == {}
+            assert meta.anime.dict() == {}
+            assert meta.episode.dict() == {}
 
     def test_extract_video(self):
-        # test extract video
-        pass
+        # rewrite testcase extract video here
+        for meta in Extractor().search("serial experiments lain")[0]:
+            assert "kodik" in meta.video.url
+            assert meta.video.get_source()[0].url.endswith(".m3u8")
