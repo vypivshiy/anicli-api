@@ -121,7 +121,10 @@ class Episode(BaseEpisode):
 
 
 class Video(BaseVideo):
-    # optional past metadata attrs here
+    # optional past metadata attrs here.
+    # url: str
+    # attribute required for automatic video parser for available decoders
+    # or manually define get_source and a_get_source methods
     pass
 
 
