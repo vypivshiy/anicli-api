@@ -41,7 +41,7 @@ check: check-venv ## Run tests and linters
 	@$(interpreter) isort --check-only .
 	@echo ; echo "mypy"
 	@echo "----"
-	@$(interpreter) mypy
+	@$(interpreter) mypy .
 	@echo ; echo "pytest"
 	@echo "------"
 	@$(interpreter) pytest
