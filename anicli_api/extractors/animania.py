@@ -49,7 +49,7 @@ class Extractor(BaseAnimeExtractor):
         lst = []
         for article in soup.find(
                 "div", class_="floats clearfix").find_all(
-            "article", attrs={"class": "short clearfix", "id": "short"}):
+                "article", attrs={"class": "short clearfix", "id": "short"}):
             for tc_item, short_poster in zip(article.find_all("a", class_="tc-item"),
                                              article.find_all("a", attrs={"class": "short-poster img-box"})):
                 data = {
@@ -105,15 +105,16 @@ class AnimeInfoParser(BaseModel):
     def _parse_meta(self, response: str) -> 'AnimeInfo':
         soup = self._soup(response)
         info = soup.find("div", class_="fmright")
-        meta_data = {"poster": "https://animania.online" + soup.find(
-            "div", class_="fmid").find(
-            "div", attrs={"class": "fposterik-l"}).find("img")["data-src"],
-                "title": info.find("div", attrs={"class": "fdesc-title"}).get_text(),
-                "description": info.find("div", attrs={"class": "fdesc slice-this ficon clearfix"}).get_text(
+        meta_data = {
+            "poster": "https://animania.online" + soup.find("div", class_="fmid").find(
+                "div", attrs={"class": "fposterik-l"}).find("img")["data-src"],
+            "title": info.find("div", attrs={"class": "fdesc-title"}).get_text(),
+            "description": info.find("div", attrs={"class": "fdesc slice-this ficon clearfix"}).get_text(
                     strip=True),
-                # TODO split metadata
-                "meta": [li.get_text(strip=True) for li in info.find("div", class_="flist clearfix").find_all("li")]
-                }
+
+            # TODO split to key, values meta information
+            "meta":
+                [li.get_text(strip=True) for li in info.find("div", class_="flist clearfix").find_all("li")]}
         # dubs_meta
         dubs_id_table = {
             int(span["onclick"].replace("kodikSlider.season('", "").replace("', this)", "")): span.get_text()
