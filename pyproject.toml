@@ -20,6 +20,8 @@ flake8 = "^5.0.0"
 mypy = "^0.982"
 pytest-asyncio = "^0.20.2"
 twine = "^4.0.1"
+isort = "^5.10.1"
+black = "^22.10.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -47,3 +49,12 @@ ignore = 'F405, F403, W503, E501, F401, E203'
 [[tool.mypy.overrides]]
 module = "tests.*"
 ignore_errors = true
+
+
+[tool.black]
+line-length = 99
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 99
