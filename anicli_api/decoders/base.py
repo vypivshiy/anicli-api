@@ -73,7 +73,7 @@ class ABCDecoder(ABC):
 
 
 class BaseDecoder(ABCDecoder):
-    URL_VALIDATOR: Union[str, re.Pattern]
+    URL_RULE: Union[str, re.Pattern]
 
     @classmethod
     def _validate_url(cls, url: str):
@@ -92,5 +92,5 @@ class BaseDecoder(ABCDecoder):
 
     @classmethod
     def _compare_url(cls, url: str) -> bool:
-        return bool(cls.URL_VALIDATOR.search(url)) if isinstance(cls.URL_VALIDATOR, re.Pattern) \
-            else bool(re.search(cls.URL_VALIDATOR, url))
+        return bool(cls.URL_RULE.search(url)) if isinstance(cls.URL_RULE, re.Pattern) \
+            else bool(re.search(cls.URL_RULE, url))
