@@ -1,10 +1,10 @@
 import re
-from typing import Dict, List, Literal
 from html import unescape
+from typing import Dict, List, Literal
 
 from httpx import Timeout
 
-from .base import BaseDecoder, MetaVideo, ALL_QUALITIES
+from .base import ALL_QUALITIES, BaseDecoder, MetaVideo
 from .exceptions import RegexParseError
 
 
@@ -22,10 +22,15 @@ class Aniboom(BaseDecoder):
         # extract links from m3u8 response
         result = {}
         base_m3u8_url = m3u8_url.replace("/master.m3u8", "")
-        for url_data in re.finditer(r'#EXT-X-STREAM-INF:BANDWIDTH=\d+,RESOLUTION=(?P<resolution>\d+x\d+),'
-                                    r'CODECS=".*?",AUDIO="\w+"\s(?P<src>\w+\.m3u8)', m3u8_response):
+        for url_data in re.finditer(
+            r"#EXT-X-STREAM-INF:BANDWIDTH=\d+,RESOLUTION=(?P<resolution>\d+x\d+),"
+            r'CODECS=".*?",AUDIO="\w+"\s(?P<src>\w+\.m3u8)',
+            m3u8_response,
+        ):
             if m3u8_dict := url_data.groupdict():
-                result[m3u8_dict["resolution"].split("x")[-1]] = f"{base_m3u8_url}/{url_data['src']}"
+                result[
+                    m3u8_dict["resolution"].split("x")[-1]
+                ] = f"{base_m3u8_url}/{url_data['src']}"
         return result
 
     @staticmethod
@@ -48,29 +53,42 @@ class Aniboom(BaseDecoder):
         return result
 
     @classmethod
-    def _raw_to_meta_videos(cls, _cls, links, m3u8_response, ) -> List[MetaVideo]:
+    def _raw_to_meta_videos(
+        cls,
+        _cls,
+        links,
+        m3u8_response,
+    ) -> List[MetaVideo]:
         m3u8_links = cls._parse_m3u8(links["m3u8"], m3u8_response)
         videos = []
         # noinspection PyTypeChecker
         for quality, link in m3u8_links.items():
             # noinspection PyTypeChecker
-            videos.append(MetaVideo(
-                type="m3u8",
-                quality=int(quality),  # type: ignore
-                url=link,
-                extra_headers={"referer": "https://aniboom.one/",
-                               'accept-language': 'ru-RU',
-                               'user-agent': _cls.a_http.headers["user-agent"]}
-
-            ))
+            videos.append(
+                MetaVideo(
+                    type="m3u8",
+                    quality=int(quality),  # type: ignore
+                    url=link,
+                    extra_headers={
+                        "referer": "https://aniboom.one/",
+                        "accept-language": "ru-RU",
+                        "user-agent": _cls.a_http.headers["user-agent"],
+                    },
+                )
+            )
         if links.get("mpd"):
-            videos.append(MetaVideo(
-                type="mpd",
-                quality=1080,
-                url=links.get("mpd"),
-                extra_headers={"referer": "https://aniboom.one/",
-                               'accept-language': 'ru-RU',
-                               'user-agent': _cls.http.headers["user-agent"]}))
+            videos.append(
+                MetaVideo(
+                    type="mpd",
+                    quality=1080,
+                    url=links.get("mpd"),
+                    extra_headers={
+                        "referer": "https://aniboom.one/",
+                        "accept-language": "ru-RU",
+                        "user-agent": _cls.http.headers["user-agent"],
+                    },
+                )
+            )
         return videos
 
     @classmethod
@@ -88,9 +106,14 @@ class Aniboom(BaseDecoder):
             if len(links.keys()) == 0:
                 raise RegexParseError("Failed extract aniboom video links")
 
-            m3u8_response = session.get(links["m3u8"], headers={"referer": "https://aniboom.one",
-                                                                "origin": "https://aniboom.one/",
-                                                                "accept-language": "ru-RU"}).text
+            m3u8_response = session.get(
+                links["m3u8"],
+                headers={
+                    "referer": "https://aniboom.one",
+                    "origin": "https://aniboom.one/",
+                    "accept-language": "ru-RU",
+                },
+            ).text
             return cls_._raw_to_meta_videos(cls_, links, m3u8_response)
 
     @classmethod
@@ -107,9 +130,15 @@ class Aniboom(BaseDecoder):
             links = cls_._extract_links(unescape(response.text))
             if len(links.keys()) == 0:
                 raise RegexParseError("Failed extract aniboom video links")
-            m3u8_response = (await session.get(links["m3u8"],
-                                               headers={"referer": "https://animego.org/",
-                                                        "origin": "https://animego.org",
-                                                        "accept-language": "ru-RU"})).text
+            m3u8_response = (
+                await session.get(
+                    links["m3u8"],
+                    headers={
+                        "referer": "https://animego.org/",
+                        "origin": "https://animego.org",
+                        "accept-language": "ru-RU",
+                    },
+                )
+            ).text
 
             return cls_._raw_to_meta_videos(cls_, links, m3u8_response)

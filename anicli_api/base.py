@@ -20,43 +20,28 @@ Extractor works schema:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import (
-    Union,
-    Dict,
-    Any,
-    List,
-    Generator,
-    AsyncGenerator,
-    Awaitable,
-    Tuple,
-    Type,
-)
-
-from html import unescape
 import warnings
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from html import unescape
+from typing import Any, AsyncGenerator, Awaitable, Dict, Generator, List, Tuple, Type, Union
 
 from bs4 import BeautifulSoup
 
-from abc import ABC, abstractmethod
+from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
+from anicli_api.decoders import ALL_DECODERS, BaseDecoder, MetaVideo
 from anicli_api.re_models import ReField, ReFieldList, ReFieldListDict, parse_many
-from anicli_api._http import BaseHTTPSync, BaseHTTPAsync
-from anicli_api.decoders import (
-    ALL_DECODERS,
-    MetaVideo,
-    BaseDecoder
-)
 
 __all__ = (
-    'BaseModel',
-    'BaseOngoing',
-    'BaseEpisode',
-    'BaseVideo',
-    'BaseSearchResult',
-    'BaseAnimeInfo',
-    'BaseAnimeExtractor',
-    'BaseTestCollections',
-    'List'  # python 3.8 support typehint
+    "BaseModel",
+    "BaseOngoing",
+    "BaseEpisode",
+    "BaseVideo",
+    "BaseSearchResult",
+    "BaseAnimeInfo",
+    "BaseAnimeExtractor",
+    "BaseTestCollections",
+    "List",  # python 3.8 support typehint
 )
 
 
@@ -93,6 +78,7 @@ class BaseModel(ABC):
 
     _parse_many - re_models.parse_many
     """
+
     # http singleton sync requests class
     _HTTP = BaseHTTPSync
     # http singleton async requests class
@@ -111,22 +97,29 @@ class BaseModel(ABC):
             setattr(self, k, v)
 
     @staticmethod
-    def _soup(markup: Union[str, bytes], *, parser: str = "html.parser", **kwargs) -> BeautifulSoup:
+    def _soup(
+        markup: Union[str, bytes], *, parser: str = "html.parser", **kwargs
+    ) -> BeautifulSoup:
         """return BeautifulSoup object"""
         return BeautifulSoup(markup, parser, **kwargs)
 
     @staticmethod
     async def _async_generator(async_func: Awaitable) -> AsyncGenerator:
         """convert awaitable call to AsyncGenerator"""
-        for j in (await async_func):
+        for j in await async_func:
             yield j
 
     def dict(self) -> Dict[str, Any]:
-        return {k: getattr(self, k) for k in self.__dict__
-                if not k.startswith("_") and not k.endswith("_")}
+        return {
+            k: getattr(self, k)
+            for k in self.__dict__
+            if not k.startswith("_") and not k.endswith("_")
+        }
 
     def __repr__(self):
-        return f"[{self.__class__.__name__}] " + ", ".join((f"{k}={v}" for k, v in self.dict().items()))
+        return f"[{self.__class__.__name__}] " + ", ".join(
+            (f"{k}={v}" for k, v in self.dict().items())
+        )
 
 
 class BaseSearchResult(BaseModel):
@@ -145,19 +138,13 @@ class BaseSearchResult(BaseModel):
         anime = self.get_anime()
         for episode in anime.get_episodes():
             for video in episode.get_videos():
-                yield IterData(search=self,
-                               anime=anime,
-                               episode=episode,
-                               video=video)
+                yield IterData(search=self, anime=anime, episode=episode, video=video)
 
     async def _async_full_parse(self) -> AsyncGenerator:
         anime = await self.a_get_anime()  # type: ignore
-        for episode in (await anime.a_get_episodes()):
-            for video in (await episode.a_get_videos()):
-                yield IterData(search=self,
-                               anime=anime,
-                               episode=episode,
-                               video=video)
+        for episode in await anime.a_get_episodes():
+            for video in await episode.a_get_videos():
+                yield IterData(search=self, anime=anime, episode=episode, video=video)
 
     def __iter__(self):
         return self._full_parse()
@@ -217,6 +204,7 @@ class BaseVideo(BaseModel):
 
     url: str - url to balancer or direct video
     """
+
     url: str
     _DECODERS: Tuple[Type[BaseDecoder], ...] = ALL_DECODERS
 
@@ -239,6 +227,7 @@ class BaseVideo(BaseModel):
 
 class BaseAnimeExtractor(ABC):
     """First extractor entrypoint class"""
+
     HTTP = BaseHTTPSync
     HTTP_ASYNC = BaseHTTPAsync
 
@@ -270,20 +259,14 @@ class BaseAnimeExtractor(ABC):
         anime = obj.get_anime()
         for episode in anime.get_episodes():
             for video in episode.get_videos():
-                yield IterData(search=obj,
-                               anime=anime,
-                               episode=episode,
-                               video=video)
+                yield IterData(search=obj, anime=anime, episode=episode, video=video)
 
     @staticmethod
     async def _aiter_from_result(obj: Union[BaseSearchResult, BaseOngoing]) -> AsyncGenerator:
         anime = await obj.a_get_anime()
-        for episode in (await anime.a_get_episodes()):
-            for video in (await episode.a_get_videos()):
-                yield IterData(search=obj,
-                               anime=anime,
-                               episode=episode,
-                               video=video)
+        for episode in await anime.a_get_episodes():
+            for video in await episode.a_get_videos():
+                yield IterData(search=obj, anime=anime, episode=episode, video=video)
 
     def walk_search(self, query: str) -> Generator:
         for search_result in self.search(query):
@@ -294,20 +277,19 @@ class BaseAnimeExtractor(ABC):
             yield from self._iter_from_result(ongoing)
 
     async def async_walk_search(self, query: str) -> AsyncGenerator:
-        for search_result in (await self.async_search(query)):
+        for search_result in await self.async_search(query):
             async for data in self._aiter_from_result(search_result):
                 yield data
 
     async def async_walk_ongoing(self) -> AsyncGenerator:
-        for ongoing in (await self.async_ongoing()):
+        for ongoing in await self.async_ongoing():
             async for data in self._aiter_from_result(ongoing):
                 yield data
 
     @staticmethod
-    def _soup(markup: Union[str, bytes],
-              *, parser: str = "html.parser",
-              **kwargs
-              ) -> BeautifulSoup:
+    def _soup(
+        markup: Union[str, bytes], *, parser: str = "html.parser", **kwargs
+    ) -> BeautifulSoup:
         """return BeautifulSoup instance"""
         return BeautifulSoup(markup, parser, **kwargs)
 

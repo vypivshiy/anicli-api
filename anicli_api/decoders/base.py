@@ -21,13 +21,12 @@ MetaVideo - датакласс со значениями ссылок
     extra_headers - ключи для headers, если видеопоток без них не работает
 """
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-import re
-from typing import Dict, Optional, Any, Literal, List, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from anicli_api._http import BaseHTTPSync, BaseHTTPAsync
-
+from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
 
 ALL_QUALITIES = (144, 240, 360, 480, 720, 1080)
 
@@ -92,5 +91,8 @@ class BaseDecoder(ABCDecoder):
 
     @classmethod
     def _compare_url(cls, url: str) -> bool:
-        return bool(cls.URL_RULE.search(url)) if isinstance(cls.URL_RULE, re.Pattern) \
+        return (
+            bool(cls.URL_RULE.search(url))
+            if isinstance(cls.URL_RULE, re.Pattern)
             else bool(re.search(cls.URL_RULE, url))
+        )

@@ -2,19 +2,19 @@
 TODO sort keys for objects
 """
 from __future__ import annotations
-from typing import Optional, Any
-from typing import Protocol, AsyncGenerator, Generator
+
+from typing import Any, AsyncGenerator, Generator, Optional, Protocol
 
 from anicli_api.base import *
 
 __all__ = (
-    'Extractor',
-    'SearchResult',
-    'Ongoing',
-    'AnimeInfo',
-    'Episode',
-    'Video',
-    'TestCollections'
+    "Extractor",
+    "SearchResult",
+    "Ongoing",
+    "AnimeInfo",
+    "Episode",
+    "Video",
+    "TestCollections",
 )
 
 
@@ -33,14 +33,15 @@ class OngoingIterData(Protocol):
 
 
 class Anilibria:
-    """ For details see docs on https://github.com/anilibria/docs/blob/master/api_v2.md"""
+    """For details see docs on https://github.com/anilibria/docs/blob/master/api_v2.md"""
+
     HTTP = BaseAnimeExtractor.HTTP
     HTTP_ASYNC = BaseAnimeExtractor.HTTP_ASYNC
 
     BASE_URL = "https://api.anilibria.tv/v2/"
 
     def api_request(self, method: str = "GET", *, api_method: str, **kwargs) -> dict:
-        response = self.HTTP().request(method=method, url=f'{self.BASE_URL}{api_method}', **kwargs)
+        response = self.HTTP().request(method=method, url=f"{self.BASE_URL}{api_method}", **kwargs)
         return response.json()
 
     async def a_api_request(self, method: str = "GET", *, api_method: str, **kwargs) -> dict:
@@ -78,7 +79,7 @@ class Anilibria:
 
 class Extractor(BaseAnimeExtractor):
     # optional constants, HTTP configuration here
-    """ For details see docs on https://github.com/anilibria/docs/blob/master/api_v2.md"""
+    """For details see docs on https://github.com/anilibria/docs/blob/master/api_v2.md"""
     BASE_URL = "https://api.anilibria.tv/v2/"
     ANILIBRIA = Anilibria()
 
@@ -94,17 +95,17 @@ class Extractor(BaseAnimeExtractor):
     def walk_ongoing(self) -> Generator[OngoingIterData, None, None]:
         return super().walk_ongoing()
 
-    def search(self, query: str) -> List['SearchResult']:
+    def search(self, query: str) -> List["SearchResult"]:
         return [SearchResult(**kw) for kw in self.ANILIBRIA.search_titles(search=query)]
 
-    def ongoing(self) -> List['Ongoing']:
+    def ongoing(self) -> List["Ongoing"]:
         return [Ongoing(**kw) for kw in self.ANILIBRIA.get_updates()]
 
-    async def async_search(self, query: str) -> List['SearchResult']:
+    async def async_search(self, query: str) -> List["SearchResult"]:
         # past async code here
         return [SearchResult(**kw) for kw in (await self.ANILIBRIA.a_search_titles(search=query))]
 
-    async def async_ongoing(self) -> List['Ongoing']:
+    async def async_ongoing(self) -> List["Ongoing"]:
         # past async code here
         return [Ongoing(**kw) for kw in (await self.ANILIBRIA.a_get_updates())]
 
@@ -135,10 +136,10 @@ class SearchResult(BaseSearchResult):
     def __aiter__(self) -> AsyncGenerator[SearchIterData, None]:
         return super().__aiter__()
 
-    async def a_get_anime(self) -> 'AnimeInfo':
+    async def a_get_anime(self) -> "AnimeInfo":
         return AnimeInfo(**self.dict())
 
-    def get_anime(self) -> 'AnimeInfo':
+    def get_anime(self) -> "AnimeInfo":
         return AnimeInfo(**self.dict())
 
 
@@ -168,10 +169,10 @@ class Ongoing(BaseOngoing):
     def __aiter__(self) -> AsyncGenerator[OngoingIterData, None]:
         return super().__aiter__()
 
-    async def a_get_anime(self) -> 'AnimeInfo':
+    async def a_get_anime(self) -> "AnimeInfo":
         return AnimeInfo(**self.dict())
 
-    def get_anime(self) -> 'AnimeInfo':
+    def get_anime(self) -> "AnimeInfo":
         return AnimeInfo(**self.dict())
 
 
@@ -195,15 +196,27 @@ class AnimeInfo(BaseAnimeInfo):
     player: dict
     torrents: dict
 
-    async def a_get_episodes(self) -> List['Episode']:
-        return [Episode(alternative_player=self.player["alternative_player"],
-                        host=self.player["host"],
-                        torrents=self.torrents["list"], **p) for p in self.player["playlist"].values()]
+    async def a_get_episodes(self) -> List["Episode"]:
+        return [
+            Episode(
+                alternative_player=self.player["alternative_player"],
+                host=self.player["host"],
+                torrents=self.torrents["list"],
+                **p,
+            )
+            for p in self.player["playlist"].values()
+        ]
 
-    def get_episodes(self) -> List['Episode']:
-        return [Episode(alternative_player=self.player["alternative_player"],
-                        host=self.player["host"],
-                        torrents=self.torrents["list"], **p) for p in self.player["playlist"].values()]
+    def get_episodes(self) -> List["Episode"]:
+        return [
+            Episode(
+                alternative_player=self.player["alternative_player"],
+                host=self.player["host"],
+                torrents=self.torrents["list"],
+                **p,
+            )
+            for p in self.player["playlist"].values()
+        ]
 
 
 class Episode(BaseEpisode):
@@ -216,13 +229,21 @@ class Episode(BaseEpisode):
     hls: dict
     torrents: dict
 
-    async def a_get_videos(self) -> List['Video']:
-        return [Video(torrents=self.torrents,
-                **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()})]
+    async def a_get_videos(self) -> List["Video"]:
+        return [
+            Video(
+                torrents=self.torrents,
+                **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()},
+            )
+        ]
 
-    def get_videos(self) -> List['Video']:
-        return [Video(torrents=self.torrents,
-                **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()})]
+    def get_videos(self) -> List["Video"]:
+        return [
+            Video(
+                torrents=self.torrents,
+                **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()},
+            )
+        ]
 
 
 class Video(BaseVideo):
@@ -252,7 +273,7 @@ class TestCollections(BaseTestCollections):
         for meta in Extractor().search("Зомбиленд")[0]:
             assert meta["search"]["id"] == 7474
             assert meta["search"]["code"] == "zombieland-saga"
-            assert meta["search"]["genres"] == ['Комедия', 'Сверхъестественное', 'Ужасы', 'Экшен']
+            assert meta["search"]["genres"] == ["Комедия", "Сверхъестественное", "Ужасы", "Экшен"]
 
     def test_extract_video(self):
         search = Extractor().search("Зомбиленд")[0]

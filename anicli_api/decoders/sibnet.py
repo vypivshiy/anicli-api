@@ -15,7 +15,9 @@ class Sibnet(BaseDecoder):
             response = session.get(url)
             result = re.search(r'"(?P<url>/v/.*?\.mp4)"', response.text)
             video_url = "https://video.sibnet.ru" + result.groupdict().get("url")  # type: ignore
-            return [MetaVideo(type="mp4", url=video_url, extra_headers={"Referer": url}, quality=480)]
+            return [
+                MetaVideo(type="mp4", url=video_url, extra_headers={"Referer": url}, quality=480)
+            ]
 
     @classmethod
     async def async_parse(cls, url: str, **kwargs):
@@ -26,4 +28,6 @@ class Sibnet(BaseDecoder):
             response = await session.get(url)
             result = re.search(r'"(?P<url>/v/.*?\.mp4)"', response.text)
             video_url = "https://video.sibnet.ru" + result.groupdict().get("url")  # type: ignore
-            return [MetaVideo(type="mp4", url=video_url, extra_headers={"Referer": url}, quality=480)]
+            return [
+                MetaVideo(type="mp4", url=video_url, extra_headers={"Referer": url}, quality=480)
+            ]

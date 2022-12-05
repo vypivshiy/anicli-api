@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import builtins
-from abc import abstractmethod
 import re
-from typing import Pattern, Optional, Any, Type, Union, AnyStr, Dict, Iterable, Callable, List
+from abc import abstractmethod
+from typing import Any, AnyStr, Callable, Dict, Iterable, List, Optional, Pattern, Type, Union
 
 T_BEFORE_EXEC = Union[Callable[[str], str], Dict[str, Callable[[str], str]]]
 T_AFTER_EXEC = Union[Callable[[Any], Any], Dict[str, Callable[[Any], Any]]]
 
 __all__ = (
-    'ReBaseField',
-    'ReField',
-    'ReFieldList',
-    'ReFieldListDict',
-    'parse_many',
+    "ReBaseField",
+    "ReField",
+    "ReFieldList",
+    "ReFieldListDict",
+    "parse_many",
 )
 
 
@@ -41,14 +41,14 @@ class ReBaseField:
     """
 
     def __init__(
-            self,
-            pattern: Union[Pattern, AnyStr],
-            *,
-            name: Optional[str] = None,
-            default: Optional[Any] = None,
-            type: Type = str,
-            before_exec_type: Optional[T_BEFORE_EXEC] = None,
-            after_exec_type: Optional[T_AFTER_EXEC] = None
+        self,
+        pattern: Union[Pattern, AnyStr],
+        *,
+        name: Optional[str] = None,
+        default: Optional[Any] = None,
+        type: Type = str,
+        before_exec_type: Optional[T_BEFORE_EXEC] = None,
+        after_exec_type: Optional[T_AFTER_EXEC] = None,
     ) -> None:
         self.pattern = pattern if isinstance(pattern, Pattern) else re.compile(pattern)
 
@@ -68,11 +68,11 @@ class ReBaseField:
 
     @staticmethod
     def _init_lambda_function(
-            *,
-            value: Any,
-            # {"group_name or name": func, ...} or func
-            func: Optional[Union[T_BEFORE_EXEC, T_AFTER_EXEC]] = None,
-            key: str = "",
+        *,
+        value: Any,
+        # {"group_name or name": func, ...} or func
+        func: Optional[Union[T_BEFORE_EXEC, T_AFTER_EXEC]] = None,
+        key: str = "",
     ) -> Any:
         if func:
             if isinstance(func, dict) and func.get(key):
@@ -114,8 +114,10 @@ class ReBaseField:
         return self.result_type(value)
 
     def __repr__(self):
-        return f"[{self.__class__.__name__}] type={self.result_type} pattern={self.pattern} " \
-               f"{{{self.name}: {self.value}}}"
+        return (
+            f"[{self.__class__.__name__}] type={self.result_type} pattern={self.pattern} "
+            f"{{{self.name}: {self.value}}}"
+        )
 
 
 class ReField(ReBaseField):
@@ -123,7 +125,9 @@ class ReField(ReBaseField):
 
     def parse(self, text: str) -> Dict[str, Any]:
         if not (result := self.pattern.search(text)):
-            if isinstance(self.default, Iterable) and not isinstance(self.default, str):  # string is iterable
+            if isinstance(self.default, Iterable) and not isinstance(
+                self.default, str
+            ):  # string is iterable
                 return dict(zip(self.name.split(","), self.default))
             else:
                 return {self.name: self.default}
@@ -142,14 +146,14 @@ class ReFieldList(ReBaseField):
     """Возвращает список всех найденных результатов"""
 
     def __init__(
-            self,
-            pattern: Union[Pattern, AnyStr],
-            *,
-            name: str,
-            default: Optional[Iterable[Any]] = None,
-            type: Type = str,
-            before_exec_type: Optional[Callable] = None,
-            after_exec_type: Optional[Callable] = None
+        self,
+        pattern: Union[Pattern, AnyStr],
+        *,
+        name: str,
+        default: Optional[Iterable[Any]] = None,
+        type: Type = str,
+        before_exec_type: Optional[Callable] = None,
+        after_exec_type: Optional[Callable] = None,
     ) -> None:
         if not default:
             default = []
@@ -162,12 +166,14 @@ class ReFieldList(ReBaseField):
         if not isinstance(default, list):
             default = list(default)
 
-        super().__init__(pattern,
-                         name=name,
-                         default=default,
-                         type=type,
-                         before_exec_type=before_exec_type,
-                         after_exec_type=after_exec_type)
+        super().__init__(
+            pattern,
+            name=name,
+            default=default,
+            type=type,
+            before_exec_type=before_exec_type,
+            after_exec_type=after_exec_type,
+        )
 
     def parse(self, text: str) -> Dict[str, List]:
         if not (result := self.pattern.findall(text)):
@@ -182,14 +188,14 @@ class ReFieldListDict(ReBaseField):
     """Возвращает список словарей найденных выражений"""
 
     def __init__(
-            self,
-            pattern: Union[Pattern, AnyStr],
-            *,
-            name: str,
-            default: Optional[Iterable[Any]] = None,
-            type: Type = str,
-            before_exec_type: Optional[Dict[str, Callable]] = None,
-            after_exec_type: Optional[Dict[str, Callable]] = None
+        self,
+        pattern: Union[Pattern, AnyStr],
+        *,
+        name: str,
+        default: Optional[Iterable[Any]] = None,
+        type: Type = str,
+        before_exec_type: Optional[Dict[str, Callable]] = None,
+        after_exec_type: Optional[Dict[str, Callable]] = None,
     ) -> None:
 
         if not default:
@@ -203,13 +209,14 @@ class ReFieldListDict(ReBaseField):
         if not isinstance(default, list):
             default = list(default)
 
-        super().__init__(pattern,
-                         name=name,
-                         default=default,
-                         type=type,
-                         before_exec_type=before_exec_type,
-                         after_exec_type=after_exec_type
-                         )
+        super().__init__(
+            pattern,
+            name=name,
+            default=default,
+            type=type,
+            before_exec_type=before_exec_type,
+            after_exec_type=after_exec_type,
+        )
 
     def parse(self, text: str) -> Dict[str, List[Any]]:
         if not self.pattern.search(text):
@@ -226,7 +233,7 @@ class ReFieldListDict(ReBaseField):
 
 
 def parse_many(text: str, *re_fields: ReBaseField) -> dict[str, Any]:
-    """ Accumulate all re_fields results to dict
+    """Accumulate all re_fields results to dict
 
     :param text: target string
     :param re_fields: ReFields classes

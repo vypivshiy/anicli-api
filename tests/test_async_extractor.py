@@ -20,14 +20,22 @@ async def test_extractor_ongoing():
 @pytest.mark.asyncio
 async def test_get_search_metadata():
     result = (await Extractor().async_search(""))[0]
-    assert result.dict() == {'meta': 'search_1 mock meta', 'title': 'title_1', 'url': 'search_1'}
+    assert result.dict() == {"meta": "search_1 mock meta", "title": "title_1", "url": "search_1"}
 
 
 @pytest.mark.asyncio
 async def test_get_ongoing_metadata():
     result = await Extractor().async_ongoing()
-    assert result[0].dict() == {"url": "ongoing_1", "title": "title_1", "description": "ongoing_1 mock meta"}
-    assert result[1].dict() == {"url": "ongoing_2", "title": "title_2", "description": "search_2 mock meta"}
+    assert result[0].dict() == {
+        "url": "ongoing_1",
+        "title": "title_1",
+        "description": "ongoing_1 mock meta",
+    }
+    assert result[1].dict() == {
+        "url": "ongoing_2",
+        "title": "title_2",
+        "description": "search_2 mock meta",
+    }
 
 
 @pytest.mark.asyncio
@@ -46,17 +54,19 @@ async def test_get_video():
     a = await s[0].a_get_anime()
     eps = await a.a_get_episodes()
     video = await eps[0].a_get_videos()
-    assert (await video[0].a_get_source()) == 'video.mp4'
+    assert (await video[0].a_get_source()) == "video.mp4"
 
 
 @pytest.mark.asyncio
 async def test_async_walk_search():
     i = 0
     async for meta in Extractor().async_walk_search(""):
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.WALK_SEARCH[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.WALK_SEARCH[i]
         i += 1
 
 
@@ -64,10 +74,12 @@ async def test_async_walk_search():
 async def test_async_walk_ongoing():
     i = 0
     async for meta in Extractor().async_walk_ongoing():
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.WALK_ONGOING[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.WALK_ONGOING[i]
         i += 1
 
 
@@ -76,10 +88,12 @@ async def test_anime_metadata():
     search = (await Extractor().async_search(""))[0]
     i = 0
     async for meta in search:
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.SEARCH_META[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.SEARCH_META[i]
         i += 1
 
 
@@ -88,10 +102,12 @@ async def test_ongoing_metadata():
     ongoing = (await Extractor().async_ongoing())[0]
     i = 0
     async for meta in ongoing:
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.ONGOING_META[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.ONGOING_META[i]
         i += 1
 
 

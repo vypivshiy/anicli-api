@@ -1,17 +1,18 @@
 """Template extractor"""
 from __future__ import annotations
-from typing import cast, Protocol, Union
+
+from typing import Protocol, Union, cast
 
 from anicli_api.base import *
 
 __all__ = (
-    'Extractor',
-    'SearchResult',
-    'Ongoing',
-    'AnimeInfo',
-    'Episode',
-    'Video',
-    'TestCollections'
+    "Extractor",
+    "SearchResult",
+    "Ongoing",
+    "AnimeInfo",
+    "Episode",
+    "Video",
+    "TestCollections",
 )
 
 
@@ -66,44 +67,44 @@ class Extractor(BaseAnimeExtractor):
 
 class SearchResult(BaseSearchResult):
     # optional past metadata attrs here
-    async def a_get_anime(self) -> 'AnimeInfo':
+    async def a_get_anime(self) -> "AnimeInfo":
         # past async code here
         pass
 
-    def get_anime(self) -> 'AnimeInfo':
+    def get_anime(self) -> "AnimeInfo":
         # past code here
         pass
 
 
 class Ongoing(BaseOngoing):
     # optional past metadata attrs here
-    async def a_get_anime(self) -> 'AnimeInfo':
+    async def a_get_anime(self) -> "AnimeInfo":
         # past async code here
         pass
 
-    def get_anime(self) -> 'AnimeInfo':
+    def get_anime(self) -> "AnimeInfo":
         # past code here
         pass
 
 
 class AnimeInfo(BaseAnimeInfo):
     # optional past metadata attrs here
-    async def a_get_episodes(self) -> List['BaseEpisode']:
+    async def a_get_episodes(self) -> List["BaseEpisode"]:
         # past async code here
         pass
 
-    def get_episodes(self) -> List['BaseEpisode']:
+    def get_episodes(self) -> List["BaseEpisode"]:
         # past code here
         pass
 
 
 class Episode(BaseEpisode):
     # optional past metadata attrs here
-    async def a_get_videos(self) -> List['BaseVideo']:
+    async def a_get_videos(self) -> List["BaseVideo"]:
         # past async code here
         pass
 
-    def get_videos(self) -> List['BaseVideo']:
+    def get_videos(self) -> List["BaseVideo"]:
         # past code here
         pass
 

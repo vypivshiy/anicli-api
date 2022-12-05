@@ -15,13 +15,21 @@ def test_extractor_ongoing():
 
 def test_get_search_metadata():
     result = Extractor().search("")[0]
-    assert result.dict() == {'meta': 'search_1 mock meta', 'title': 'title_1', 'url': 'search_1'}
+    assert result.dict() == {"meta": "search_1 mock meta", "title": "title_1", "url": "search_1"}
 
 
 def test_get_ongoing_metadata():
     result = Extractor().ongoing()
-    assert result[0].dict() == {"url": "ongoing_1", "title": "title_1", "description": "ongoing_1 mock meta"}
-    assert result[1].dict() == {"url": "ongoing_2", "title": "title_2", "description": "search_2 mock meta"}
+    assert result[0].dict() == {
+        "url": "ongoing_1",
+        "title": "title_1",
+        "description": "ongoing_1 mock meta",
+    }
+    assert result[1].dict() == {
+        "url": "ongoing_2",
+        "title": "title_2",
+        "description": "search_2 mock meta",
+    }
 
 
 def test_get_episodes():
@@ -34,41 +42,49 @@ def test_get_episodes():
 
 def test_get_video():
     video = Extractor().search("")[0].get_anime().get_episodes()[0].get_videos()
-    assert video[0].get_source() == 'video.mp4'
+    assert video[0].get_source() == "video.mp4"
 
 
 def test_walk_search():
     for i, meta in enumerate(Extractor().walk_search("")):
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.WALK_SEARCH[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.WALK_SEARCH[i]
 
 
 def test_walk_ongoing():
     for i, meta in enumerate(Extractor().walk_ongoing()):
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.WALK_ONGOING[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.WALK_ONGOING[i]
 
 
 def test_anime_metadata():
     search = Extractor().search("")[0]
     for i, meta in enumerate(search):
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.SEARCH_META[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.SEARCH_META[i]
 
 
 def test_ongoing_metadata():
     ongoing = Extractor().ongoing()[0]
     for i, meta in enumerate(ongoing):
-        assert {"search": meta.search.dict(),
-                "anime": meta.anime.dict(),
-                "episode": meta.episode.dict(),
-                "video": meta.video.dict()} == Extractor.ONGOING_META[i]
+        assert {
+            "search": meta.search.dict(),
+            "anime": meta.anime.dict(),
+            "episode": meta.episode.dict(),
+            "video": meta.video.dict(),
+        } == Extractor.ONGOING_META[i]
 
 
 def test_anime_iterables():

@@ -82,7 +82,7 @@ def example_iter_objects():
             print(video.get_source())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     step_by_step_search()
     step_by_step_ongoing()
     walk_search()

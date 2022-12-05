@@ -7,10 +7,9 @@ from anicli_api.decoders import BaseDecoder
 
 @pytest.mark.asyncio
 async def test_custom_decoder():
-
     class MyDecoder(BaseDecoder):
         URL_RULE = re.compile(r"foobar")
-        
+
         @classmethod
         def parse(cls, url: str, **kwargs):
             cls._validate_url(url)

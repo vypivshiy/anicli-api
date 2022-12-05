@@ -1,35 +1,36 @@
 """Dynamic import extractor form **anicli_api/extractors** directory"""
 
+import importlib
+import logging
+import pathlib
+import sys
 from abc import ABC, abstractmethod
 from types import ModuleType
-from typing import cast, Protocol, Type
-import sys
-import importlib
-import pathlib
-import logging
+from typing import Protocol, Type, cast
 
 from anicli_api.base import *
 
 __all__ = (
-    'ModuleExtractor',
-    'BaseExtractorLoader',
-    'ExtractorLoader',
+    "ModuleExtractor",
+    "BaseExtractorLoader",
+    "ExtractorLoader",
 )
 
 # check Extractor signature
 VALID_CLASSES = (
-    'Extractor',
-    'SearchResult',
-    'Ongoing',
-    'AnimeInfo',
-    'Episode',
-    'Video',
-    'TestCollections'
+    "Extractor",
+    "SearchResult",
+    "Ongoing",
+    "AnimeInfo",
+    "Episode",
+    "Video",
+    "TestCollections",
 )
 
 
 class ModuleExtractor(Protocol):
     """Typehints for dynamic import extractor"""
+
     Extractor: Type[BaseAnimeExtractor]
     SearchResult: Type[BaseSearchResult]
     Ongoing: Type[BaseOngoing]
@@ -40,7 +41,6 @@ class ModuleExtractor(Protocol):
 
 
 class BaseExtractorLoader(ABC):
-
     @classmethod
     @abstractmethod
     def load(cls, *, module_name: str):
@@ -52,13 +52,14 @@ class ExtractorLoader(BaseExtractorLoader):
 
     Модули должны соответствовать шаблону extractors.__template__.py
     """
+
     _loaded_extractors: List[ModuleExtractor] = []
 
     @staticmethod
     def _get_extractor_path() -> pathlib.Path:
         if __name__ == "__main__":
-            return pathlib.Path('extractors')
-        return pathlib.Path('anicli_api') / pathlib.Path('extractors')
+            return pathlib.Path("extractors")
+        return pathlib.Path("anicli_api") / pathlib.Path("extractors")
 
     @staticmethod
     def _validate(extractor: ModuleExtractor, module_name: str):
@@ -66,12 +67,14 @@ class ExtractorLoader(BaseExtractorLoader):
             try:
                 getattr(extractor, cls)
             except AttributeError as exc:
-                raise AttributeError(f"Module '{module_name}' has no class '{cls}'. It's a real Extractor?") from exc
+                raise AttributeError(
+                    f"Module '{module_name}' has no class '{cls}'. It's a real Extractor?"
+                ) from exc
 
     @staticmethod
     def _import(module_name: str) -> ModuleExtractor:
         try:
-            module_name = module_name.replace('/', '.').replace('\\', '.').rstrip('.py')
+            module_name = module_name.replace("/", ".").replace("\\", ".").rstrip(".py")
             module = importlib.import_module(module_name, package=None)
             extractor = cast(ModuleExtractor, module)
 
@@ -81,7 +84,7 @@ class ExtractorLoader(BaseExtractorLoader):
 
     @staticmethod
     def _path_to_import(module_path: str) -> str:
-        return module_path.replace('/', '.').replace('\\', '.').rstrip('.py')
+        return module_path.replace("/", ".").replace("\\", ".").rstrip(".py")
 
     @classmethod
     def load(cls, module_name: str) -> ModuleExtractor:

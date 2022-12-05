@@ -1,17 +1,18 @@
 """Template extractor"""
 from __future__ import annotations
-from typing import Protocol, AsyncGenerator, Generator
+
+from typing import AsyncGenerator, Generator, Protocol
 
 from anicli_api.base import *
 
 __all__ = (
-    'Extractor',
-    'SearchResult',
-    'Ongoing',
-    'AnimeInfo',
-    'Episode',
-    'Video',
-    'TestCollections',
+    "Extractor",
+    "SearchResult",
+    "Ongoing",
+    "AnimeInfo",
+    "Episode",
+    "Video",
+    "TestCollections",
 )
 
 
@@ -46,19 +47,19 @@ class Extractor(BaseAnimeExtractor):
     def walk_ongoing(self) -> Generator[OngoingIterData, None, None]:
         return super().walk_ongoing()
 
-    def search(self, query: str) -> List['SearchResult']:
+    def search(self, query: str) -> List["SearchResult"]:
         # past code here
         ...
 
-    def ongoing(self) -> List['Ongoing']:
+    def ongoing(self) -> List["Ongoing"]:
         # past code here
         pass
 
-    async def async_search(self, query: str) -> List['SearchResult']:
+    async def async_search(self, query: str) -> List["SearchResult"]:
         # past async code here
         pass
 
-    async def async_ongoing(self) -> List['Ongoing']:
+    async def async_ongoing(self) -> List["Ongoing"]:
         # past async code here
         pass
 
@@ -71,11 +72,11 @@ class SearchResult(BaseSearchResult):
     def __aiter__(self) -> AsyncGenerator[SearchIterData, None]:
         return super().__aiter__()
 
-    async def a_get_anime(self) -> 'AnimeInfo':
+    async def a_get_anime(self) -> "AnimeInfo":
         # past async code here
         pass
 
-    def get_anime(self) -> 'AnimeInfo':
+    def get_anime(self) -> "AnimeInfo":
         # past code here
         pass
 
@@ -88,33 +89,33 @@ class Ongoing(BaseOngoing):
     def __aiter__(self) -> AsyncGenerator[OngoingIterData, None]:
         return super().__aiter__()
 
-    async def a_get_anime(self) -> 'AnimeInfo':
+    async def a_get_anime(self) -> "AnimeInfo":
         # past async code here
         pass
 
-    def get_anime(self) -> 'AnimeInfo':
+    def get_anime(self) -> "AnimeInfo":
         # past code here
         pass
 
 
 class AnimeInfo(BaseAnimeInfo):
     # optional past metadata attrs here
-    async def a_get_episodes(self) -> List['Episode']:
+    async def a_get_episodes(self) -> List["Episode"]:
         # past async code here
         pass
 
-    def get_episodes(self) -> List['Episode']:
+    def get_episodes(self) -> List["Episode"]:
         # past code here
         pass
 
 
 class Episode(BaseEpisode):
     # optional past metadata attrs here
-    async def a_get_videos(self) -> List['Video']:
+    async def a_get_videos(self) -> List["Video"]:
         # past async code here
         pass
 
-    def get_videos(self) -> List['Video']:
+    def get_videos(self) -> List["Video"]:
         # past code here
         pass
 
