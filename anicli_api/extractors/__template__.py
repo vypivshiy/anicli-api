@@ -16,7 +16,7 @@ __all__ = (
 
 
 class SearchIterData(Protocol):
-    # help typing walk search, __iter__ Search
+    # IDE typing help: SearchResult.__iter__, SearchResult.__aiter__, walk_search, async_walk_search
     search: SearchResult
     anime: AnimeInfo
     episode: Episode
@@ -24,7 +24,7 @@ class SearchIterData(Protocol):
 
 
 class OngoingIterData(Protocol):
-    # help typing walk ongoing, __iter__ Ongoing
+    # IDE typing help: typing help: Ongoing.__iter__, Ongoing.__aiter__, walk_ongoing, async_walk_ongoing
     search: Ongoing
     anime: AnimeInfo
     episode: Episode
@@ -142,6 +142,7 @@ class TestCollections(BaseTestCollections):
             assert meta.search.dict() == {}
             assert meta.anime.dict() == {}
             assert meta.episode.dict() == {}
+            break
 
     def test_extract_video(self):
         # rewrite testcase extract video here
