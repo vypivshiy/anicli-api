@@ -4,7 +4,8 @@ from base64 import b64decode
 from typing import Dict, List
 from urllib.parse import urlparse
 
-from .base import ALL_QUALITIES, BaseDecoder, MetaVideo
+from anicli_api.base_decoder import BaseDecoder, MetaVideo
+
 from .exceptions import DecoderError, RegexParseError
 
 

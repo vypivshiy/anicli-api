@@ -1,9 +1,33 @@
+"""Video Decoder template
+
+HOW TO create custom decoder:
+
+1. reverse required entrypoins
+
+2. copy this template
+
+3. add regex rule for validate url
+
+4. write entrypoints, parsers:
+
+- for parse - with cls_.http session
+
+-  for async_parse - witch cls_.a_http session
+
+**Notes:**
+
+* cls.http works like httpx.Client
+
+* cls.a_http works like httpx.Client
+"""
+
 import re
 from typing import List
 
-from anicli_api.decoders.base import BaseDecoder, MetaVideo
+from anicli_api.base_decoder import BaseDecoder, MetaVideo
 
 
+# rename class name
 class MyDecoder(BaseDecoder):
     # past regex url rule validator here
     URL_VALIDATOR = re.compile(r".*")
@@ -11,6 +35,7 @@ class MyDecoder(BaseDecoder):
     @classmethod
     def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         cls._validate_url(url)
+        # set kwargs attrs to httpx.Client and httpx.AsyncClient
         cls_ = cls(**kwargs)
 
         with cls_.http as session:

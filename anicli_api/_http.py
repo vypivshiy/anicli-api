@@ -1,17 +1,26 @@
-from html import unescape
+"""
+This module contains httpx.Client and httpx.AsyncClient classes with the following settings:
+
+1. User-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114
+
+2. x-requested-with: XMLHttpRequest
+
+"""
 from typing import Dict
 
 from httpx import AsyncClient, Client, Response
 
 HEADERS: Dict[str, str] = {
-    "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 "
+    "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114"
     "Mobile Safari/537.36",
+    # XMLHttpRequest required
     "x-requested-with": "XMLHttpRequest",
-}  # required
-DDOS_SERVICES = ("cloudflare", "ddos-guard")  # check ddos-protect strings response
+}
+# DDoS protection check by "Server" key header
+DDOS_SERVICES = ("cloudflare", "ddos-guard")
 
-__all__ = ("BaseHTTPSync", "BaseHTTPAsync", "HTTPSync", "HTTPAsync")
+__all__ = ("BaseHTTPSync", "BaseHTTPAsync", "HTTPSync", "HTTPAsync", "Singleton")
 
 
 class Singleton:
@@ -24,29 +33,30 @@ class Singleton:
 
 
 class BaseHTTPSync(Client):
+    """httpx.Client class with configured user agent and enabled redirects"""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.headers.update(HEADERS)
         self.follow_redirects = True
-
-    @staticmethod
-    def unescape(text: str) -> str:
-        return unescape(text)
 
 
 class BaseHTTPAsync(AsyncClient):
+    """httpx.AsyncClient class with configured user agent and enabled redirects"""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.headers.update(HEADERS)
         self.follow_redirects = True
 
-    @staticmethod
-    def unescape(text: str) -> str:
-        return unescape(text)
 
-
-# simple check ddos protect hook
 def check_ddos_protect_hook(resp: Response):
+    """
+    Simple ddos protect check hook.
+
+    If response return 403 code or server headers contains *cloudflare* or *ddos-guard* strings and
+    **Connection = close,** throw ConnectionError traceback
+    """
     if (
         resp.headers.get("Server") in DDOS_SERVICES
         and resp.headers["Connection"] == "close"
@@ -58,7 +68,10 @@ def check_ddos_protect_hook(resp: Response):
 
 
 class HTTPSync(Singleton, BaseHTTPSync):
-    """Base singleton sync HTTP with recommended config"""
+    """
+    Base singleton **sync** HTTP class with recommended config.
+
+    Used in extractors and can configured at any point in the program"""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -66,7 +79,11 @@ class HTTPSync(Singleton, BaseHTTPSync):
 
 
 class HTTPAsync(Singleton, BaseHTTPAsync):
-    """Base singleton async HTTP class with recommended config"""
+    """
+    Base singleton **async** HTTP class with recommended config
+
+    Used in extractors and can configured at any point in the program
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

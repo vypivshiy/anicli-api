@@ -1,6 +1,6 @@
 import re
 
-from .base import BaseDecoder, MetaVideo
+from anicli_api.base_decoder import BaseDecoder, MetaVideo
 
 
 class Sibnet(BaseDecoder):

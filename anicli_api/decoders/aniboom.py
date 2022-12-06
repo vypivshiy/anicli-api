@@ -1,10 +1,11 @@
 import re
 from html import unescape
-from typing import Dict, List, Literal
+from typing import Dict, List
 
 from httpx import Timeout
 
-from .base import ALL_QUALITIES, BaseDecoder, MetaVideo
+from anicli_api.base_decoder import BaseDecoder, MetaVideo
+
 from .exceptions import RegexParseError
 
 

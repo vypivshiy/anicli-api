@@ -252,6 +252,8 @@ class Video(BaseVideo):
     hd: str
     sd: str
 
+    # TODO create decoder
+
     def get_source(self):
         return self.dict()
 
@@ -262,8 +264,8 @@ class Video(BaseVideo):
 class TestCollections(BaseTestCollections):
     def test_search(self):
         resp = Extractor().search("Зомбиленд")
-        assert resp[0].dict()["id"] == 7474
-        assert resp[1].dict()["id"] == 8960
+        assert resp[0].id == 7474
+        assert resp[1].id == 8960
 
     def test_ongoing(self):
         resp = Extractor().ongoing()
@@ -271,9 +273,10 @@ class TestCollections(BaseTestCollections):
 
     def test_extract_metadata(self):
         for meta in Extractor().search("Зомбиленд")[0]:
-            assert meta["search"]["id"] == 7474
-            assert meta["search"]["code"] == "zombieland-saga"
-            assert meta["search"]["genres"] == ["Комедия", "Сверхъестественное", "Ужасы", "Экшен"]
+            assert meta.search.id == 7474
+            assert meta.search.code == "zombieland-saga"
+            assert meta.search.genres == ["Комедия", "Сверхъестественное", "Ужасы", "Экшен"]
+            break
 
     def test_extract_video(self):
         search = Extractor().search("Зомбиленд")[0]

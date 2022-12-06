@@ -53,3 +53,11 @@ fix: check-venv ## Fix code with black and isort
 	@echo ; echo "isort"
 	@echo "-----"
 	@$(interpreter) isort .
+
+gen-docs: check-venv
+	@echo "Generate documentation"
+	@echo "----------------------"
+	@sphinx-apidoc -f -o docs anicli_api/ anicli_api/extractors/* anicli_api/decoders/*
+	@echo "generate html"
+	@echo "-------------"
+	@make -C docs clean html

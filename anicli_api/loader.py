@@ -5,8 +5,9 @@ import logging
 import pathlib
 import sys
 from abc import ABC, abstractmethod
+from os import PathLike
 from types import ModuleType
-from typing import Protocol, Type, cast
+from typing import Protocol, Type, Union, cast
 
 from anicli_api.base import *
 
@@ -48,9 +49,9 @@ class BaseExtractorLoader(ABC):
 
 
 class ExtractorLoader(BaseExtractorLoader):
-    """Динамический загрузчик экстракторов
+    """Dynamic loader extractor modules
 
-    Модули должны соответствовать шаблону extractors.__template__.py
+    Modules must match the template extractors.__template__.py
     """
 
     _loaded_extractors: List[ModuleExtractor] = []
@@ -88,10 +89,15 @@ class ExtractorLoader(BaseExtractorLoader):
 
     @classmethod
     def load(cls, module_name: str) -> ModuleExtractor:
-        """импорт модуля экстрактора
+        """import module extractor
 
-        :param module_name: путь до модуля
-        :return:
+        - Throw ModuleNotFoundError exception, if module not found
+        - Throw AttributeError exception, if module is a not valid extractor
+
+
+        :param module_name: module path
+        :return: ModuleExtractor
+        :raise: ModuleNotFoundError - module not found; AttributeError - is a not extractor
         """
         if cls._check_module_name(module_name):
             file_import = cls._path_to_import(module_name)
@@ -106,9 +112,9 @@ class ExtractorLoader(BaseExtractorLoader):
 
     @classmethod
     def load_all(cls) -> List[ModuleExtractor]:
-        """импорт *всех модулей* из директории /extractors
+        """import **all** extractors from anicli_api/extractors directory
 
-        :return:
+        :return: List[ModuleExtractor]
         """
         modules = []
         for file in cls._get_extractor_path().iterdir():
@@ -145,24 +151,45 @@ class ExtractorLoader(BaseExtractorLoader):
                     logging.debug("[OK] {} {}".format(module.__str__().split("/")[-1], attr))
 
     @classmethod
-    def run_test(cls, module_name: str, *, throw_exception: bool = True):
+    def run_test(cls, module_name: str, *, throw_exception: bool = True) -> None:
+        """run TestCollections class in extractors
+
+        :param module_name: extractor path
+        :param throw_exception: Throw exception, if test failed. If flag is False, print logging.error message
+        :return:
+        """
         module = cls.load(module_name)
         cls._test_module(module, throw_exception)
 
     @classmethod
-    def run_test_all(cls, *, throw_exception: bool = True):
+    def run_test_all(cls, *, throw_exception: bool = True) -> None:
+        """run TestCollections in all extractors from anicli_api/extractors directory
+
+        :param throw_exception: Throw exception, if test failed. If flag is False, print logging.error message
+        :return:
+        """
         for module in cls.load_all():
             cls._test_module(module, throw_exception)
 
     @classmethod
-    def reload_all(cls):
-        for m in cls._loaded_extractors:
-            m: ModuleType
-            importlib.reload(m)
+    def reload_all(cls) -> bool:
+        """reload extractors
+
+        :return:
+        """
+        for m in cls._loaded_extractors:  # type: ignore
+            importlib.reload(m)  # type: ignore
         return True
 
     @classmethod
     def reload(cls, module_name: str):
+        """reload extractor
+
+        if it is not imported, throw ModuleNotFoundError error
+
+        :param module_name: extractor name
+        :return:
+        """
         if module := sys.modules.get(module_name):
             importlib.reload(module)
             return True

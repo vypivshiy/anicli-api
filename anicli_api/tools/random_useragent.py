@@ -1,8 +1,19 @@
-"""simple useragent generator"""
+"""Simple offline chromium-based useragent generator
+
+Usage:
+
+    - RandomAgent.desktop() - random desktop useragent
+
+    - RandomAgent.mobile() - random android useragent
+
+    - RandomAgent.random() - random: desktop or mobile
+"""
 
 from random import choice
 
-__all__ = "Agent"
+__all__ = (
+    "RandomAgent",
+)
 
 
 CHROME_VERSIONS = (

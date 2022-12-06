@@ -1,24 +1,34 @@
 """Decoders class for video hostings
 
-Структура Декодера:
+Decoder structure:
 
 ```py
 
 class DecoderName(BaseDecoder):
-    URL_RULE: re.Pattern  # регулярное выраженье для валидации ссылки
+    # link validation regex
+    URL_RULE: re.Pattern
+
     def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
-        # парсер с применением синхронных запросов
+        # parser using synchronous requests
+        ...
 
     async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
-        '''парсер с применением асинхронных запросов'''
+        # parser using asynchronous requests
+        ...
 
 ```
+Dataclass with reference values
 
-MetaVideo - датакласс со значениями ссылок
-    type - тип файла (m3u8, mpd, mp4
-    quality - разрешение видео
-    url - **прямая ссылка на видео**
-    extra_headers - ключи для headers, если видеопоток без них не работает
+MetaVideo
+
+- type - file type (m3u8, mpd, mp4...)
+
+- quality - video quality, int (144,240,360,480,720,1080)
+
+- url - video link
+
+- extra_headers - keys for headers, if the video stream does not work without them (like aniboom, sibnet)
+If it works without them, set default value
 """
 
 import re
@@ -72,6 +82,15 @@ class ABCDecoder(ABC):
 
 
 class BaseDecoder(ABCDecoder):
+    """Abstract decoder class
+
+    - URL_RULE - regular expression to validate link
+
+    - cls.parse - get videos synchronously
+
+    - cls.async_parse - get videos asynchronously
+    """
+
     URL_RULE: Union[str, re.Pattern]
 
     @classmethod
@@ -82,15 +101,31 @@ class BaseDecoder(ABCDecoder):
     @classmethod
     @abstractmethod
     def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
+        """get video synchronously
+
+        :param url: video url
+        :param kwargs: optional params for httpx.Client instance
+        :return: List of MetaVideo dataclasses
+        """
         ...
 
     @classmethod
     @abstractmethod
     async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
+        """get video asynchronously
+
+        :param url: video url
+        :param kwargs: optional params for httpx.AsyncClient instance
+        :return: List of MetaVideo dataclasses
+        """
         ...
 
     @classmethod
     def _compare_url(cls, url: str) -> bool:
+        """
+        :param url: link
+        :return: True, if link valid else False
+        """
         return (
             bool(cls.URL_RULE.search(url))
             if isinstance(cls.URL_RULE, re.Pattern)

@@ -198,6 +198,7 @@ class Episode(BaseEpisode):
 class Video(BaseVideo):
     hd: str
     std: str
+    # TODO create decoder
 
     def get_source(self) -> Union[str, List[MetaVideo]]:
         return [

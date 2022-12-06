@@ -1,4 +1,85 @@
-"""Template extractor"""
+"""Template extractor
+
+HOW TO create custom extractor:
+
+1. reverse required entrypoits
+
+2. copy this template
+
+**Write module:**
+
+1. Extractor
+
+- define: search, async_search with http request and parsers for get list of search resulse by string query
+
+- define ongoing, async_ongoing with http request and parsers for get list of ongoings
+
+2. Ongoing
+
+- define get_anime, a_get anime with http request and parsers for get AnimeInfo
+
+3. SearchResult
+
+- define get_anime, a_get anime with http request and parsers for get AnimeInfo
+
+4. AnimeInfo
+
+- define get_episodes, a_get_episodes with http request and parsers for get list of episodes
+
+5. Episode
+
+- define get_videos, a_get_videos with http request and parsers for get list of Videos
+
+6. Video
+
+- if the video hosting service is in the decoders,
+then pass the required parameter **url** to it, and it will automatically pull out and return the list MetaVideo class.
+
+Else, define get_source, a_get_source or write a new decoder.
+
+7. Test collections
+
+- define a minimum number of tests to quickly check the functionality.
+
+**Not need to be fully covered module.** Their goal is to **quickly** check the performance
+
+**Notes:**
+
+- To scrap the necessary data, you can use any of the following methods:
+    json
+    bs4.BeautifulSoup (with default html.parser)
+    re
+    anicli_api.re_models
+
+- for refactoring code, use **hidden** methods
+
+- Protocols class need for correct IDE typing help in generators and iterable methods
+
+- If **Оngoing** and **SearchResult** by functionality are duplicate,
+create an additional class, inheriting from BaseModel, add the necessary functionality there.
+
+Example:
+
+```py
+from anicli_api.base import *
+
+...
+
+class SomeParser(BaseModel):
+    def get_anime(self):
+        return "test123"
+
+    async def a_get_anime(self):
+        return "foobar"
+
+class SearchResult(SomeParser, BaseSearchResult):
+    ...
+
+class Ongoing(SomeParser, BaseOngoing):
+    ...
+```
+
+"""
 from __future__ import annotations
 
 from typing import AsyncGenerator, Generator, Protocol
@@ -49,19 +130,25 @@ class Extractor(BaseAnimeExtractor):
 
     def search(self, query: str) -> List["SearchResult"]:
         # past code here
+        response = self.HTTP().get("url", params={"search": query}).text
         ...
 
     def ongoing(self) -> List["Ongoing"]:
         # past code here
-        pass
+        response = self.HTTP().get("url").text
+        ...
 
     async def async_search(self, query: str) -> List["SearchResult"]:
         # past async code here
-        pass
+        async with self.HTTP_ASYNC() as session:
+            response = (await session.get("url", params={"search": query})).text
+            ...
 
     async def async_ongoing(self) -> List["Ongoing"]:
         # past async code here
-        pass
+        async with self.HTTP_ASYNC() as session:
+            response = (await session.get("url")).text
+            ...
 
 
 class SearchResult(BaseSearchResult):

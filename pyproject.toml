@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anicli_api"
-version = "0.1.0"
+version = "0.2.0"
 description = "Anime extractor api implementation"
 authors = ["Georgiy aka Vypivshiy"]
 license = "MIT"
@@ -23,6 +23,11 @@ twine = "^4.0.1"
 isort = "^5.10.1"
 black = "^22.10.0"
 
+[tool.poetry.group.doc.dependencies]
+sphinx = "^5.3.0"
+sphinx-rtd-theme = "^1.1.1"
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
@@ -34,14 +39,14 @@ addopts = "--ignore='anicli_api.extractors.*' --cov='anicli_api._http' --cov='an
 
 [tool.mypy]
 python_version = 3.8
-exclude="(tests|venv|.venv)"
+exclude="(tests|venv|.venv|docs|__template__)"
 ignore_missing_imports = true
 warn_no_return = false
 warn_return_any = false
 warn_unused_configs = true
 
-[flake8]
-exclude = '.git,__pycache__,env,venv,tests,.venv'
+[tool.flake8]
+exclude = '.git,__pycache__,dist,env,venv,tests,.venv,docs/conf.py,anicli_api/extractors/__template__.py,anicli_api/decoders/__template__.py'
 max-line-length = 120
 max-complexity = 8
 ignore = 'F405, F403, W503, E501, F401, E203'

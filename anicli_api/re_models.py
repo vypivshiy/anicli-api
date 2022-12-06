@@ -1,3 +1,10 @@
+"""
+Experimental regex parser classes
+
+It was written to convert the results to the desired values through classes without additional logic.
+
+For examples, see examples.example_re_models.py file
+"""
 from __future__ import annotations
 
 import builtins
@@ -18,26 +25,30 @@ __all__ = (
 
 
 class ReBaseField:
-    """Базовый класс парсера регулярных выражений с конвертацией в словарь
+    """
+    Base regex parser class
 
-    Базовый принцип работы:
-        1. Установить re.Pattern, и имя ключа нового аргумента.
+    How it works:
 
-        2. Приоритет преобразований функциями, после нахождения регулярными выражениями result:
+        - Set re.Pattern, and key name.
 
-        2.1 Если регулярное выражение ничего не нашло, вернёт  {name: default} словарь
+        **Priority of transformations by functions, after finding result by regular expressions:**
 
-        2.2  before_func параметр, если передан
+        - If regexp found nothing, it returns  {name: default}
 
-        2.3  before_func_call метод, если объявлен
+        **Else:**
 
-        2.4 result_type тип (по умолчанию str)
+        -  **before_func** param, if set
 
-        2.5 after_func_call метод, если объявлен
+        - **before_func_call method**, if defined
 
-        2.6 after_func attr, если передан
+        - **result_type** type (default str)
 
-        3. вернуть {name: result}
+        - **after_func_call method**, if defined
+
+        - **after_func param**, if set
+
+        - return {name: result}
     """
 
     def __init__(
@@ -50,6 +61,14 @@ class ReBaseField:
         before_exec_type: Optional[T_BEFORE_EXEC] = None,
         after_exec_type: Optional[T_AFTER_EXEC] = None,
     ) -> None:
+        """
+        :param pattern: re.Pattern or regex string
+        :param name: name key. Default, try get groupname from pattern
+        :param default: default value, if pattern found nothing. Default None
+        :param type: convert type founded value. Default str
+        :param before_exec_type: function or dict with function exec before set type
+        :param after_exec_type: function or dict with function exec after set type
+        """
         self.pattern = pattern if isinstance(pattern, Pattern) else re.compile(pattern)
 
         self.name = self._set_name(name)
@@ -95,9 +114,15 @@ class ReBaseField:
 
     @abstractmethod
     def parse(self, text: str) -> Dict[str, Any]:
+        """parse value and convert by the rules"""
         ...
 
     def parse_values(self, text: str) -> List[Any]:
+        """return list of values, without key
+
+        :param text: target text
+        :return: list of values
+        """
         rez = []
         for val in self.parse(text).values():
             rez.extend(val) if isinstance(val, List) else rez.append(val)
@@ -121,9 +146,12 @@ class ReBaseField:
 
 
 class ReField(ReBaseField):
-    """Возвращает первый найденный результат, найденный регулярным выражением"""
-
     def parse(self, text: str) -> Dict[str, Any]:
+        """Returns the first matched result found by the regular expression
+
+        :param text: text target
+        :return: dict {name: result or default value}
+        """
         if not (result := self.pattern.search(text)):
             if isinstance(self.default, Iterable) and not isinstance(
                 self.default, str
@@ -143,8 +171,6 @@ class ReField(ReBaseField):
 
 
 class ReFieldList(ReBaseField):
-    """Возвращает список всех найденных результатов"""
-
     def __init__(
         self,
         pattern: Union[Pattern, AnyStr],
@@ -155,6 +181,15 @@ class ReFieldList(ReBaseField):
         before_exec_type: Optional[Callable] = None,
         after_exec_type: Optional[Callable] = None,
     ) -> None:
+        """Returns a list of all found results
+
+        :param pattern: re.Pattern or regex string
+        :param name: key, string
+        :param default: default value. Default - empty list []
+        :param type: convert type all founded values. Default str
+        :param before_exec_type: function or dict with function exec before set type
+        :param after_exec_type: function or dict with function exec after set type
+        """
         if not default:
             default = []
 
@@ -176,6 +211,11 @@ class ReFieldList(ReBaseField):
         )
 
     def parse(self, text: str) -> Dict[str, List]:
+        """Returns a list of all found results
+
+        :param text: text target
+        :return: dict {key: [val_1, val_2 ..., val_n] or {key: default}
+        """
         if not (result := self.pattern.findall(text)):
             return {self.name: self.default}  # type: ignore
         for i, el in enumerate(result):
@@ -185,8 +225,6 @@ class ReFieldList(ReBaseField):
 
 
 class ReFieldListDict(ReBaseField):
-    """Возвращает список словарей найденных выражений"""
-
     def __init__(
         self,
         pattern: Union[Pattern, AnyStr],
@@ -197,7 +235,15 @@ class ReFieldListDict(ReBaseField):
         before_exec_type: Optional[Dict[str, Callable]] = None,
         after_exec_type: Optional[Dict[str, Callable]] = None,
     ) -> None:
+        """Returns a list of dictionaries of found expressions
 
+        :param pattern: re.Pattern or regex string. REGEX REQUIRED GROUPS INDEXES
+        :param name: key, string
+        :param default: default value. Default - empty list []
+        :param type: convert type all founded values. Default str
+        :param before_exec_type: dict of function {groupname1: func, groupname2: func...} exec before set type
+        :param after_exec_type: dict of function {groupname1: func, groupname2: func...} exec before set type
+        """
         if not default:
             default = []
 
@@ -219,6 +265,11 @@ class ReFieldListDict(ReBaseField):
         )
 
     def parse(self, text: str) -> Dict[str, List[Any]]:
+        """
+
+        :param text: target text
+        :return: dict {name: [{groupname_1: val_1, group_name_2: val_2...}, {groupname_1: val_3, group_name_2: val_4...}...]}
+        """
         if not self.pattern.search(text):
             return {self.name: self.default}  # type: ignore
         if not self.pattern.groupindex:
