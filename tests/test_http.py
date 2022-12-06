@@ -15,17 +15,6 @@ def test_singleton_async():
     assert client_1 == client_2
 
 
-def test_unescape():
-    assert (
-        BaseHTTPSync.unescape("{&quot;id&quot;:&quot;Jo9ql8ZeqnW&quot;,&")
-        == '{"id":"Jo9ql8ZeqnW",&'
-    )
-    assert (
-        BaseHTTPAsync.unescape("{&quot;id&quot;:&quot;Jo9ql8ZeqnW&quot;,&")
-        == '{"id":"Jo9ql8ZeqnW",&'
-    )
-
-
 @pytest.mark.parametrize(
     "response",
     [

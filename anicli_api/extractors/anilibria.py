@@ -264,7 +264,7 @@ class Video(BaseVideo):
             return [
                 MetaVideo(type="m3u8", quality=480, url=self.sd),
                 MetaVideo(type="m3u8", quality=720, url=self.hd),
-                MetaVideo(type="m3u8", quality=1080, url=self.fhd)
+                MetaVideo(type="m3u8", quality=1080, url=self.fhd),
             ]
         return [
             MetaVideo(type="m3u8", quality=480, url=self.sd),
@@ -276,12 +276,12 @@ class Video(BaseVideo):
             return [
                 MetaVideo(type="m3u8", quality=480, url=self.sd),
                 MetaVideo(type="m3u8", quality=720, url=self.hd),
-                MetaVideo(type="m3u8", quality=1080, url=self.fhd)
+                MetaVideo(type="m3u8", quality=1080, url=self.fhd),
             ]
         return [
             MetaVideo(type="m3u8", quality=480, url=self.sd),
             MetaVideo(type="m3u8", quality=720, url=self.hd),
-            ]
+        ]
 
 
 class TestCollections(BaseTestCollections):

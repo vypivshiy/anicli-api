@@ -74,7 +74,7 @@ class Kodik(BaseDecoder):
         return link
 
     @classmethod
-    def parse(cls, url: str, **kwargs):
+    def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         url = url.split("?")[0]
         cls._validate_url(url)
         cls_ = cls(**kwargs)
@@ -99,7 +99,7 @@ class Kodik(BaseDecoder):
             return cls._response_to_meta_video(response)
 
     @classmethod
-    async def async_parse(cls, url: str, **kwargs):
+    async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         url = url.split("?")[0]
         cls._validate_url(url)
         cls_ = cls(**kwargs)

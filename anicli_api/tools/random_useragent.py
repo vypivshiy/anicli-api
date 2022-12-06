@@ -11,9 +11,7 @@ Usage:
 
 from random import choice
 
-__all__ = (
-    "RandomAgent",
-)
+__all__ = ("RandomAgent",)
 
 
 CHROME_VERSIONS = (

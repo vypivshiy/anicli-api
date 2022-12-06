@@ -15,7 +15,7 @@ FAKE_WRONG_EXTRACTOR = "tests.fixtures.fake_extractor_bad"
         "csv",
         FAKE_WRONG_EXTRACTOR,
         "anicli_api.base",
-        "anicli_api.extractors.__template__",
+        "anicli_api.__template_extractor__",
     ],
 )
 def test_wrong_load_extractor(module: str):

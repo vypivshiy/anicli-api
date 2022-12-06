@@ -1,4 +1,5 @@
 import re
+from typing import List
 
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
 
@@ -7,7 +8,7 @@ class Sibnet(BaseDecoder):
     URL_RULE = re.compile(r"video\.sibnet")
 
     @classmethod
-    def parse(cls, url: str, **kwargs):
+    def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         cls._validate_url(url)
         cls_ = cls(**kwargs)
 
@@ -20,7 +21,7 @@ class Sibnet(BaseDecoder):
             ]
 
     @classmethod
-    async def async_parse(cls, url: str, **kwargs):
+    async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         cls._validate_url(url)
         cls_ = cls(**kwargs)
 

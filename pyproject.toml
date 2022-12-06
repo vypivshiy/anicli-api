@@ -39,7 +39,7 @@ addopts = "--ignore='anicli_api.extractors.*' --cov='anicli_api._http' --cov='an
 
 [tool.mypy]
 python_version = 3.8
-exclude="(tests|venv|.venv|docs|__template__)"
+exclude="(tests|venv|setup.py|anicli_api/__template_extractor__.py|anicli_api/__template_decoder__.py)"
 ignore_missing_imports = true
 warn_no_return = false
 warn_return_any = false

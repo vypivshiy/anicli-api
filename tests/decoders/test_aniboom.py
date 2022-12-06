@@ -44,58 +44,12 @@ def test_parse_aniboom():
     result = Aniboom.parse(
         "https://fakeaniboom.one/embed/fake_aniboom_la-la-la", transport=mock_aniboom_transport()
     )
-    assert [r.dict() for r in result] == [
-        {
-            "type": "m3u8",
-            "quality": 360,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_0.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "m3u8",
-            "quality": 480,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_2.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "m3u8",
-            "quality": 720,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_4.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "m3u8",
-            "quality": 1080,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_6.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "mpd",
-            "quality": 1080,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdef123/111hash.mpd",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-    ]
+    for r in result:
+        assert r.type in ("m3u8, mpd")
+        assert r.url.startswith("https") and r.url.endswith(("m3u8", "mpd"))
+        assert len(r.extra_headers.keys()) == 3
+        assert r.extra_headers["accept-language"] == "ru-RU"
+        assert r.extra_headers["referer"] == "https://aniboom.one/"
 
 
 @pytest.mark.asyncio
@@ -103,56 +57,9 @@ async def test_async_parse_aniboom():
     result = await Aniboom.async_parse(
         "https://aniboom.one/embed/fake_aniboom_la-la-la", transport=mock_aniboom_transport()
     )
-    print([r.dict() for r in result])
-    assert [r.dict() for r in result] == [
-        {
-            "type": "m3u8",
-            "quality": 360,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_0.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "m3u8",
-            "quality": 480,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_2.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "m3u8",
-            "quality": 720,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_4.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "m3u8",
-            "quality": 1080,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdefg123/media_6.m3u8",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-        {
-            "type": "mpd",
-            "quality": 1080,
-            "url": "https://kekistan.cdn-fakeaniboom.com/jo/abcdef123/111hash.mpd",
-            "extra_headers": {
-                "referer": "https://aniboom.one/",
-                "accept-language": "ru-RU",
-                "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Mobile Safari/537.36",
-            },
-        },
-    ]
+    for r in result:
+        assert r.type in ("m3u8, mpd")
+        assert r.url.startswith("https") and r.url.endswith(("m3u8", "mpd"))
+        assert len(r.extra_headers.keys()) == 3
+        assert r.extra_headers["accept-language"] == "ru-RU"
+        assert r.extra_headers["referer"] == "https://aniboom.one/"

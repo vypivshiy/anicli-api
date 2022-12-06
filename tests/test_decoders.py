@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from anicli_api.decoders import BaseDecoder
+from anicli_api.base_decoder import BaseDecoder
 
 
 @pytest.mark.asyncio

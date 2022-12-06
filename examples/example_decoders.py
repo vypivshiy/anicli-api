@@ -1,5 +1,6 @@
 """at the moment, this module support kodik and aniboom decoders"""
 from anicli_api.decoders import Aniboom, Kodik
+
 if __name__ == "__main__":
     print("get videos from kodik")
     kodik_links = Kodik.parse(
