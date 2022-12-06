@@ -55,7 +55,7 @@ def walk_ongoing():
 def example_iter_objects():
     print("RUN ITER OBJECTS EXAMPLE")
     extractor = anilibria.Extractor()
-    search = extractor.search("lain")[0]
+    search = extractor.search("Мастера меча онлайн")[0]
     ongoing = extractor.ongoing()[0]
     # return raw dict all metadata
     print("SEARCH extract all meta")

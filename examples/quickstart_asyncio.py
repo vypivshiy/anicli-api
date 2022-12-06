@@ -9,7 +9,7 @@ async def step_by_step_search():
     print("RUN ASYNC STEP BY STEP SEARCH")
     extractor = anilibria.Extractor()
     # search by string query
-    search = await extractor.async_search("lain")
+    search = await extractor.async_search("Мастера меча онлайн")
     print(search[0].dict())  # dict method return all keys
     # step-by-step get objects
     anime = await search[0].a_get_anime()
