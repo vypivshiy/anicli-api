@@ -6,8 +6,10 @@
 Welcome to anicli-api's documentation!
 ======================================
 
-.. include:: anicli_api.rst
-
+.. toctree::
+   quickstart
+   anicli_api
+   modules
 
 Indices and tables
 ==================
