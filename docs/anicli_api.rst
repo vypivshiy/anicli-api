@@ -5,12 +5,11 @@ Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
-
    anicli_api.tools
 
 Submodules
 ----------
+
 
 anicli\_api.base module
 -----------------------

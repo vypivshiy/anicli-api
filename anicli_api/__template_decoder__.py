@@ -46,7 +46,7 @@ class MyDecoder(BaseDecoder):
             return [MetaVideo(type="m3u8", quality=144, url="", extra_headers={})]
 
     @classmethod
-    async def async_parse(cls, url: str, **kwargs):
+    async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         cls._validate_url(url)
         cls_ = cls(**kwargs)
 

@@ -93,7 +93,7 @@ class Aniboom(BaseDecoder):
         return videos
 
     @classmethod
-    def parse(cls, url: str, **kwargs):
+    def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         url = unescape(url)
         cls._validate_url(url)
         cls_ = cls(**kwargs)
@@ -118,7 +118,7 @@ class Aniboom(BaseDecoder):
             return cls_._raw_to_meta_videos(cls_, links, m3u8_response)
 
     @classmethod
-    async def async_parse(cls, url: str, **kwargs):
+    async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
         url = unescape(url)
         cls._validate_url(url)
 
