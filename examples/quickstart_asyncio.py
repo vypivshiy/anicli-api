@@ -1,13 +1,13 @@
 import asyncio
 
-from anicli_api.extractors import animego
+from anicli_api.extractors import anilibria
 
 
 async def step_by_step_search():
     """simple usage api search example"""
     # init extractor
     print("RUN ASYNC STEP BY STEP SEARCH")
-    extractor = animego.Extractor()
+    extractor = anilibria.Extractor()
     # search by string query
     search = await extractor.async_search("lain")
     print(search[0].dict())  # dict method return all keys
@@ -17,13 +17,13 @@ async def step_by_step_search():
     videos = await episodes[0].a_get_videos()
     links = await videos[0].a_get_source()
     # get first direct links dict
-    print(links)
+    print(*links, sep="\n")
 
 
 async def step_by_step_ongoing():
     """simple usage api ongoing example"""
     print("RUN ASYNC STEP BY STEP ONGOING")
-    extractor = animego.Extractor()
+    extractor = anilibria.Extractor()
     # get all available ongoings
     ongoings = await extractor.async_ongoing()
     ongoing = ongoings[0]
@@ -37,7 +37,7 @@ async def step_by_step_ongoing():
 async def walk_search():
     """simple usage api async_walk_search example"""
     print("RUN ASYNC WALK SEARCH")
-    extractor = animego.Extractor()
+    extractor = anilibria.Extractor()
     # method return all raw data
     async for meta in extractor.async_walk_search("school"):
         print(meta)
@@ -46,7 +46,7 @@ async def walk_search():
 async def walk_ongoing():
     """simple usage api async_walk_ongoing example"""
     print("RUN ASYNC WALK ONGOING")
-    extractor = animego.Extractor()
+    extractor = anilibria.Extractor()
     # method return all raw data
     # TODO implements check duplicates url
     async for meta in extractor.async_walk_ongoing()[:3]:
@@ -55,7 +55,7 @@ async def walk_ongoing():
 
 async def example_iter_objects():
     print("RUN ASYNC ITER OBJECTS")
-    extractor = animego.Extractor()
+    extractor = anilibria.Extractor()
     search = (await extractor.async_search("lain"))[0]
     ongoing = (await extractor.async_ongoing())[0]
     # return raw dict all metadata
