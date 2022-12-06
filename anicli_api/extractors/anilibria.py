@@ -6,6 +6,7 @@ from __future__ import annotations
 from typing import Any, AsyncGenerator, Generator, Optional, Protocol
 
 from anicli_api.base import *
+from anicli_api.base_decoder import MetaVideo
 
 __all__ = (
     "Extractor",
@@ -233,6 +234,8 @@ class Episode(BaseEpisode):
         return [
             Video(
                 torrents=self.torrents,
+                # dirty hack for success url validate for decoder.anilibria :D
+                url=self.hls["sd"],
                 **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()},
             )
         ]
@@ -241,6 +244,8 @@ class Episode(BaseEpisode):
         return [
             Video(
                 torrents=self.torrents,
+                # dirty hack for success url validate for decoder.anilibria :D
+                url=self.hls["sd"],
                 **{k: f"https://{self.host}{v}" if v else None for k, v in self.hls.items()},
             )
         ]
@@ -254,11 +259,29 @@ class Video(BaseVideo):
 
     # TODO create decoder
 
-    def get_source(self):
-        return self.dict()
+    def get_source(self) -> List[MetaVideo]:
+        if self.fhd:
+            return [
+                MetaVideo(type="m3u8", quality=480, url=self.sd),
+                MetaVideo(type="m3u8", quality=720, url=self.hd),
+                MetaVideo(type="m3u8", quality=1080, url=self.fhd)
+            ]
+        return [
+            MetaVideo(type="m3u8", quality=480, url=self.sd),
+            MetaVideo(type="m3u8", quality=720, url=self.hd),
+        ]
 
-    def a_get_source(self):
-        return self.dict()
+    async def a_get_source(self) -> List[MetaVideo]:
+        if self.fhd:
+            return [
+                MetaVideo(type="m3u8", quality=480, url=self.sd),
+                MetaVideo(type="m3u8", quality=720, url=self.hd),
+                MetaVideo(type="m3u8", quality=1080, url=self.fhd)
+            ]
+        return [
+            MetaVideo(type="m3u8", quality=480, url=self.sd),
+            MetaVideo(type="m3u8", quality=720, url=self.hd),
+            ]
 
 
 class TestCollections(BaseTestCollections):
@@ -283,6 +306,4 @@ class TestCollections(BaseTestCollections):
         anime = search.get_anime()
         episodes = anime.get_episodes()
         video = episodes[0].get_videos()[0]
-        assert video.fhd is None
-        assert "libria.fun" in video.hd
-        assert "libria.fun" in video.sd
+        assert "libria.fun" in video.get_source()[0].url

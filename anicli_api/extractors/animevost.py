@@ -15,7 +15,7 @@ __all__ = (
     "TestCollections",
 )
 
-from anicli_api.decoders import MetaVideo
+from anicli_api.base_decoder import MetaVideo
 
 
 class SearchIterData(Protocol):
