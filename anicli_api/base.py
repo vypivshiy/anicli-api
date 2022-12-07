@@ -310,9 +310,9 @@ class BaseAnimeExtractor(ABC):
 
     **Instances, for work http requests and response data:**
 
-    - _HTTP = BaseHTTPSync - http singleton sync requests class
+    - HTTP = BaseHTTPSync - http singleton sync requests class
 
-    - _HTTP_ASYNC = BaseHTTPAsync - http singleton async requests class
+    - HTTP_ASYNC = BaseHTTPAsync - http singleton async requests class
 
     **Methods:**
 
