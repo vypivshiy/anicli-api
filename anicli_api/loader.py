@@ -5,9 +5,7 @@ import logging
 import pathlib
 import sys
 from abc import ABC, abstractmethod
-from os import PathLike
-from types import ModuleType
-from typing import Protocol, Type, Union, cast
+from typing import Protocol, Type, cast
 
 from anicli_api.base import *
 
@@ -30,7 +28,7 @@ VALID_CLASSES = (
 
 
 class ModuleExtractor(Protocol):
-    """Typehints for dynamic import extractor"""
+    """Protocol typehint for dynamic import extractor"""
 
     Extractor: Type[BaseAnimeExtractor]
     SearchResult: Type[BaseSearchResult]
