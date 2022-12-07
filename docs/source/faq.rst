@@ -30,14 +30,15 @@ HTTPAsync - имеет свойства **BaseHTTPAsync**, только он **S
 
 
 .. code-block:: python
-        from anicli_api import HTTPSync
 
+        from anicli_api import HTTPSync
         __SESSION = HTTPSync()
         __SESSION.headers.update({"user-agent": "my_useragent"})
         # во всех экстракторах будет использоваться юзерагент my_useragent
 
 
 .. code-block:: python
+
         from anicli_api.extractors import anilibria, animevost
 
         extractor = anilibria.Extractor()
