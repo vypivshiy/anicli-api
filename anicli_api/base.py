@@ -59,6 +59,14 @@ __all__ = (
 class IterData:
     """
     Dataclass for iterable methods
+
+    - search - Ongoing or SearchResult object
+
+    - anime - AnimeInfo object
+
+    - episode - Episode object
+
+    - video - Video object
     """
 
     search: Union[BaseSearchResult, BaseOngoing]

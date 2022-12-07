@@ -1,34 +1,28 @@
-"""Decoders class for video hostings
+"""
+Decoders class for video hostings
 
 Decoder structure:
 
-```py
+- class DecoderName(BaseDecoder) - base decoder structure.
 
-class DecoderName(BaseDecoder):
-    # link validation regex
-    URL_RULE: re.Pattern
+- URL_RULE - link validation regex.
 
-    def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
-        # parser using synchronous requests
-        ...
+- def parse - List[MetaVideo]: synchronous video parser class method.
 
-    async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
-        # parser using asynchronous requests
-        ...
+- async def async_parse -> List[MetaVideo]: asynchronous video parser class method.
 
-```
-Dataclass with reference values
+
+Video Dataclass with reference values
 
 MetaVideo
 
-- type - file type (m3u8, mpd, mp4...)
+- type file type (m3u8, mpd, mp4...)
 
-- quality - video quality, int (144,240,360,480,720,1080)
+- quality video quality, int (144,240,360,480,720,1080)
 
-- url - video link
+- url video link
 
-- extra_headers - keys for headers, if the video stream does not work without them (like aniboom, sibnet)
-If it works without them, set default value
+- extra_headers - if the video stream does not work without them (like aniboom, sibnet) or set default value.
 """
 
 import re
@@ -43,6 +37,17 @@ ALL_QUALITIES = (144, 240, 360, 480, 720, 1080)
 
 @dataclass
 class MetaVideo:
+    """MetaVideo class contains direct link and information like type, quality
+
+    - type - video format type (mp4, m3u8 or mpd)
+
+    - quality - video quality [144, 240, 360, 480, 720, 1080]
+
+    - url - direct video link
+
+    - extra_headers - required UserAgent values for play or download this video. If not needed, default dict is empty
+    """
+
     type: Literal["mp4", "m3u8", "mpd"]
     quality: Literal[144, 240, 360, 480, 720, 1080]
     url: str

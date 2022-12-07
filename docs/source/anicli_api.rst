@@ -1,16 +1,6 @@
 anicli\_api package
 ===================
 
-Subpackages
------------
-
-.. toctree::
-   anicli_api.tools
-
-Submodules
-----------
-
-
 anicli\_api.base module
 -----------------------
 
@@ -18,6 +8,7 @@ anicli\_api.base module
    :members:
    :undoc-members:
    :show-inheritance:
+   :noindex:
 
 anicli\_api.base\_decoder module
 --------------------------------
@@ -26,6 +17,7 @@ anicli\_api.base\_decoder module
    :members:
    :undoc-members:
    :show-inheritance:
+   :noindex:
 
 anicli\_api.loader module
 -------------------------
@@ -34,6 +26,7 @@ anicli\_api.loader module
    :members:
    :undoc-members:
    :show-inheritance:
+   :noindex:
 
 anicli\_api.re\_models module
 -----------------------------
@@ -42,6 +35,7 @@ anicli\_api.re\_models module
    :members:
    :undoc-members:
    :show-inheritance:
+   :noindex:
 
 Module contents
 ---------------
@@ -50,3 +44,4 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :noindex:
