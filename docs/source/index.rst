@@ -27,6 +27,8 @@ Contents
 .. toctree::
    quickstart
    decoders
+   faq
+   http
    objects
    re_models
    loader
