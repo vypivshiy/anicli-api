@@ -111,8 +111,7 @@ class Extractor(BaseAnimeExtractor):
         return [Ongoing(**kw) for kw in (await self.ANILIBRIA.a_get_updates())]
 
 
-class SearchResult(BaseSearchResult):
-    # TODO typing keys better
+class SResult(BaseModel):
     id: int
     code: str
     names: dict
@@ -131,50 +130,30 @@ class SearchResult(BaseSearchResult):
     player: dict
     torrents: dict
 
+    async def a_get_anime(self) -> "AnimeInfo":
+        return AnimeInfo(**self.dict())
+
+    def get_anime(self) -> "AnimeInfo":
+        return AnimeInfo(**self.dict())
+
+    def __str__(self):
+        return f"{list(self.names.values())[0]}"
+
+
+class SearchResult(SResult, BaseSearchResult):
     def __iter__(self) -> Generator[SearchIterData, None, None]:
         return super().__iter__()
 
     def __aiter__(self) -> AsyncGenerator[SearchIterData, None]:
         return super().__aiter__()
 
-    async def a_get_anime(self) -> "AnimeInfo":
-        return AnimeInfo(**self.dict())
 
-    def get_anime(self) -> "AnimeInfo":
-        return AnimeInfo(**self.dict())
-
-
-class Ongoing(BaseOngoing):
-    # TODO typing keys better
-    id: int
-    code: str
-    names: dict
-    announce: Optional[Any]
-    status: dict
-    posters: dict
-    updated: int
-    last_change: int
-    type: dict
-    genres: List[str]
-    team: dict
-    season: dict
-    description: str
-    in_favorites: int
-    blocked: dict
-    player: dict
-    torrents: dict
-
+class Ongoing(SResult, BaseOngoing):
     def __iter__(self) -> Generator[OngoingIterData, None, None]:
         return super().__iter__()
 
     def __aiter__(self) -> AsyncGenerator[OngoingIterData, None]:
         return super().__aiter__()
-
-    async def a_get_anime(self) -> "AnimeInfo":
-        return AnimeInfo(**self.dict())
-
-    def get_anime(self) -> "AnimeInfo":
-        return AnimeInfo(**self.dict())
 
 
 class AnimeInfo(BaseAnimeInfo):
@@ -219,6 +198,9 @@ class AnimeInfo(BaseAnimeInfo):
             for p in self.player["playlist"].values()
         ]
 
+    def __str__(self):
+        return f"{list(self.names.values())[0]}\n{self.genres}\n{self.description}"
+
 
 class Episode(BaseEpisode):
     alternative_player: Optional[str]
@@ -250,6 +232,9 @@ class Episode(BaseEpisode):
             )
         ]
 
+    def __str__(self):
+        return f"{self.serie} episode"
+
 
 class Video(BaseVideo):
     torrents: dict
@@ -259,7 +244,7 @@ class Video(BaseVideo):
 
     # TODO create decoder
 
-    def get_source(self) -> List[MetaVideo]:
+    def _source(self) -> List[MetaVideo]:
         if self.fhd:
             return [
                 MetaVideo(type="m3u8", quality=480, url=self.sd),
@@ -271,17 +256,11 @@ class Video(BaseVideo):
             MetaVideo(type="m3u8", quality=720, url=self.hd),
         ]
 
+    def get_source(self) -> List[MetaVideo]:
+        return self._source()
+
     async def a_get_source(self) -> List[MetaVideo]:
-        if self.fhd:
-            return [
-                MetaVideo(type="m3u8", quality=480, url=self.sd),
-                MetaVideo(type="m3u8", quality=720, url=self.hd),
-                MetaVideo(type="m3u8", quality=1080, url=self.fhd),
-            ]
-        return [
-            MetaVideo(type="m3u8", quality=480, url=self.sd),
-            MetaVideo(type="m3u8", quality=720, url=self.hd),
-        ]
+        return self._source()
 
 
 class TestCollections(BaseTestCollections):

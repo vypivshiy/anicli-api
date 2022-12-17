@@ -176,6 +176,9 @@ class SearchResult(AnimeInfoParser, BaseSearchResult):
     def __aiter__(self) -> AsyncGenerator[SearchIterData, None]:
         return super().__aiter__()
 
+    def __str__(self):
+        return f"{self.title}"
+
 
 class Ongoing(AnimeInfoParser, BaseOngoing):
     name: str
@@ -186,6 +189,9 @@ class Ongoing(AnimeInfoParser, BaseOngoing):
 
     def __aiter__(self) -> AsyncGenerator[OngoingIterData, None]:
         return super().__aiter__()
+
+    def __str__(self):
+        return f"{self.name}"
 
 
 class AnimeInfo(BaseAnimeInfo):
@@ -200,6 +206,9 @@ class AnimeInfo(BaseAnimeInfo):
     def get_episodes(self) -> List["Episode"]:
         return [Episode(name=name, _video_meta=meta) for name, meta in self._episodes.items()]
 
+    def __str__(self):
+        return f"{self.title}\n{self.description}"
+
 
 class Episode(BaseEpisode):
     name: str
@@ -210,6 +219,9 @@ class Episode(BaseEpisode):
 
     def get_videos(self) -> List["Video"]:
         return [Video(**meta) for meta in self._video_meta]
+
+    def __str__(self):
+        return self.name
 
 
 class Video(BaseVideo):

@@ -75,8 +75,7 @@ class VostAPI:
         return self.api_request("POST", api_method="playlist", data={"id": id})  # type: ignore
 
     async def a_playlist(self, id: int) -> list[dict]:
-        response = await self.a_api_request("POST", api_method="playlist", data={"id": id})
-        return response  # type: ignore
+        return await self.a_api_request("POST", api_method="playlist", data={"id": id})  # type: ignore
 
 
 class Extractor(BaseAnimeExtractor):
@@ -138,6 +137,9 @@ class SResult(BaseModel):
         response = VostAPI().playlist(self.id)
         return AnimeInfo(**self.dict(), playlist=response)
 
+    def __str__(self):
+        return f"{self.title}"
+
 
 class SearchResult(SResult, BaseSearchResult):
     def __iter__(self) -> Generator[SearchIterData, None, None]:
@@ -179,6 +181,9 @@ class AnimeInfo(BaseAnimeInfo):
     def get_episodes(self) -> List["Episode"]:
         return [Episode(**kw) for kw in self.playlist]
 
+    def __str__(self):
+        return f"{self.title} {self.year} {self.rating}\n{self.genre}\n{self.description}"
+
 
 class Episode(BaseEpisode):
     name: str
@@ -194,11 +199,13 @@ class Episode(BaseEpisode):
     def get_videos(self) -> List["Video"]:
         return [Video(hd=self.hd, std=self.std)]
 
+    def __str__(self):
+        return f"{self.name}"
+
 
 class Video(BaseVideo):
     hd: str
     std: str
-    # TODO create decoder
 
     def get_source(self) -> Union[str, List[MetaVideo]]:
         return [

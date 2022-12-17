@@ -207,6 +207,9 @@ class SearchResult(AnimeParser, BaseSearchResult):
     def __aiter__(self) -> AsyncGenerator[SearchIterData, None]:
         return super().__aiter__()
 
+    def __str__(self):
+        return f"{self.name} {self.type} {self.year}"
+
 
 class Ongoing(AnimeParser, BaseOngoing):
     name: str
@@ -222,10 +225,22 @@ class Ongoing(AnimeParser, BaseOngoing):
     def __aiter__(self) -> AsyncGenerator[OngoingIterData, None]:
         return super().__aiter__()
 
+    def __str__(self):
+        return f"{self.name} {self.num} {self.dub}"
+
 
 class AnimeInfo(BaseAnimeInfo):
     id: str
     url: str
+
+    # meta
+    name: str
+    alt_names: list[str]
+    rating: float
+    description: str
+    genres: list[str]
+    screenshots: list[str]
+    thumbnails: list[str]
 
     async def a_get_episodes(self) -> List["Episode"]:
         # TODO
@@ -264,6 +279,9 @@ class AnimeInfo(BaseAnimeInfo):
             after_exec_type={"num": int, "id": int, "type": int},
         ).parse_values(response)
         return [Episode(url=self.url, **ep) for ep in episodes]
+
+    def __str__(self):
+        return f"{self.name} {self.rating}\n{self.genres}\n{self.description}"
 
 
 class Episode(BaseEpisode):
@@ -319,6 +337,9 @@ class Episode(BaseEpisode):
 
         result = self._extract_metadata(resp)
         return [Video(**vid) for vid in result]
+
+    def __str__(self):
+        return f"{self.num} {self.name} {self.description}"
 
 
 class Video(BaseVideo):
