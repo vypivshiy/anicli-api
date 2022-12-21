@@ -33,7 +33,18 @@ import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from html import unescape
-from typing import Any, AsyncGenerator, Awaitable, Dict, Generator, List, Sequence, Type, Union, Optional
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    Union,
+)
 
 from bs4 import BeautifulSoup
 
