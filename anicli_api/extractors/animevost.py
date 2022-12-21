@@ -207,13 +207,13 @@ class Video(BaseVideo):
     hd: str
     std: str
 
-    def get_source(self) -> Union[str, List[MetaVideo]]:
+    def get_source(self) -> List[MetaVideo]:
         return [
             MetaVideo(type="mp4", quality=480, url=self.std),
             MetaVideo(type="mp4", quality=720, url=self.hd),
         ]
 
-    async def a_get_source(self) -> Union[str, List[MetaVideo]]:
+    async def a_get_source(self) -> List[MetaVideo]:
         return [
             MetaVideo(type="mp4", quality=480, url=self.std),
             MetaVideo(type="mp4", quality=720, url=self.hd),

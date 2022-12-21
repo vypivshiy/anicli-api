@@ -33,7 +33,7 @@ import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from html import unescape
-from typing import Any, AsyncGenerator, Awaitable, Dict, Generator, List, Sequence, Type, Union
+from typing import Any, AsyncGenerator, Awaitable, Dict, Generator, List, Sequence, Type, Union, Optional
 
 from bs4 import BeautifulSoup
 
@@ -289,20 +289,20 @@ class BaseVideo(BaseModel):
     url: str
     _DECODERS: Sequence[Type[BaseDecoder]] = ALL_DECODERS
 
-    async def a_get_source(self) -> Union[str, List[MetaVideo]]:
+    async def a_get_source(self) -> Optional[List[MetaVideo]]:
         for decoder in self._DECODERS:
             if self.url == decoder():
                 return await decoder.async_parse(self.url)
-        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
-        return self.url
+        warnings.warn(f"Fail parse {self.url}, return None", stacklevel=2)
+        return None
 
-    def get_source(self) -> Union[str, List[MetaVideo]]:
+    def get_source(self) -> Optional[List[MetaVideo]]:
         # sourcery skip: use-next
         for decoder in self._DECODERS:
             if self.url == decoder():
                 return decoder.parse(self.url)
-        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
-        return self.url
+        warnings.warn(f"Fail parse {self.url}, return None", stacklevel=2)
+        return None
 
 
 class BaseAnimeExtractor(ABC):
