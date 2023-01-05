@@ -100,3 +100,11 @@ def test_collections():
     assert tests_coll.test_ongoing()
     assert tests_coll.test_extract_video()
     assert tests_coll.test_extract_metadata()
+
+
+def test_compare_models():
+    base_model = fake_extractor.BaseModel
+    base_1 = base_model(foo=1, bar=2, baz=3)
+    base_2 = base_model(foo=1, bar=2, baz=3)
+    assert base_1 == base_2
+    assert base_1 != base_model(foo=2, bar=3, baz=4)

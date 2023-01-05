@@ -33,18 +33,8 @@ import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from html import unescape
-from typing import (
-    Any,
-    AsyncGenerator,
-    Awaitable,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-)
+from typing import Any, AsyncGenerator, Awaitable, Dict, Generator, List, Sequence, Type, Union
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 
@@ -70,14 +60,6 @@ __all__ = (
 class IterData:
     """
     Dataclass for iterable methods
-
-    - search - Ongoing or SearchResult object
-
-    - anime - AnimeInfo object
-
-    - episode - Episode object
-
-    - video - Video object
     """
 
     search: Union[BaseSearchResult, BaseOngoing]
@@ -110,6 +92,7 @@ class BaseModel(ABC):
     - _ReFieldListDict - re_models.ReFieldListDict
 
     - _parse_many - re_models.parse_many
+
     """
 
     # http singleton sync requests class
@@ -118,6 +101,8 @@ class BaseModel(ABC):
     _HTTP_ASYNC = BaseHTTPAsync
 
     _unescape = unescape
+    # urllib.parse.urlparse
+    _urlparse = urlparse
 
     # optional regex search class helpers
     _ReField = ReField
@@ -167,6 +152,14 @@ class BaseModel(ABC):
         return f"[{self.__class__.__name__}] " + ", ".join(
             (f"{k}={v}" for k, v in self.dict().items())
         )
+
+    def __eq__(self, other):
+        if isinstance(other, BaseModel):
+            return hash(other) == hash(self)
+        raise TypeError(f"{other.__name__} is not `BaseModel` object")
+
+    def __hash__(self):
+        return hash(tuple(self.dict().values()))
 
 
 class BaseSearchResult(BaseModel):
@@ -300,20 +293,20 @@ class BaseVideo(BaseModel):
     url: str
     _DECODERS: Sequence[Type[BaseDecoder]] = ALL_DECODERS
 
-    async def a_get_source(self) -> Optional[List[MetaVideo]]:
+    async def a_get_source(self) -> Union[str, List[MetaVideo]]:
         for decoder in self._DECODERS:
             if self.url == decoder():
                 return await decoder.async_parse(self.url)
-        warnings.warn(f"Fail parse {self.url}, return None", stacklevel=2)
-        return None
+        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
+        return self.url
 
-    def get_source(self) -> Optional[List[MetaVideo]]:
+    def get_source(self) -> Union[str, List[MetaVideo]]:
         # sourcery skip: use-next
         for decoder in self._DECODERS:
             if self.url == decoder():
                 return decoder.parse(self.url)
-        warnings.warn(f"Fail parse {self.url}, return None", stacklevel=2)
-        return None
+        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
+        return self.url
 
 
 class BaseAnimeExtractor(ABC):
@@ -321,15 +314,17 @@ class BaseAnimeExtractor(ABC):
 
     **Instances, for work http requests and response data:**
 
-    - HTTP = BaseHTTPSync - http singleton sync requests class
+    - _HTTP = BaseHTTPSync - http singleton sync requests class
 
-    - HTTP_ASYNC = BaseHTTPAsync - http singleton async requests class
+    - _HTTP_ASYNC = BaseHTTPAsync - http singleton async requests class
 
     **Methods:**
 
     - _BaseModel._soup - return BeautifulSoap instance
 
     - _BaseModel._unescape - html.unescape function. Unescape text response
+
+    - _Basemodel._urlparse - urllib.parse.urlparse function
 
     **Optional regex search class helpers:**
 
