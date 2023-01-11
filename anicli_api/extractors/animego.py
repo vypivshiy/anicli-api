@@ -167,7 +167,7 @@ class AnimeParser(BaseModel):
             meta["rating"] = float(
                 soup.find("span", class_="rating-value").get_text(strip=True).replace(",", ".")
             )
-        except Exception as e:
+        except Exception:
             meta["rating"] = "unknown"
         meta["description"] = soup.find("div", attrs={"data-readmore": "content"}).get_text(
             strip=True
@@ -352,6 +352,7 @@ class Video(BaseVideo):
     def __hash__(self):
         # balancer netloc and dub_id
         return hash((self._urlparse(self.url).netloc, self.dub_id))
+
 
 class TestCollections(BaseTestCollections):
     def test_search(self):
