@@ -1,4 +1,5 @@
-"""THIS EXTRACTOR WORKS ONLY MOBILE USERAGENT!!!"""
+"""Animego extractor
+WARNING! THIS EXTRACTOR WORKS ONLY WHICH MOBILE USERAGENT!!!"""
 from __future__ import annotations
 
 from typing import AsyncGenerator, Dict, Generator, Protocol
@@ -162,9 +163,12 @@ class AnimeParser(BaseModel):
             t.get_text(strip=True)
             for t in soup.find("div", attrs={"class": "synonyms"}).find_all("li")
         ]
-        meta["rating"] = float(
-            soup.find("span", class_="rating-value").get_text(strip=True).replace(",", ".")
-        )
+        try:
+            meta["rating"] = float(
+                soup.find("span", class_="rating-value").get_text(strip=True).replace(",", ".")
+            )
+        except Exception as e:
+            meta["rating"] = "unknown"
         meta["description"] = soup.find("div", attrs={"data-readmore": "content"}).get_text(
             strip=True
         )
@@ -343,8 +347,11 @@ class Episode(BaseEpisode):
 
 
 class Video(BaseVideo):
-    ...
+    dub_id: int
 
+    def __hash__(self):
+        # balancer netloc and dub_id
+        return hash((self._urlparse(self.url).netloc, self.dub_id))
 
 class TestCollections(BaseTestCollections):
     def test_search(self):

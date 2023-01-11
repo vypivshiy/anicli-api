@@ -242,7 +242,8 @@ class Video(BaseVideo):
     hd: str
     sd: str
 
-    # TODO create decoder
+    def __hash__(self):
+        return hash(tuple(self.get_source()))
 
     def _source(self) -> List[MetaVideo]:
         if self.fhd:

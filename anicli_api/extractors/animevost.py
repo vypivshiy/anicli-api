@@ -1,4 +1,4 @@
-"""Template extractor"""
+"""Animevost extractor"""
 from __future__ import annotations
 
 from typing import AsyncGenerator, Generator, Protocol, Union
@@ -218,6 +218,9 @@ class Video(BaseVideo):
             MetaVideo(type="mp4", quality=480, url=self.std),
             MetaVideo(type="mp4", quality=720, url=self.hd),
         ]
+
+    def __eq__(self, other):
+        return hash(tuple(self.get_source()))
 
 
 class TestCollections(BaseTestCollections):

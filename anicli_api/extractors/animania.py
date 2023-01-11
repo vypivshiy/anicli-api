@@ -1,4 +1,4 @@
-"""Template extractor"""
+"""Animania Extractor"""
 from __future__ import annotations
 
 from typing import AsyncGenerator, Dict, Generator, Protocol
@@ -229,6 +229,10 @@ class Video(BaseVideo):
     id: int
     name: str
     dub: str
+
+    def __hash__(self):
+        # balancer netloc and dub_id
+        return hash((self._urlparse(self.url).netloc, self.dub))
 
 
 class TestCollections(BaseTestCollections):

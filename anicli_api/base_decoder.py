@@ -29,6 +29,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional, Union
+from urllib.parse import urlparse
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
 
@@ -55,6 +56,17 @@ class MetaVideo:
 
     def dict(self) -> Dict[str, Any]:
         return self.__dict__
+
+    def __str__(self):
+        return f"{self.type} {self.quality} {urlparse(self.url).netloc}"
+
+    def __hash__(self):
+        return hash((self.type, self.quality, urlparse(self.url).netloc))
+
+    def __eq__(self, other):
+        if isinstance(other, MetaVideo):
+            return hash(self) == hash(other)
+        raise TypeError(f"MetaVideo object required, not {type(other)}")
 
 
 class ABCDecoder(ABC):
