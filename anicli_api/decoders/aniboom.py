@@ -6,7 +6,7 @@ from httpx import Timeout
 
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
 
-from .exceptions import RegexParseError
+from anicli_api.decoders.exceptions import RegexParseError
 
 
 class Aniboom(BaseDecoder):
@@ -14,83 +14,22 @@ class Aniboom(BaseDecoder):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # fix too long aniboom timeouts
-        self.http.timeout = Timeout(5.0, connect=0.3)
-        self.a_http.timeout = Timeout(5.0, connect=0.3)
-
-    @classmethod
-    def _parse_m3u8(cls, m3u8_url: str, m3u8_response: str) -> Dict[str, str]:
-        # extract links from m3u8 response
-        result = {}
-        base_m3u8_url = m3u8_url.replace("/master.m3u8", "")
-        for url_data in re.finditer(
-            r"#EXT-X-STREAM-INF:BANDWIDTH=\d+,RESOLUTION=(?P<resolution>\d+x\d+),"
-            r'CODECS=".*?",AUDIO="\w+"\s(?P<src>\w+\.m3u8)',
-            m3u8_response,
-        ):
-            if m3u8_dict := url_data.groupdict():
-                result[
-                    m3u8_dict["resolution"].split("x")[-1]
-                ] = f"{base_m3u8_url}/{url_data['src']}"
-        return result
+        # fix very long aniboom timeouts
+        self.http.timeout = Timeout(5.0, connect=0.5)
+        self.a_http.timeout = Timeout(5.0, connect=0.5)
 
     @staticmethod
-    def _extract_links(raw_response: str) -> Dict[str, str]:
-        # get links from raw response
-        raw_response = unescape(raw_response)
-        result = {}
-        if m3u8_url := re.search(r'"hls":"{\\"src\\":\\"(?P<m3u8>.*\.m3u8)\\"', raw_response):
-            result.update(m3u8_url.groupdict())
-        else:
-            result["m3u8"] = None
+    def _parse_urls(response: str):
+        objects: List[MetaVideo] = []
 
-        if mpd_url := re.search(r'"{\\"src\\":\\"(?P<mpd>.*\.mpd)\\"', raw_response):
-            result.update(mpd_url.groupdict())
-        else:
-            result["mpd"] = None
-
-        for k, v in result.items():
-            result[k] = v.replace("\\", "")
-        return result
-
-    @classmethod
-    def _raw_to_meta_videos(
-        cls,
-        _cls,
-        links,
-        m3u8_response,
-    ) -> List[MetaVideo]:
-        m3u8_links = cls._parse_m3u8(links["m3u8"], m3u8_response)
-        videos = []
-        # noinspection PyTypeChecker
-        for quality, link in m3u8_links.items():
-            # noinspection PyTypeChecker
-            videos.append(
-                MetaVideo(
-                    type="m3u8",
-                    quality=int(quality),  # type: ignore
-                    url=link,
-                    extra_headers={
-                        "referer": "https://aniboom.one/",
-                        "accept-language": "ru-RU",
-                        "user-agent": _cls.a_http.headers["user-agent"],
-                    },
-                )
-            )
-        if links.get("mpd"):
-            videos.append(
-                MetaVideo(
-                    type="mpd",
-                    quality=1080,
-                    url=links.get("mpd"),
-                    extra_headers={
-                        "referer": "https://aniboom.one/",
-                        "accept-language": "ru-RU",
-                        "user-agent": _cls.http.headers["user-agent"],
-                    },
-                )
-            )
-        return videos
+        response = unescape(response)
+        if m3u8_url := re.search(r'"hls":"{\\"src\\":\\"(?P<m3u8>.*\.m3u8)\\"', response):
+            objects.append(MetaVideo(type="m3u8", quality=1080, url=m3u8_url.groupdict()["m3u8"].replace("\\", "")))
+        if mpd_url := re.search(r'"{\\"src\\":\\"(?P<mpd>.*\.mpd)\\"', response):
+            objects.append(MetaVideo(type="mpd", quality=1080, url=mpd_url.groupdict()["mpd"].replace("\\", "")))
+        if not objects:
+            raise RegexParseError("Failed extract aniboom video links")
+        return objects
 
     @classmethod
     def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
@@ -102,20 +41,7 @@ class Aniboom(BaseDecoder):
             response = session.get(url, headers={"referer": "https://animego.org/"})
             if not response.is_success:
                 raise ConnectionError(f"{url} return {response.status_code} code")
-
-            links = cls_._extract_links(unescape(response.text))
-            if len(links.keys()) == 0:
-                raise RegexParseError("Failed extract aniboom video links")
-
-            m3u8_response = session.get(
-                links["m3u8"],
-                headers={
-                    "referer": "https://aniboom.one",
-                    "origin": "https://aniboom.one/",
-                    "accept-language": "ru-RU",
-                },
-            ).text
-            return cls_._raw_to_meta_videos(cls_, links, m3u8_response)
+            return cls_._parse_urls(response.text)
 
     @classmethod
     async def async_parse(cls, url: str, **kwargs) -> List[MetaVideo]:
@@ -127,19 +53,9 @@ class Aniboom(BaseDecoder):
             response = await session.get(url)
             if not response.is_success:
                 raise ConnectionError(f"{url} return {response.status_code} code")
+            return cls_._parse_urls(response.text)
 
-            links = cls_._extract_links(unescape(response.text))
-            if len(links.keys()) == 0:
-                raise RegexParseError("Failed extract aniboom video links")
-            m3u8_response = (
-                await session.get(
-                    links["m3u8"],
-                    headers={
-                        "referer": "https://animego.org/",
-                        "origin": "https://animego.org",
-                        "accept-language": "ru-RU",
-                    },
-                )
-            ).text
 
-            return cls_._raw_to_meta_videos(cls_, links, m3u8_response)
+if __name__ == '__main__':
+    res = Aniboom.parse("https://aniboom.one/embed/N9QdKm4Mwz1?episode=1&translation=2")
+    print(*res, sep="\n")
