@@ -3,6 +3,32 @@ name = "anicli_api"
 version = "0.2.1"
 description = "Anime extractor api implementation"
 authors = ["Georgiy aka Vypivshiy"]
+keywords = [
+    "anime",
+    "api",
+    "ru",
+    "russia",
+    "asyncio",
+    "parser",
+    "httpx",
+    "dev"
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/vypivshiy/anicli-api/issues"
+"Cli app" = "https://github.com/vypivshiy/ani-cli-ru"
+
+classifiers = [
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Software Development :: Quality Assurance",
+  "Typing :: Typed",
+]
 license = "MIT"
 readme = "README.MD"
 packages = [{include = "anicli_api"}]
