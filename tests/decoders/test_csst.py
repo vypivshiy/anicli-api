@@ -14,7 +14,7 @@ def mock_transport():
     return transport
 
 
-def test_cmp_sibnet():
+def test_cmp():
     assert "https://google.com" != CsstOnline()
     assert "https://csst.online/embed/1337/" == CsstOnline()
 
