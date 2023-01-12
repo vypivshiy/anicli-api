@@ -2,11 +2,11 @@
 
 12.01.2023 works only kodik, sibnet
 Todo: add decoders for dzen, mail.ru, etc
-
+TODO reverse ustore (uboost.one), alloha players
 """
 from __future__ import annotations
 
-from typing import AsyncGenerator, Generator, Protocol
+from typing import AsyncGenerator, Dict, Generator, Protocol
 
 from anicli_api.base import *
 
@@ -162,22 +162,24 @@ class AnimeInfo(BaseAnimeInfo):
     anime_id: str
     metadata: dict[str, str]
 
-    def _parse_response(self, response: str) -> List["Episode"]:
-        soup = self._soup(response)
-
+    @staticmethod
+    def _parse_playlist_list(soup) -> Dict[str, str]:
         playlist_list = soup.find("div", class_="playlists-lists").find_all(
             "div", class_="playlists-items"
         )
-        playlist_videos = soup.find("div", class_="playlists-videos").find(
-            "div", class_="playlists-items"
-        )
-
-        playlist: dict[str, list[str]] = {}
         # create dict form {data-id: hosting-name}
         playlist_names: dict[str, str] = {}
         for playlist_item in playlist_list:
             for li_file in playlist_item.find_all("li"):
                 playlist_names[li_file["data-id"]] = li_file.get_text(strip=True)
+        return playlist_names
+
+    @staticmethod
+    def _parse_playlist_videos(soup, playlist_names: Dict[str, str]) -> Dict[str, List[str]]:
+        playlist_videos = soup.find("div", class_="playlists-videos").find(
+            "div", class_="playlists-items"
+        )
+        playlist: dict[str, list[str]] = {}
         # create dict {hosting-name: [video_1, video_2, ...], ...}
         for li_file in playlist_videos.find_all("li"):
             data_id = li_file["data-id"]
@@ -187,10 +189,14 @@ class AnimeInfo(BaseAnimeInfo):
             if not playlist.get(playlist_names.get(data_id)):  # type: ignore
                 playlist[playlist_names.get(data_id)] = []  # type: ignore
             playlist[playlist_names.get(data_id)].append(url)  # type: ignore
-        episodes: dict[
-            int, list[dict[str, str]]
-        ] = {}  # {1: [{url: ..., hosting: ...}, 2:{...}, ...]
+        return playlist
 
+    def _parse_response(self, response: str) -> List["Episode"]:
+        soup = self._soup(response)
+        playlist_names = self._parse_playlist_list(soup)
+        playlist = self._parse_playlist_videos(soup, playlist_names)
+        # {1: [{url: ..., hosting: ...}, 2:{...}, ...]
+        episodes: dict[int, list[dict[str, str]]] = {}
         for hosting, videos in playlist.items():
             for i, video in enumerate(videos):
                 if not episodes.get(i):
