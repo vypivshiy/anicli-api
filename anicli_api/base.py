@@ -40,7 +40,7 @@ from bs4 import BeautifulSoup
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
-from anicli_api.decoders import ALL_DECODERS
+from anicli_api.decoders import ALL_DECODERS, YtDlpAdapter
 from anicli_api.re_models import ReField, ReFieldList, ReFieldListDict, parse_many
 
 __all__ = (
@@ -297,7 +297,11 @@ class BaseVideo(BaseModel):
         for decoder in self._DECODERS:
             if self.url == decoder():
                 return await decoder.async_parse(self.url)
-        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
+        warnings.warn(f"Not implemented extractor for {self.url}, try usage yt-dlp", stacklevel=2)
+        try:
+            return YtDlpAdapter.parse(self.url)
+        except Exception as e:
+            warnings.warn(f"Fail parse in yt-dlp. Error msg: {e.args}")
         return self.url
 
     def get_source(self) -> Union[str, List[MetaVideo]]:
@@ -305,7 +309,11 @@ class BaseVideo(BaseModel):
         for decoder in self._DECODERS:
             if self.url == decoder():
                 return decoder.parse(self.url)
-        warnings.warn(f"Fail parse {self.url}, return string", stacklevel=2)
+        warnings.warn(f"Not implemented extractor for {self.url}, try usage yt-dlp", stacklevel=2)
+        try:
+            return YtDlpAdapter.parse(self.url)
+        except Exception as e:
+            warnings.warn(f"Fail parse in yt-dlp. Error msg: {e.args}")
         return self.url
 
 
