@@ -49,8 +49,8 @@ class MetaVideo:
     - extra_headers - required UserAgent values for play or download this video. If not needed, default dict is empty
     """
 
-    type: Literal["mp4", "m3u8", "mpd", "audio"]
-    quality: Literal[144, 240, 360, 480, 720, 1080]
+    type: Literal["mp4", "m3u8", "mpd", "audio", "webm"]
+    quality: Literal[0, 144, 240, 360, 480, 720, 1080]
     url: str
     extra_headers: Optional[Dict] = field(default_factory=dict)
 
