@@ -1,6 +1,7 @@
 import re
-from typing import List
 from html import unescape
+from typing import List
+
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
 
 
@@ -17,9 +18,7 @@ class VkCom(BaseDecoder):
                 url=unescape(match.groupdict()["url"]),
             )
             for quality, match in enumerate(
-                re.finditer(
-                    '<source src="(?P<url>https?://vk[^>]+)" type=[^>]+', response
-                )
+                re.finditer('<source src="(?P<url>https?://vk[^>]+)" type=[^>]+', response)
             )
             if match
         ]

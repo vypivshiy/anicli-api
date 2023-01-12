@@ -1,6 +1,6 @@
 import re
-from typing import List
 from html import unescape
+from typing import List
 
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
 
@@ -36,9 +36,3 @@ class OkRu(BaseDecoder):
         async with cls_.a_http as session:
             response = await session.get(url)
             return cls_._parse_video(response.text)
-
-
-
-
-
-
