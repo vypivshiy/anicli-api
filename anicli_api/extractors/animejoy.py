@@ -3,6 +3,9 @@
 12.01.2023 works only kodik, sibnet
 Todo: add decoders for dzen, mail.ru, etc
 TODO reverse ustore (uboost.one), alloha players
+TODO add mailru
+TODO add yt-dlp proxy
+TODO reverse ebd.cda.pl (not work in RU region)
 """
 from __future__ import annotations
 

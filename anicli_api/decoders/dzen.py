@@ -1,6 +1,7 @@
 # TODO fix (how?) [ffmpeg/demuxer] hls: Can't support the subtitle...
 import re
 from typing import List
+
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
 
 
@@ -10,7 +11,9 @@ class Dzen(BaseDecoder):
     @classmethod
     def _parse_videos(cls, response: str) -> List[MetaVideo]:
         objects: List[MetaVideo] = []
-        for match in re.finditer(r'"(:?audio_source_url|url)":"(?P<url>https?://(.*?)+)"', response):
+        for match in re.finditer(
+            r'"(:?audio_source_url|url)":"(?P<url>https?://(.*?)+)"', response
+        ):
             u = match.groupdict()
             if u["url"].endswith(".mpd"):
                 objects.append(MetaVideo(type="mpd", quality=1080, url=u["url"]))

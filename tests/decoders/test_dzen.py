@@ -21,10 +21,12 @@ def test_cmp():
 
 def test_parse():
     result = Dzen.parse("https://dzen.ru/embed/leet1337?fake_request", transport=mock_transport())
-    assert result[0].dict() == {'extra_headers': {},
- 'quality': 1080,
- 'type': 'mpd',
- 'url': 'https://cdn.dzen.ru/vod/zen-vod/vod-content/abc/1-2-3-4-5/kaltura/desc_foobar/aaa/ysign1=null,abcID=0,from=zen,pfx,region=0000,sfx,ts=63cd1709/manifest.mpd'}
+    assert result[0].dict() == {
+        "extra_headers": {},
+        "quality": 1080,
+        "type": "mpd",
+        "url": "https://cdn.dzen.ru/vod/zen-vod/vod-content/abc/1-2-3-4-5/kaltura/desc_foobar/aaa/ysign1=null,abcID=0,from=zen,pfx,region=0000,sfx,ts=63cd1709/manifest.mpd",
+    }
 
 
 @pytest.mark.asyncio
@@ -32,7 +34,9 @@ async def test_async_parse():
     result = await Dzen.async_parse(
         "https://dzen.ru/embed/leet1337?fake_request", transport=mock_transport()
     )
-    assert result[0].dict() == {'extra_headers': {},
- 'quality': 1080,
- 'type': 'mpd',
- 'url': 'https://cdn.dzen.ru/vod/zen-vod/vod-content/abc/1-2-3-4-5/kaltura/desc_foobar/aaa/ysign1=null,abcID=0,from=zen,pfx,region=0000,sfx,ts=63cd1709/manifest.mpd'}
+    assert result[0].dict() == {
+        "extra_headers": {},
+        "quality": 1080,
+        "type": "mpd",
+        "url": "https://cdn.dzen.ru/vod/zen-vod/vod-content/abc/1-2-3-4-5/kaltura/desc_foobar/aaa/ysign1=null,abcID=0,from=zen,pfx,region=0000,sfx,ts=63cd1709/manifest.mpd",
+    }
