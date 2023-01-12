@@ -7,7 +7,7 @@ RAW_RESPONSE = """;player.logobrand({destination: "/video3036546?utm_source=play
 
 
 def mock_transport():
-    def handler(request: httpx.Request):
+    def handler(_):
         return httpx.Response(200, text=RAW_RESPONSE)
 
     transport = httpx.MockTransport(handler)
