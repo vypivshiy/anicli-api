@@ -30,7 +30,7 @@ from anicli_api.base_decoder import BaseDecoder, MetaVideo
 # rename class name
 class MyDecoder(BaseDecoder):
     # past regex url rule validator here
-    URL_VALIDATOR = re.compile(r".*")
+    URL_RULE = re.compile(r".*")
 
     @classmethod
     def parse(cls, url: str, **kwargs) -> List[MetaVideo]:
