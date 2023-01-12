@@ -116,8 +116,11 @@ class AnimeInfoParser(BaseModel):
         ]
         metadata = {}
         for p_zerop in metadata_lst:
-            key, value = p_zerop.split(":")
-            metadata[key] = value
+            try:
+                key, value = p_zerop.split(":")
+                metadata[key] = value
+            except ValueError:
+                continue
         return AnimeInfo(
             name=name,
             roman_name=roman_name,
@@ -162,7 +165,7 @@ class AnimeInfo(BaseAnimeInfo):
     def _parse_response(self, response: str) -> List["Episode"]:
         soup = self._soup(response)
 
-        playlist_list = soup.find("div", class_="playlists-lists").find(
+        playlist_list = soup.find("div", class_="playlists-lists").find_all(
             "div", class_="playlists-items"
         )
         playlist_videos = soup.find("div", class_="playlists-videos").find(
@@ -171,10 +174,10 @@ class AnimeInfo(BaseAnimeInfo):
 
         playlist: dict[str, list[str]] = {}
         # create dict form {data-id: hosting-name}
-        playlist_names: dict[str, str] = {
-            li_file["data-id"]: li_file.get_text(strip=True)
-            for li_file in playlist_list.find_all("li")
-        }
+        playlist_names: dict[str, str] = {}
+        for playlist_item in playlist_list:
+            for li_file in playlist_item.find_all("li"):
+                playlist_names[li_file["data-id"]] = li_file.get_text(strip=True)
         # create dict {hosting-name: [video_1, video_2, ...], ...}
         for li_file in playlist_videos.find_all("li"):
             data_id = li_file["data-id"]
