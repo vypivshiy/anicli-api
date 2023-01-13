@@ -5,7 +5,6 @@ from typing import Dict, List
 from httpx import Timeout
 
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
-
 from anicli_api.decoders.exceptions import RegexParseError
 
 
@@ -18,15 +17,41 @@ class Aniboom(BaseDecoder):
         self.http.timeout = Timeout(5.0, connect=0.5)
         self.a_http.timeout = Timeout(5.0, connect=0.5)
 
-    @staticmethod
-    def _parse_urls(response: str):
+    @classmethod
+    def _parse_urls(cls, response: str):
         objects: List[MetaVideo] = []
 
         response = unescape(response)
         if m3u8_url := re.search(r'"hls":"{\\"src\\":\\"(?P<m3u8>.*\.m3u8)\\"', response):
-            objects.append(MetaVideo(type="m3u8", quality=1080, url=m3u8_url.groupdict()["m3u8"].replace("\\", "")))
+            objects.append(
+                MetaVideo(
+                    type="m3u8",
+                    quality=1080,
+                    url=m3u8_url.groupdict()["m3u8"].replace("\\", ""),
+                    extra_headers={
+                        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 "
+                        "Mobile Safari/537.36",
+                        "referer": "https://aniboom.one/",
+                        "accept-language": "ru-RU",
+                    },
+                )
+            )
         if mpd_url := re.search(r'"{\\"src\\":\\"(?P<mpd>.*\.mpd)\\"', response):
-            objects.append(MetaVideo(type="mpd", quality=1080, url=mpd_url.groupdict()["mpd"].replace("\\", "")))
+            objects.append(
+                MetaVideo(
+                    type="mpd",
+                    quality=1080,
+                    url=mpd_url.groupdict()["mpd"].replace("\\", ""),
+                    extra_headers={
+                        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 "
+                        "Mobile Safari/537.36",
+                        "referer": "https://aniboom.one/",
+                        "accept-language": "ru-RU",
+                    },
+                )
+            )
         if not objects:
             raise RegexParseError("Failed extract aniboom video links")
         return objects
@@ -54,8 +79,3 @@ class Aniboom(BaseDecoder):
             if not response.is_success:
                 raise ConnectionError(f"{url} return {response.status_code} code")
             return cls_._parse_urls(response.text)
-
-
-if __name__ == '__main__':
-    res = Aniboom.parse("https://aniboom.one/embed/N9QdKm4Mwz1?episode=1&translation=2")
-    print(*res, sep="\n")
