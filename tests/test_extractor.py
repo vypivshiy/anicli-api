@@ -1,3 +1,4 @@
+from anicli_api.base import BaseModel
 from tests import fake_extractor
 
 Extractor = fake_extractor.Extractor
@@ -103,8 +104,15 @@ def test_collections():
 
 
 def test_compare_models():
-    base_model = fake_extractor.BaseModel
-    base_1 = base_model(foo=1, bar=2, baz=3)
-    base_2 = base_model(foo=1, bar=2, baz=3)
+    base_1 = BaseModel(foo=1, bar=2, baz=3)
+    base_2 = BaseModel(foo=1, bar=2, baz=3)
     assert base_1 == base_2
-    assert base_1 != base_model(foo=2, bar=3, baz=4)
+    assert base_1 != BaseModel(foo=2, bar=3, baz=4)
+
+
+def test_compare_models2():
+    base_1 = BaseModel(foo=["a", "b", "c"], bar=2)
+    base_2 = BaseModel(foo=["a", "b", "c"], bar=2)
+    base_3 = BaseModel(foo="d", bar=2)
+    assert base_1 == base_2
+    assert base_1 != base_3

@@ -33,7 +33,18 @@ import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from html import unescape
-from typing import Any, AsyncGenerator, Awaitable, Dict, Generator, List, Sequence, Type, Union
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Dict,
+    Generator,
+    Hashable,
+    List,
+    Sequence,
+    Type,
+    Union,
+)
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
@@ -156,10 +167,15 @@ class BaseModel(ABC):
     def __eq__(self, other):
         if isinstance(other, BaseModel):
             return hash(other) == hash(self)
-        raise TypeError(f"{other.__name__} is not `BaseModel` object")
+        raise TypeError(f"{other.__name__} is not `BaseModel` object, got {type(other)}")
 
     def __hash__(self):
-        return hash(tuple(self.dict().values()))
+        return hash(
+            frozenset(
+                tuple(val) if not isinstance(val, Hashable) else val
+                for val in self.dict().values()
+            )
+        )
 
 
 class BaseSearchResult(BaseModel):
