@@ -45,7 +45,7 @@ from typing import (
     Type,
     Union,
 )
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -111,10 +111,6 @@ class BaseModel(ABC):
     # http singleton async requests class
     _HTTP_ASYNC = BaseHTTPAsync
 
-    _unescape = unescape
-    # urllib.parse.urlparse
-    _urlparse = urlparse
-
     # optional regex search class helpers
     _ReField = ReField
     _ReFieldList = ReFieldList
@@ -124,6 +120,45 @@ class BaseModel(ABC):
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+    @staticmethod
+    def _urlsplit(url, scheme="", allow_fragments=True):
+        """Parse a URL into 5 components:
+        <scheme>://<netloc>/<path>?<query>#<fragment>
+
+        The result is a named 5-tuple with fields corresponding to the
+        above. It is either a SplitResult or SplitResultBytes object,
+        depending on the type of the url parameter.
+
+        The username, password, hostname, and port sub-components of netloc
+        can also be accessed as attributes of the returned object.
+
+        The scheme argument provides the default value of the scheme
+        component when no scheme is found in url.
+
+        If allow_fragments is False, no attempt is made to separate the
+        fragment component from the previous component, which can be either
+        path or query.
+
+        Note that % escapes are not expanded.
+        """
+        return urlsplit(url, scheme=scheme, allow_fragments=allow_fragments)
+
+    @staticmethod
+    def _unescape(s: str) -> str:
+        """
+        Convert all named and numeric character references (e.g. &gt;, &#62;,
+        &x3e;) in the string s to the corresponding unicode characters.
+        This function uses the rules defined by the HTML 5 standard
+        for both valid and invalid character references, and the list of
+        HTML 5 named character references defined in html.entities.html5.
+        """
+        return unescape(s)
+
+    @staticmethod
+    def _urlparse(url, scheme="", allow_fragments=True):
+        """urllib.parse.urlparse"""
+        return urlparse(url, scheme=scheme, allow_fragments=allow_fragments)
 
     @staticmethod
     def _soup(
@@ -172,8 +207,7 @@ class BaseModel(ABC):
     def __hash__(self):
         return hash(
             frozenset(
-                tuple(val) if not isinstance(val, Hashable) else val
-                for val in self.dict().values()
+                val if isinstance(val, Hashable) else tuple(val) for val in self.dict().values()
             )
         )
 

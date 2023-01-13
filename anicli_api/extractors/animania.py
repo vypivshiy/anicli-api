@@ -231,8 +231,7 @@ class Video(BaseVideo):
     dub: str
 
     def __hash__(self):
-        # balancer netloc and dub_id
-        return hash((self._urlparse(self.url).netloc, self.dub))
+        return hash((self._urlsplit(self.url).netloc, self.dub))
 
 
 class TestCollections(BaseTestCollections):
