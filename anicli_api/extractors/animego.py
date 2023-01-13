@@ -348,10 +348,12 @@ class Episode(BaseEpisode):
 
 class Video(BaseVideo):
     dub_id: int
+    dub: str
+    name: str
 
     def __hash__(self):
-        # balancer netloc and dub_id
-        return hash((self._urlparse(self.url).netloc, self.dub_id))
+        # balancer name and dub_id
+        return hash((self._urlsplit(self.url).netloc, self.dub_id))
 
 
 class TestCollections(BaseTestCollections):

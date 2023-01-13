@@ -242,9 +242,6 @@ class Video(BaseVideo):
     hd: str
     sd: str
 
-    def __hash__(self):
-        return hash(tuple(self.get_source()))
-
     def _source(self) -> List[MetaVideo]:
         if self.fhd:
             return [
@@ -262,6 +259,9 @@ class Video(BaseVideo):
 
     async def a_get_source(self) -> List[MetaVideo]:
         return self._source()
+
+    def __hash__(self):
+        return hash(tuple(self.get_source()))
 
 
 class TestCollections(BaseTestCollections):
