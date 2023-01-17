@@ -103,11 +103,9 @@ class Extractor(BaseAnimeExtractor):
         return [Ongoing(**kw) for kw in self.ANILIBRIA.get_updates()]
 
     async def async_search(self, query: str) -> List["SearchResult"]:
-        # past async code here
         return [SearchResult(**kw) for kw in (await self.ANILIBRIA.a_search_titles(search=query))]
 
     async def async_ongoing(self) -> List["Ongoing"]:
-        # past async code here
         return [Ongoing(**kw) for kw in (await self.ANILIBRIA.a_get_updates())]
 
 
