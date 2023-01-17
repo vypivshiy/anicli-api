@@ -17,7 +17,7 @@ init_logger("anicli-api")
 logger = logging.getLogger("anicli-api.main")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logger.debug("d")
     logger.info("i")
     logger.error("e")

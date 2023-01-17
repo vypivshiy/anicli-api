@@ -1,13 +1,12 @@
 """Dynamic import extractor form **anicli_api/extractors** directory"""
 
 import importlib
+import logging
 import pathlib
 from abc import ABC, abstractmethod
 from typing import Protocol, Type, cast
-import logging
 
 from anicli_api.base import *
-import anicli_api.logging_config
 
 logger = logging.getLogger("anicli-api.loader")
 
@@ -54,7 +53,6 @@ class ExtractorLoader(BaseExtractorLoader):
     Modules must match the template extractors.__template__.py
     """
 
-
     @staticmethod
     def _extractor_path() -> str:
         if __name__ == "__main__":
@@ -86,13 +84,12 @@ class ExtractorLoader(BaseExtractorLoader):
         return extractor
 
     @classmethod
-    def get_extractors_names(cls):
+    def get_extractors_names(cls) -> List[str]:
         extractors_path = cls._extractor_path()
         return [
             str(file).replace(".py", "").replace("/", ".").replace("\\", ".")
             for file in pathlib.Path(extractors_path).iterdir()
-            if file.name.endswith(".py")
-            and cls._check_module_name(file.name.replace(".py", ""))
+            if file.name.endswith(".py") and cls._check_module_name(file.name.replace(".py", ""))
         ]
 
     @classmethod
@@ -137,7 +134,6 @@ class ExtractorLoader(BaseExtractorLoader):
 
     @staticmethod
     def _test_module(module: ModuleExtractor, throw_exception: bool = True) -> None:
-        # sourcery skip: use-fstring-for-formatting
         test_class = module.TestCollections
         for attr in test_class.__dict__.keys():
             if attr.startswith("test"):
@@ -160,6 +156,7 @@ class ExtractorLoader(BaseExtractorLoader):
         :param throw_exception: Throw exception, if test failed. If flag is False, print logging.error message
         :return:
         """
+        logger.info("load %s extractor, throw_exception=%s", module_name, throw_exception)
         module = cls.load(module_name)
         cls._test_module(module, throw_exception)
 
@@ -170,11 +167,6 @@ class ExtractorLoader(BaseExtractorLoader):
         :param throw_exception: Throw exception, if test failed. If flag is False, print logging.error message
         :return:
         """
+        logger.info("load full test extractors, throw_exception=%s", throw_exception)
         for module in cls.load_all():
             cls._test_module(module, throw_exception)
-
-
-if __name__ == '__main__':
-    print(ExtractorLoader.get_extractors_names())
-    # ExtractorLoader.load("anicli_api.extractors.animejoy")
-    ExtractorLoader.load_all()
