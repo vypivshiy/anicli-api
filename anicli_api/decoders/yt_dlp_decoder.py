@@ -32,7 +32,7 @@ class YtDlpAdapter(BaseDecoder):
                             type=metadata["video_ext"],
                             url=metadata["url"],
                             extra_headers=metadata["http_headers"],
-                            quality=quality,
+                            quality=quality,  # type: ignore
                         )
                     )  # type: ignore
                 return objects
