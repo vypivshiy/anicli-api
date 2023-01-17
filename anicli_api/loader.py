@@ -1,13 +1,15 @@
 """Dynamic import extractor form **anicli_api/extractors** directory"""
 
 import importlib
-import logging
 import pathlib
-import sys
 from abc import ABC, abstractmethod
 from typing import Protocol, Type, cast
+import logging
 
 from anicli_api.base import *
+import anicli_api.logging_config
+
+logger = logging.getLogger("anicli-api.loader")
 
 __all__ = (
     "ModuleExtractor",
@@ -52,20 +54,23 @@ class ExtractorLoader(BaseExtractorLoader):
     Modules must match the template extractors.__template__.py
     """
 
-    _loaded_extractors: List[ModuleExtractor] = []
 
     @staticmethod
-    def _get_extractor_path() -> pathlib.Path:
+    def _extractor_path() -> str:
         if __name__ == "__main__":
-            return pathlib.Path("extractors")
-        return pathlib.Path("anicli_api") / pathlib.Path("extractors")
+            logger.debug("Load from `extractors` path")
+            return "extractors"
+        logger.debug("Load from `anicli_api.extractors` path")
+        return "anicli_api.extractors"
 
     @staticmethod
     def _validate(extractor: ModuleExtractor, module_name: str):
+        logger.debug("Validate %s %s", extractor, module_name)
         for cls in ModuleExtractor.__dict__["__annotations__"].keys():
             try:
                 getattr(extractor, cls)
             except AttributeError as exc:
+                logger.error(exc)
                 raise AttributeError(
                     f"Module '{module_name}' has no class '{cls}'. It's a real Extractor?"
                 ) from exc
@@ -73,17 +78,22 @@ class ExtractorLoader(BaseExtractorLoader):
     @staticmethod
     def _import(module_name: str) -> ModuleExtractor:
         try:
-            module_name = module_name.replace("/", ".").replace("\\", ".").rstrip(".py")
             module = importlib.import_module(module_name, package=None)
             extractor = cast(ModuleExtractor, module)
-
         except ModuleNotFoundError as e:
+            logger.error(e)
             raise ModuleNotFoundError(f"'{module_name}' not found") from e
         return extractor
 
-    @staticmethod
-    def _path_to_import(module_path: str) -> str:
-        return module_path.replace("/", ".").replace("\\", ".").rstrip(".py")
+    @classmethod
+    def get_extractors_names(cls):
+        extractors_path = cls._extractor_path()
+        return [
+            str(file).replace(".py", "").replace("/", ".").replace("\\", ".")
+            for file in pathlib.Path(extractors_path).iterdir()
+            if file.name.endswith(".py")
+            and cls._check_module_name(file.name.replace(".py", ""))
+        ]
 
     @classmethod
     def load(cls, module_name: str) -> ModuleExtractor:
@@ -97,11 +107,12 @@ class ExtractorLoader(BaseExtractorLoader):
         :return: ModuleExtractor
         :raise: ModuleNotFoundError - module not found; AttributeError - is a not extractor
         """
+        if module_name.endswith(".py"):
+            module_name = module_name.replace(".py", "")
+
         if cls._check_module_name(module_name):
-            file_import = cls._path_to_import(module_name)
-            module = cls._import(file_import)
-            cls._validate(module, file_import)
-            cls._loaded_extractors.append(module)
+            module = cls._import(module_name)
+            cls._validate(module, module_name)
             return module
 
         # try import. If error with module_name, throw ModuleNotFoundError
@@ -115,21 +126,14 @@ class ExtractorLoader(BaseExtractorLoader):
         :return: List[ModuleExtractor]
         """
         modules = []
-        for file in cls._get_extractor_path().iterdir():
-            if cls._check_module_name(file.name):
-                file_import = cls._path_to_import(str(file))
-                mdl = cls._import(file_import)
-                cls._validate(mdl, file_import)
-                # add to cache
-                cls._loaded_extractors.append(mdl)
-
-                modules.append(mdl)
+        for module_name in cls.get_extractors_names():
+            module = cls.load(module_name)
+            modules.append(module)
         return modules
 
     @staticmethod
     def _check_module_name(module: str) -> bool:
-        module = module.rstrip(".py").split(".")[-1]
-        return not module.startswith("_") and not module.endswith("_") and module != "base.py"
+        return not module.startswith("_") and not module.endswith("_") and module != "base"
 
     @staticmethod
     def _test_module(module: ModuleExtractor, throw_exception: bool = True) -> None:
@@ -137,16 +141,16 @@ class ExtractorLoader(BaseExtractorLoader):
         test_class = module.TestCollections
         for attr in test_class.__dict__.keys():
             if attr.startswith("test"):
-                logging.debug("MODULE {} RUN {}".format(module.__str__().split("/")[-1], attr))
+                logger.debug("MODULE %s RUN %s", module.__str__().split("/")[-1], attr)
                 try:
                     getattr(test_class(), attr)()
                 except AssertionError as e:
                     if throw_exception:
                         raise e
                     else:
-                        logging.error(e)
+                        logger.error(e)
                 else:
-                    logging.debug("[OK] {} {}".format(module.__str__().split("/")[-1], attr))
+                    logger.debug("[OK] %s %s", module.__str__().split("/")[-1], attr)
 
     @classmethod
     def run_test(cls, module_name: str, *, throw_exception: bool = True) -> None:
@@ -169,26 +173,8 @@ class ExtractorLoader(BaseExtractorLoader):
         for module in cls.load_all():
             cls._test_module(module, throw_exception)
 
-    @classmethod
-    def reload_all(cls) -> bool:
-        """reload extractors
 
-        :return:
-        """
-        for m in cls._loaded_extractors:  # type: ignore
-            importlib.reload(m)  # type: ignore
-        return True
-
-    @classmethod
-    def reload(cls, module_name: str):
-        """reload extractor
-
-        if it is not imported, throw ModuleNotFoundError error
-
-        :param module_name: extractor name
-        :return:
-        """
-        if module := sys.modules.get(module_name):
-            importlib.reload(module)
-            return True
-        raise ModuleNotFoundError(f"{module_name} has not imported")
+if __name__ == '__main__':
+    print(ExtractorLoader.get_extractors_names())
+    # ExtractorLoader.load("anicli_api.extractors.animejoy")
+    ExtractorLoader.load_all()
