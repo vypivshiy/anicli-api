@@ -56,6 +56,10 @@ sphinx = "^5.3.0"
 sphinx-rtd-theme = "^1.1.1"
 
 
+
+[tool.poetry.group.codegen.dependencies]
+jinja2 = "^3.1.2"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
@@ -82,7 +86,6 @@ ignore = 'F405, F403, W503, E501, F401, E203'
 [[tool.mypy.overrides]]
 module = "tests.*"
 ignore_errors = true
-
 
 [tool.black]
 line-length = 99
