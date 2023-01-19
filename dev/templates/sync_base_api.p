@@ -2,7 +2,7 @@ from httpx import Client, Response
 {% from "macro.p" import snake_to_camel %}
 
 __all__ = (
-    "Shikimori",
+    "ShikimoriApi",
 )
 
 class ShikimoriApi:
