@@ -103,16 +103,51 @@ def test_collections():
     assert tests_coll.test_extract_metadata()
 
 
-def test_compare_models():
+def test_base_model_compare_models():
     base_1 = BaseModel(foo=1, bar=2, baz=3)
-    base_2 = BaseModel(foo=1, bar=2, baz=3)
+    base_2 = BaseModel(bar=2, foo=1, baz=3)
     assert base_1 == base_2
     assert base_1 != BaseModel(foo=2, bar=3, baz=4)
 
 
-def test_compare_models2():
+def test_base_model_compare_2():
     base_1 = BaseModel(foo=["a", "b", "c"], bar=2)
     base_2 = BaseModel(foo=["a", "b", "c"], bar=2)
     base_3 = BaseModel(foo="d", bar=2)
     assert base_1 == base_2
     assert base_1 != base_3
+
+
+def test_base_model_initialization():
+    bm = BaseModel(arg1=1, arg2="hello")
+    assert bm.arg1 == 1
+    assert bm.arg2 == "hello"
+    assert bm.dict() == dict(arg1=1, arg2="hello")
+
+
+def test_base_model_unescape():
+    bm = BaseModel()
+    test_string = "&gt; &lt; &amp;"
+    unescaped_string = bm._unescape(test_string)
+    assert unescaped_string == "> < &"
+
+
+def test_base_model_soup():
+    bm = BaseModel()
+    test_html = "<html><body><h1>Test</h1></body></html>"
+    soup = bm._soup(test_html)
+    assert soup.find("h1").text == "Test"
+
+
+def test_base_model_urlsplit():
+    bm = BaseModel()
+    test_url = "https://www.example.com/path?query=test#fragment"
+    split_result = bm._urlsplit(test_url)
+    assert split_result.netloc == "www.example.com"
+
+
+def test_base_model_urlparse():
+    bm = BaseModel()
+    test_url = "https://www.example.com/path?query=test#fragment"
+    parse_result = bm._urlparse(test_url)
+    assert parse_result.netloc == "www.example.com"
