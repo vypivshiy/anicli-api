@@ -1,1 +1,1 @@
-from .random_useragent import RandomAgent
+from anicli_api.tools.random_useragent import RandomAgent
