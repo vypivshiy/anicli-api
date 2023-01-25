@@ -246,6 +246,8 @@ class Episode(BaseEpisode):
 class Video(BaseVideo):
     hosting: str
 
+    __CMP_KEYS__ = ("hosting",)
+
     def __hash__(self):
         return hash(self.hosting)
 

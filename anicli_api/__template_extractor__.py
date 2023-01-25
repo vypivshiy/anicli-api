@@ -115,6 +115,7 @@ class OngoingIterData(Protocol):
 
 class Extractor(BaseAnimeExtractor):
     # optional constants, HTTP configuration here
+    BASE_URL = "https://example.com"
 
     def async_walk_search(self, query: str) -> AsyncGenerator[SearchIterData, None]:
         return super().async_walk_search(query)
@@ -130,24 +131,26 @@ class Extractor(BaseAnimeExtractor):
 
     def search(self, query: str) -> List["SearchResult"]:
         # past code here
-        response = self.HTTP().get("url", params={"search": query}).text
+        response = self.HTTP().get(f"{self.BASE_URL}/search", params={"search": query}).text
         ...
 
     def ongoing(self) -> List["Ongoing"]:
         # past code here
-        response = self.HTTP().get("url").text
+        response = self.HTTP().get(f"{self.BASE_URL}/ongoing").text
         ...
 
     async def async_search(self, query: str) -> List["SearchResult"]:
         # past async code here
         async with self.HTTP_ASYNC() as session:
-            response = (await session.get("url", params={"search": query})).text
+            response = (
+                await session.get(f"{self.BASE_URL}/search", params={"search": query})
+            ).text
             ...
 
     async def async_ongoing(self) -> List["Ongoing"]:
         # past async code here
         async with self.HTTP_ASYNC() as session:
-            response = (await session.get("url")).text
+            response = (await session.get(f"{self.BASE_URL}/search")).text
             ...
 
 

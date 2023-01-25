@@ -2,7 +2,7 @@
 WARNING! THIS EXTRACTOR WORKS ONLY WHICH MOBILE USERAGENT!!!"""
 from __future__ import annotations
 
-from typing import AsyncGenerator, Dict, Generator, Protocol
+from typing import Any, AsyncGenerator, Dict, Generator, Protocol, Union
 
 from anicli_api.base import *
 
@@ -121,38 +121,15 @@ class AnimeParser(BaseModel):
 
     url: str
 
-    _DECODE_TABLE = {
-        "Тип": "type",
-        "Эпизоды": "episodes",
-        "Статус": "status",
-        "Жанр": "genres",
-        "Первоисточник": "source",
-        "Сезон": "season",
-        "Выпуск": "release",
-        "Студия": "studio",
-        "Рейтинг MPAA": "mpaa",
-        "Возрастные ограничения": "age",
-        "Длительность": "length",
-        "Озвучка": "dubs",
-        "Автор оригинала": "author",
-        "Главные герои": "characters",
-    }
-
     @classmethod
-    def _decode_table(cls, table: dict):
-        return {cls._DECODE_TABLE.get(k): table[k] for k in table if cls._DECODE_TABLE.get(k)}
-
-    @classmethod
-    def _soup_extract_table(cls, soup):
-        keys, values = [], []
+    def _soup_extract_table(cls, soup) -> Dict[str, Union[str, List[str]]]:
+        meta: Dict[str, Union[List[str], str]] = {}
         # get from table metadata
         for el in soup.find("dl", attrs={"class": "row"}).find_all("dt"):
             key = el.get_text(strip=True)
             value = el.find_next("dd").get_text(strip=True)
-            keys.append(key)
-            values.append(value)
-        # convert keys to latin
-        return cls._decode_table(dict(zip(keys, values)))
+            meta[key] = value
+        return meta
 
     def _extract_data(self, response: str) -> dict:
         soup = self._soup(response)
@@ -164,15 +141,15 @@ class AnimeParser(BaseModel):
             for t in soup.find("div", attrs={"class": "synonyms"}).find_all("li")
         ]
         try:
-            meta["rating"] = float(
+            meta["rating"] = (
                 soup.find("span", class_="rating-value").get_text(strip=True).replace(",", ".")
             )
         except Exception:
-            meta["rating"] = "unknown"
+            meta["rating"] = "0"
         meta["description"] = soup.find("div", attrs={"data-readmore": "content"}).get_text(
             strip=True
         )
-        meta["genres"] = meta.get("genres").split(",")
+        meta["genres"] = meta.get("genres").split(",") if meta.get("genres") else []  # type: ignore
         meta["id"] = self.url.split("-")[-1]
         meta["screenshots"] = self._ReFieldList(
             r'<a class="screenshots-item[^>]+" href="([^>]+)" data-ajax',
@@ -182,7 +159,7 @@ class AnimeParser(BaseModel):
         meta["thumbnails"] = self._ReFieldList(
             r'class="img-fluid" src="([^>]+)"', name="a"
         ).parse_values(response)
-        meta["dubs"] = meta.get("dubs").split(",") if meta.get("dubs") else []
+        meta["dubs"] = meta.get("dubs").split(",") if meta.get("dubs") else []  # type: ignore
         meta["url"] = self.url
         return meta
 
@@ -347,13 +324,10 @@ class Episode(BaseEpisode):
 
 
 class Video(BaseVideo):
+    __CMP_KEYS__ = ("dub",)
     dub_id: int
     dub: str
     name: str
-
-    def __hash__(self):
-        # balancer name and dub_id
-        return hash((self._urlsplit(self.url).netloc, self.dub_id))
 
 
 class TestCollections(BaseTestCollections):

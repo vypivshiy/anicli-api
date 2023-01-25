@@ -10,6 +10,6 @@ def mock_loader(monkeypatch):
     class FakeLoader(ExtractorLoader):
         @classmethod
         def load_all(cls):
-            return [cls.load("tests/fixtures/fake_extractor.py")]
+            return [cls.load("tests.fixtures.fake_extractor.py")]
 
     return FakeLoader

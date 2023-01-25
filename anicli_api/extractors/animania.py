@@ -124,7 +124,6 @@ class AnimeInfoParser(BaseModel):
             "description": info.find(
                 "div", attrs={"class": "fdesc slice-this ficon clearfix"}
             ).get_text(strip=True),
-            # TODO split to key, values meta information
             "meta": [
                 li.get_text(strip=True)
                 for li in info.find("div", class_="flist clearfix").find_all("li")
@@ -225,13 +224,10 @@ class Episode(BaseEpisode):
 
 
 class Video(BaseVideo):
-    url: str
     id: int
     name: str
     dub: str
-
-    def __hash__(self):
-        return hash((self._urlsplit(self.url).netloc, self.dub))
+    __CMP_KEYS__ = ("dub",)
 
 
 class TestCollections(BaseTestCollections):

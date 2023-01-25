@@ -6,10 +6,12 @@ This module contains httpx.Client and httpx.AsyncClient classes with the followi
 2. x-requested-with: XMLHttpRequest
 
 """
+import logging
 from typing import Dict
 
 from httpx import AsyncClient, Client, Response
 
+logger = logging.getLogger("anicli-api._http")
 HEADERS: Dict[str, str] = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114"
@@ -71,7 +73,7 @@ class HTTPSync(Singleton, BaseHTTPSync):
     """
     Base singleton **sync** HTTP class with recommended config.
 
-    Used in extractors and can configured at any point in the program"""
+    Used in extractors and can configure at any point in the program"""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -82,7 +84,7 @@ class HTTPAsync(Singleton, BaseHTTPAsync):
     """
     Base singleton **async** HTTP class with recommended config
 
-    Used in extractors and can configured at any point in the program
+    Used in extractors and can configure at any point in the program
     """
 
     def __init__(self, **kwargs):

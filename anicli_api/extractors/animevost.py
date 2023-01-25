@@ -219,9 +219,6 @@ class Video(BaseVideo):
             MetaVideo(type="mp4", quality=720, url=self.hd),
         ]
 
-    def __hash__(self):
-        return hash(tuple(self.get_source()))
-
 
 class TestCollections(BaseTestCollections):
     def test_search(self):

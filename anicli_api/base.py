@@ -29,7 +29,7 @@ with all objects.
 """
 from __future__ import annotations
 
-import warnings
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from html import unescape
@@ -53,6 +53,8 @@ from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
 from anicli_api.base_decoder import BaseDecoder, MetaVideo
 from anicli_api.decoders import ALL_DECODERS, YtDlpAdapter
 from anicli_api.re_models import ReField, ReFieldList, ReFieldListDict, parse_many
+
+logger = logging.getLogger("anicli-api.base")
 
 __all__ = (
     "BaseModel",
@@ -119,6 +121,7 @@ class BaseModel(ABC):
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
+            logger.debug("<%s> setattr: %s=%s", self.__class__.__name__, k, v)
             setattr(self, k, v)
 
     @staticmethod
@@ -335,6 +338,12 @@ class BaseVideo(BaseModel):
 
     **url is a required attribute to try automatic getting of direct links to videos**
 
+    Compare videos flags:
+
+    __CMP_URL_NETLOC__: bool - compare videos by url.netloc. Default True
+
+    __CMP_KEYS__: Sequence[str] - compare videos by keys. Default empty sequence
+
     If video have decoder, return list of MetaVideo dataclasses with videos.
 
     Else, return direct url and throw warning or define get_source, a_get_source methods
@@ -342,29 +351,46 @@ class BaseVideo(BaseModel):
 
     url: str
     _DECODERS: Sequence[Type[BaseDecoder]] = ALL_DECODERS
+    # TODO document this flags
+    __CMP_URL_NETLOC__: bool = True
+    __CMP_KEYS__: Sequence[str] = ()
 
     async def a_get_source(self) -> Union[str, List[MetaVideo]]:
         for decoder in self._DECODERS:
             if self.url == decoder():
+                logger.debug("AsyncDecoder [%s] %s", decoder.__name__, self.url)
                 return await decoder.async_parse(self.url)
-        warnings.warn(f"Not implemented extractor for {self.url}, try usage yt-dlp", stacklevel=2)
+        logger.warning("Not implemented extractor for %s, try usage yt-dlp", self.url)
         try:
             return YtDlpAdapter.parse(self.url)
         except Exception as e:
-            warnings.warn(f"Fail parse in yt-dlp. Error msg: {e.args}")
+            logger.exception("%s Fail parse with yt-dlp", e)
         return self.url
 
     def get_source(self) -> Union[str, List[MetaVideo]]:
         # sourcery skip: use-next
         for decoder in self._DECODERS:
             if self.url == decoder():
+                logger.debug("AsyncDecoder [%s] %s", decoder.__name__, self.url)
                 return decoder.parse(self.url)
-        warnings.warn(f"Not implemented extractor for {self.url}, try usage yt-dlp", stacklevel=2)
+        logger.warning("Not implemented extractor for %s, try usage yt-dlp", self.url)
         try:
             return YtDlpAdapter.parse(self.url)
         except Exception as e:
-            warnings.warn(f"Fail parse in yt-dlp. Error msg: {e.args}")
+            logger.exception("%s Fail parse with yt-dlp", e)
         return self.url
+
+    def __eq__(self, other):
+        """Compare videos by __CMP_URL_NETLOC__ flag and __CMP_KEYS__ sequence keys"""
+        if not isinstance(other, BaseVideo):
+            raise TypeError(f"BaseVideo object required, not {type(other)}")
+        if self.dict().keys() != other.dict().keys():
+            return False
+        if self.__CMP_URL_NETLOC__ and urlsplit(self.url).netloc != urlsplit(other.url).netloc:
+            return False
+        return all(
+            getattr(self, key, True) == getattr(other, key, False) for key in self.__CMP_KEYS__
+        )
 
 
 class BaseAnimeExtractor(ABC):
@@ -477,8 +503,8 @@ class BaseAnimeExtractor(ABC):
         :return: dataclass async generator with SearchResult, AnimeInfo, Episode and Video objects
         """
         for search_result in await self.async_search(query):
-            async for data in self._aiter_from_result(search_result):
-                yield data
+            async for iter_search_data in self._aiter_from_result(search_result):
+                yield iter_search_data
 
     async def async_walk_ongoing(self) -> AsyncGenerator:
         """iter all steps from ongoing class
@@ -486,8 +512,8 @@ class BaseAnimeExtractor(ABC):
         :return: dataclass async generator with Ongoing, AnimeInfo, Episode and Video objects
         """
         for ongoing in await self.async_ongoing():
-            async for data in self._aiter_from_result(ongoing):
-                yield data
+            async for iter_ongoing_data in self._aiter_from_result(ongoing):
+                yield iter_ongoing_data
 
     @staticmethod
     def _soup(
