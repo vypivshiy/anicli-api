@@ -30,7 +30,6 @@ with all objects.
 from __future__ import annotations
 
 import logging
-import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from html import unescape
@@ -384,7 +383,7 @@ class BaseVideo(BaseModel):
     def __eq__(self, other):
         """Compare videos by __CMP_URL_NETLOC__ flag and __CMP_KEYS__ sequence keys"""
         if not isinstance(other, BaseVideo):
-            raise TypeError
+            raise TypeError(f"BaseVideo object required, not {type(other)}")
         if self.dict().keys() != other.dict().keys():
             return False
         if self.__CMP_URL_NETLOC__ and urlsplit(self.url).netloc != urlsplit(other.url).netloc:
