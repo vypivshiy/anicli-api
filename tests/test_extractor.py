@@ -1,4 +1,4 @@
-from anicli_api.base import BaseModel
+from anicli_api.base import BaseModel, BaseVideo
 from tests import fake_extractor
 
 Extractor = fake_extractor.Extractor
@@ -151,3 +151,47 @@ def test_base_model_urlparse():
     test_url = "https://www.example.com/path?query=test#fragment"
     parse_result = bm._urlparse(test_url)
     assert parse_result.netloc == "www.example.com"
+
+
+def test_cmp_videos_default_flags():
+    class FakeVideo(BaseVideo):
+        dub: str
+
+    vid_1 = FakeVideo(url="https://example.com", dub="foo")
+    vid_2 = FakeVideo(url="https://example.com", dub="bar")
+    vid_3 = FakeVideo(url="https://example2.com", dub="foo")
+    assert vid_1 == vid_2
+    assert vid_1 != vid_3
+    assert vid_2 != vid_3
+
+
+def test_cmp_videos_with_cmp_keys():
+    class FakeVideo(BaseVideo):
+        __CMP_KEYS__ = ("dub",)
+        dub: str
+
+    vid_1 = FakeVideo(url="https://example.com/a", dub="foo")
+    vid_2 = FakeVideo(url="https://example.com/b", dub="foo")
+    vid_3 = FakeVideo(url="https://example.com/a", dub="bar")
+    vid_4 = FakeVideo(url="https://example2.com/b", dub="foo")
+    assert vid_1 == vid_2
+    assert vid_1 != vid_3
+    assert vid_1 != vid_4
+    assert vid_3 != vid_4
+
+
+def test_cmp_videos_disable_cmp_url_netloc():
+    class FakeVideo(BaseVideo):
+        __CMP_URL_NETLOC__ = False
+        __CMP_KEYS__ = ("dub",)
+        dub: str
+
+    vid_1 = FakeVideo(url="https://example.com/a", dub="foo")
+    vid_2 = FakeVideo(url="https://example.com/b", dub="foo")
+    vid_3 = FakeVideo(url="https://example.com/a", dub="bar")
+    vid_4 = FakeVideo(url="https://example2.com/a", dub="foo")
+
+    assert vid_1 == vid_2
+    assert vid_1 == vid_4
+    assert vid_1 != vid_3
+    assert vid_3 != vid_4
