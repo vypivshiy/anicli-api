@@ -3,7 +3,7 @@ import logging
 FORMAT_LOG = "%(asctime)s :: %(name)s :: %(levelname)s :: %(message)s"
 
 
-def init_logger(name: str, level: int = logging.DEBUG):
+def init_logger(name: str, level: int = logging.CRITICAL):
     loger = logging.getLogger(name)
     loger.setLevel(level)
     formatter = logging.Formatter(fmt=FORMAT_LOG, datefmt="%d-%m-%Y %H:%M:%S")
