@@ -258,9 +258,6 @@ class Video(BaseVideo):
     async def a_get_source(self) -> List[MetaVideo]:
         return self._source()
 
-    def __hash__(self):
-        return hash(tuple(self.get_source()))
-
 
 class TestCollections(BaseTestCollections):
     def test_search(self):

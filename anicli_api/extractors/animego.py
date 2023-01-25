@@ -324,13 +324,10 @@ class Episode(BaseEpisode):
 
 
 class Video(BaseVideo):
+    __CMP_KEYS__ = ("dub",)
     dub_id: int
     dub: str
     name: str
-
-    def __hash__(self):
-        # balancer name and dub_id
-        return hash((self._urlsplit(self.url).netloc, self.dub_id))
 
 
 class TestCollections(BaseTestCollections):

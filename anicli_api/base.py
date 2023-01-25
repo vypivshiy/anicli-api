@@ -339,6 +339,12 @@ class BaseVideo(BaseModel):
 
     **url is a required attribute to try automatic getting of direct links to videos**
 
+    Compare videos flags:
+
+    __CMP_URL_NETLOC__: bool - compare videos by url.netloc. Default True
+
+    __CMP_KEYS__: Sequence[str] - compare videos by keys. Default empty sequence
+
     If video have decoder, return list of MetaVideo dataclasses with videos.
 
     Else, return direct url and throw warning or define get_source, a_get_source methods
@@ -346,6 +352,9 @@ class BaseVideo(BaseModel):
 
     url: str
     _DECODERS: Sequence[Type[BaseDecoder]] = ALL_DECODERS
+    # TODO document this flags
+    __CMP_URL_NETLOC__: bool = True
+    __CMP_KEYS__: Sequence[str] = ()
 
     async def a_get_source(self) -> Union[str, List[MetaVideo]]:
         for decoder in self._DECODERS:
@@ -371,6 +380,18 @@ class BaseVideo(BaseModel):
         except Exception as e:
             logger.exception("%s Fail parse with yt-dlp", e)
         return self.url
+
+    def __eq__(self, other):
+        """Compare videos by __CMP_URL_NETLOC__ flag and __CMP_KEYS__ sequence keys"""
+        if not isinstance(other, BaseVideo):
+            raise TypeError
+        if self.dict().keys() != other.dict().keys():
+            return False
+        if self.__CMP_URL_NETLOC__ and urlsplit(self.url).netloc != urlsplit(other.url).netloc:
+            return False
+        return all(
+            getattr(self, key, True) == getattr(other, key, False) for key in self.__CMP_KEYS__
+        )
 
 
 class BaseAnimeExtractor(ABC):
