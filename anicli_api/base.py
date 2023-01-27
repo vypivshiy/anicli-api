@@ -393,6 +393,15 @@ class BaseVideo(BaseModel):
         )
 
 
+    def __hash__(self):
+        # avoid TypeError: unhashable type error
+        return hash(
+            frozenset(
+                val if isinstance(val, Hashable) else tuple(val) for val in self.dict().values()
+            )
+        )
+
+
 class BaseAnimeExtractor(ABC):
     """First Extractor entrypoint class
 
