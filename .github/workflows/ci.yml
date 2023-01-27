@@ -57,6 +57,13 @@ jobs:
       - name: Run mypy
         run: poetry run mypy anicli_api
 
+      - name: Load cached .pytest_cache
+        id: cached-pytest
+        uses: actions/cache@v3
+        with:
+          key: pytest-${{ matrix.python-version }}-${{ runner.os }}
+          path: .pytest_cache
+
       - name: Run tests
-        run: poetry run pytest --cov-report=xml
+        run: poetry run pytest
 
