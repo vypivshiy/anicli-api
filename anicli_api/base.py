@@ -208,11 +208,15 @@ class BaseModel(ABC):
         raise TypeError(f"{other.__name__} is not `BaseModel` object, got {type(other)}")
 
     def __hash__(self):
-        return hash(
-            frozenset(
-                val if isinstance(val, Hashable) else tuple(val) for val in self.dict().values()
-            )
-        )
+        hashes_ = []
+        for val in self.dict().values():
+            if isinstance(val, Hashable):
+                hashes_.append(hash(val))
+            elif isinstance(val, dict):
+                hashes_.append(hash(val.values()))
+            else:
+                hashes_.append(hash(tuple(val)))
+        return hash(frozenset(hashes_))
 
 
 class BaseSearchResult(BaseModel):
@@ -394,11 +398,15 @@ class BaseVideo(BaseModel):
 
     def __hash__(self):
         # avoid TypeError: unhashable type error
-        return hash(
-            frozenset(
-                val if isinstance(val, Hashable) else tuple(val) for val in self.dict().values()
-            )
-        )
+        hashes_ = []
+        for val in self.dict().values():
+            if isinstance(val, Hashable):
+                hashes_.append(hash(val))
+            elif isinstance(val, dict):
+                hashes_.append(hash(val.values()))
+            else:
+                hashes_.append(hash(tuple(val)))
+        return hash(frozenset(hashes_))
 
 
 class BaseAnimeExtractor(ABC):
