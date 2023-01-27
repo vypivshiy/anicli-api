@@ -1,3 +1,5 @@
+from typing import Hashable
+
 from anicli_api.base import BaseModel, BaseVideo
 from tests import fake_extractor
 
@@ -195,3 +197,18 @@ def test_cmp_videos_disable_cmp_url_netloc():
     assert vid_1 == vid_4
     assert vid_1 != vid_3
     assert vid_3 != vid_4
+
+
+def test_hashable_extractor_objects():
+    search = Extractor().search("")[0]
+    ongoing = Extractor().ongoing()[0]
+    anime = search.get_anime()
+    episode = anime.get_episodes()[0]
+    video = episode.get_videos()[0]
+    source = video.get_source()[0]
+    assert hash(search)
+    assert hash(ongoing)
+    assert hash(anime)
+    assert hash(episode)
+    assert hash(video)
+    assert hash(source)
