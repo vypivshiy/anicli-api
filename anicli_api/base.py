@@ -392,7 +392,6 @@ class BaseVideo(BaseModel):
             getattr(self, key, True) == getattr(other, key, False) for key in self.__CMP_KEYS__
         )
 
-
     def __hash__(self):
         # avoid TypeError: unhashable type error
         return hash(
