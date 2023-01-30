@@ -29,6 +29,7 @@ with all objects.
 """
 from __future__ import annotations
 
+import json
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -46,7 +47,7 @@ from typing import (
     Union,
 )
 from urllib.parse import urlparse, urlsplit
-import json
+
 from bs4 import BeautifulSoup
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
