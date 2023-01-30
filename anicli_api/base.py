@@ -46,7 +46,7 @@ from typing import (
     Union,
 )
 from urllib.parse import urlparse, urlsplit
-
+import json
 from bs4 import BeautifulSoup
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
@@ -208,15 +208,10 @@ class BaseModel(ABC):
         raise TypeError(f"{other.__name__} is not `BaseModel` object, got {type(other)}")
 
     def __hash__(self):
-        hashes_ = []
-        for val in self.dict().values():
-            if isinstance(val, Hashable):
-                hashes_.append(hash(val))
-            elif isinstance(val, dict):
-                hashes_.append(hash(val.values()))
-            else:
-                hashes_.append(hash(tuple(val)))
-        return hash(frozenset(hashes_))
+        # sorted dictionary guarantees the generation of the same hash regardless of the location of the keys
+        # FIXME: change typing self.dict() method
+        hash_dict = dict(sorted(self.dict().items()))  # type: ignore
+        return hash(json.dumps(hash_dict))
 
 
 class BaseSearchResult(BaseModel):
@@ -398,15 +393,8 @@ class BaseVideo(BaseModel):
 
     def __hash__(self):
         # avoid TypeError: unhashable type error
-        hashes_ = []
-        for val in self.dict().values():
-            if isinstance(val, Hashable):
-                hashes_.append(hash(val))
-            elif isinstance(val, dict):
-                hashes_.append(hash(val.values()))
-            else:
-                hashes_.append(hash(tuple(val)))
-        return hash(frozenset(hashes_))
+        hash_dict = dict(sorted(self.dict().items()))  # type: ignore
+        return hash(json.dumps(hash_dict))
 
 
 class BaseAnimeExtractor(ABC):
