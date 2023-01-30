@@ -1,3 +1,4 @@
+## sync shikimori codegen
 from httpx import Client, Response
 {% from "macro.p" import snake_to_camel %}
 

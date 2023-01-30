@@ -1,3 +1,4 @@
+## asyncio shikimori codegen
 from httpx import AsyncClient, Response
 {% from "macro.p" import snake_to_camel %}
 __all__ = (
