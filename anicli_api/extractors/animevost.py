@@ -207,6 +207,11 @@ class Video(BaseVideo):
     hd: str
     std: str
 
+    @property
+    def url(self):
+        # this property added for correct CMP video objects
+        return self.std
+
     def get_source(self) -> List[MetaVideo]:
         return [
             MetaVideo(type="mp4", quality=480, url=self.std),
