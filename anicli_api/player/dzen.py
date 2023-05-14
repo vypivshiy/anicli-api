@@ -27,8 +27,8 @@ class Dzen(BaseVideoExtractor):
 
     def _extract(self, response) -> List[Video]:
         sel = Selector(response)
-        js_script = sel.xpath("//body/script/text()").get()
-        jsn = js_script.strip().replace(");", "").replace("Sandbox.init(", "")
+        js_script = sel.xpath("//body/script/text()").get()  # type: ignore
+        jsn = js_script.strip().replace(");", "").replace("Sandbox.init(", "")  # type: ignore
         jsn = json.loads(jsn)
         url_audio = jsn["data"]["content"]["audio_source_url"]
         url_mpd = jsn["data"]["content"]["streams"][0]["url"]

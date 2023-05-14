@@ -8,7 +8,7 @@ from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
 ALL_QUALITIES = (144, 240, 360, 480, 720, 1080)
 
 
-def url_validator(pattern: str | re.Pattern):
+def url_validator(pattern: Union[str, re.Pattern]):
     if isinstance(pattern, str):
         pattern = re.compile(pattern)
 

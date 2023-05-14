@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Dict
 
 from anicli_api.base import (
     BaseAnime,
@@ -19,13 +19,13 @@ class VostAPI:
     HTTP_ASYNC = BaseExtractor.HTTP_ASYNC
     BASE_URL = "https://api.animevost.org/v1/"
 
-    def api_request(self, method: str, *, api_method: str, **kwargs) -> Union[dict, list[dict]]:
+    def api_request(self, method: str, *, api_method: str, **kwargs) -> Union[Dict, List[Dict]]:
         response = self.HTTP().request(method, self.BASE_URL + api_method, **kwargs)
         return response.json()
 
     async def a_api_request(
         self, method: str, *, api_method: str, **kwargs
-    ) -> Union[dict, list[dict]]:
+    ) -> Union[Dict, List[Dict]]:
         async with self.HTTP_ASYNC() as session:
             response = await session.request(method, self.BASE_URL + api_method, **kwargs)
             return response.json()
@@ -52,10 +52,10 @@ class VostAPI:
         params = self._kwargs_pop_params(kwargs, page=1, quantity=limit)
         return await self.a_api_request("GET", api_method="last", params=params, **kwargs)  # type: ignore
 
-    def playlist(self, id: int) -> list[dict]:
+    def playlist(self, id: int) -> List[Dict]:
         return self.api_request("POST", api_method="playlist", data={"id": id})  # type: ignore
 
-    async def a_playlist(self, id: int) -> list[dict]:
+    async def a_playlist(self, id: int) -> List[Dict]:
         return await self.a_api_request("POST", api_method="playlist", data={"id": id})  # type: ignore
 
 
@@ -87,7 +87,7 @@ class _SearchOrOngoing(MainSchema):
     genre: str
     year: str
     urlImagePreview: str
-    screenImage: list[str]
+    screenImage: List[str]
     isFavorite: int
     isLikes: int
     rating: int
@@ -121,7 +121,7 @@ class Anime(BaseAnime):
     genre: str
     year: str
     urlImagePreview: str
-    screenImage: list[str]
+    screenImage: List[str]
     isFavorite: int
     isLikes: int
     rating: int
@@ -130,7 +130,7 @@ class Anime(BaseAnime):
     type: str
     director: str
     series: str  # '{\'1 серия\':\'147459278\ ...'
-    playlist: list[dict]
+    playlist: List[Dict]
 
     async def a_get_episodes(self) -> List["Episode"]:
         return self.get_episodes()

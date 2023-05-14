@@ -29,7 +29,7 @@ class OkRu(BaseVideoExtractor):
     def _extract(self, response: str) -> List[Video]:
         sel = Selector(response)
         raw_jsn = sel.xpath('//div[@class="vid-card_cnt h-mod"]/@data-options').get()
-        jsn_1 = json.loads(unescape(raw_jsn))
+        jsn_1 = json.loads(unescape(raw_jsn))  # type: ignore
         json_metadata = json.loads(jsn_1["flashvars"]["metadata"])
         return [
             Video(type="m3u8", quality=q, url=data["url"])

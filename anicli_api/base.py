@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from typing import List
+from typing import List, Any, Dict, Type
 
 from parsel import Selector
 from scrape_schema import BaseSchema, BaseSchemaConfig
@@ -15,7 +15,7 @@ class MainSchema(BaseSchema):
     HTTP_ASYNC = HTTPAsync
 
     class Config(BaseSchemaConfig):
-        parsers_config = {Selector: {}}
+        parsers_config = {Selector: {}}  # type: ignore
 
 
 class BaseExtractor:

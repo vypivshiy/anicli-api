@@ -37,8 +37,8 @@ class Aniboom(BaseVideoExtractor):
     def _extract(self, response: str) -> List[Video]:
         # if pre unescape response - parsel selector uncorrect get data-parameters attr
         sel = Selector(response)
-        jsn = sel.xpath('//*[@id="video"]/@data-parameters').get()
-        jsn = json.loads(unescape(jsn))  # type: ignore
+        jsn_string = sel.xpath('//*[@id="video"]/@data-parameters').get()
+        jsn = json.loads(unescape(jsn_string))  # type: ignore
         # TODO create m3u8, dash URL parsers
         if jsn.get("dash"):
             return [

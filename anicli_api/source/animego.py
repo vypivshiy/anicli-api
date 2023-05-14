@@ -149,10 +149,7 @@ class Anime(BaseAnime):
         ),  # mobile agent
         ParselXPath("//div[@data-readmore='content']", callback=get_text(strip=True, sep=" ")),
     ]  # desktop agent
-
-    @property
-    def anime_id(self) -> str:
-        return self.url.split("-")[-1]
+    anime_id = property(lambda self: self.url.split("-")[-1])
 
     @staticmethod
     def _get_dubbers(response: str) -> Dict[str, str]:
@@ -238,14 +235,8 @@ class Source(BaseSource):
         str, ParselXPath("//span", callback=get_attr("data-provide-dubbing"))
     ]
     name: ScField[str, ParselXPath("//span/span")]
-
-    @property
-    def url(self):
-        return f"https:{self._url}"
-
-    @property
-    def dub(self):
-        return self._dubbers_table.get(self._data_provide_dubbing)
+    url = property(lambda self: f"https:{self._url}")
+    dub = property(lambda self: self._dubbers_table.get(self._data_provide_dubbing))
 
     def get_videos(self):
         pass

@@ -17,20 +17,19 @@ class PlayerExtractor(BaseVideoExtractor):
 
     @player_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
-        response = self.http.get(url).text
+        response = self.http.get(url)
         return self._extract(response)
 
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
-            response = (await client.get(url)).text
+            response = await client.get(url)
             return self._extract(response)
 
-    def _extract(self, response: str) -> List[Video]:
-        path = ReMatch(re.compile(r'"(?P<url>/v/.*?\.mp4)"')).extract(response)
-        url = f"https://video.sibnet.ru{path}"
-        return [Video(type="mp4", quality=480, url=url, headers={"Referer": url})]
+    def _extract(self, response) -> List[Video]:
+        # any extract logic
+        pass
 
 
 if __name__ == "__main__":
-    SibNet().parse("https://video.sibnet.ru/shell.php?videoid=4779967")
+    PlayerExtractor().parse("")
