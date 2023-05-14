@@ -1,4 +1,4 @@
-{% from "macro.p" import snake_to_camel %}
+{% from "macro.j2" import snake_to_camel %}
 {%- for method_name, method_params in methods.items() %}
 class Async{{ snake_to_camel(method_name) }}:
     def __init__(self, session: AsyncClient):

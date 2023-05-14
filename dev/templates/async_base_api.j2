@@ -1,6 +1,6 @@
 ## asyncio shikimori codegen
 from httpx import AsyncClient, Response
-{% from "macro.p" import snake_to_camel %}
+{% from "macro.j2" import snake_to_camel %}
 __all__ = (
     "ShikimoriApiAsync",
 )
@@ -8,7 +8,7 @@ __all__ = (
 
 class ShikimoriApiAsync:
     def __init__(self):
-        self.session = AsyncClient()
+        self._session = AsyncClient()
         # all methods
         {% for cls_method in cls_methods -%}
         self.{{ cls_method }} = Async{{ snake_to_camel(cls_method) }}(self.session)
@@ -19,4 +19,4 @@ class ShikimoriApiAsync:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.session.aclose()
-{% include "async_method.p" %}
+{% include "async_method.j2" %}

@@ -34,7 +34,7 @@ def download_doc_v2():
 if __name__ == "__main__":
     data = download_doc_v1()["docs"]["resources"]
 
-    code = env.get_template("sync_base_api.p").render(
+    code = env.get_template("sync_base_api.j2").render(
         cls_methods=list(data.keys()),
         methods=data,
         fstring_url=fstring_url,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     with open("shikimori_sync.py", "w") as f:
         f.write(code)
 
-    code = env.get_template("async_base_api.p").render(
+    code = env.get_template("async_base_api.j2").render(
         cls_methods=list(data.keys()),
         methods=data,
         fstring_url=fstring_url,
