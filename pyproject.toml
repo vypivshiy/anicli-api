@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anicli_api"
-version = "0.3.8"
+version = "0.4.0"
 description = "Anime extractor api implementation"
 authors = ["Georgiy aka Vypivshiy"]
 license = "MIT"
@@ -36,24 +36,24 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 httpx = "^0.23.0"
-yt-dlp = "^2023.1.6"
 scrape-schema = {extras = ["parsel"], version = "^0.2.3"}
-pyproject-flake8 = "5.0.4"
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = {extras = ["coverage"], version = "^7.2.0"}
 pytest-cov = "^4.0.0"
 flake8 = "^5.0.0"
+pyproject-flake8 = "5.0.4"
 mypy = "^0.982"
 pytest-asyncio = "^0.20.2"
 twine = "^4.0.1"
 isort = "^5.10.1"
 black = "^22.10.0"
+urllib3 = "1.26.15"
 
 [tool.poetry.group.doc.dependencies]
 sphinx = "^5.3.0"
 sphinx-rtd-theme = "^1.1.1"
-
 
 
 [tool.poetry.group.codegen.dependencies]
