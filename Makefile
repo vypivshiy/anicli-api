@@ -32,7 +32,7 @@ githooks: check-venv  ## Install git hooks
 check: check-venv ## Run tests and linters
 	@echo "flake8"
 	@echo "------"
-	@$(interpreter) flake8 .
+	@$(interpreter) pflake8 .
 	@echo ; echo "black"
 	@echo "-----"
 	@$(interpreter) black --check .
