@@ -62,28 +62,18 @@ jinja2 = "^3.1.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-addopts = "--ignore='anicli_api.extractors.*' --cov='anicli_api._http' --cov='anicli_api.base' --cov='anicli_api.decoders' --cov='anicli_api.loader' --cov='anicli_api.random_useragent' --cov='anicli_api.re_models'"
-
-
-[tool.mypy]
-python_version = 3.8
-exclude="(tests|venv|setup.py|anicli_api/__template_extractor__.py|anicli_api/__template_decoder__.py)"
-ignore_missing_imports = true
-warn_no_return = false
-warn_return_any = false
-warn_unused_configs = true
-
 [tool.flake8]
-exclude = '.git,__pycache__,dist,env,venv,tests,.venv,docs/conf.py,anicli_api/extractors/__template__.py,anicli_api/decoders/__template__.py'
+exclude = '.git,__pycache__,dist,env,venv,.venv,docs/conf.py,anicli_api/player/__template__.py,anicli_api/source/__template__.py'
 max-line-length = 120
 max-complexity = 8
 ignore = 'F405, F403, W503, E501, F401, E203'
 
-[[tool.mypy.overrides]]
-module = "tests.*"
-ignore_errors = true
+[tool.mypy]
+python_version = 3.8
+pretty = true
+ignore_missing_imports = true
+exclude = ["env", ".env", "venv", "__pycache__", "examples", "__template__.py"]
+files=["anicli_api/*"]
 
 [tool.black]
 line-length = 99
