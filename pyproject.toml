@@ -29,17 +29,17 @@ classifiers = [
   "Typing :: Typed"
 ]
 
-
-
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/vypivshiy/anicli-api/issues"
 "Cli app" = "https://github.com/vypivshiy/ani-cli-ru"
 
 [tool.poetry.dependencies]
+requests = "2.29.0"
 python = "^3.8"
 httpx = "^0.23.0"
 bs4 = "^0.0.1"
 yt-dlp = "^2023.1.6"
+scrape-schema = {extras = ["parsel"], version = "^0.2.3"}
 
 [tool.poetry.group.dev.dependencies]
 pytest = {extras = ["coverage"], version = "^7.2.0"}
