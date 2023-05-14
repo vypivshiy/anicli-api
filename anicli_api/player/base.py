@@ -1,21 +1,25 @@
 import re
-from abc import abstractmethod, ABC
-from typing import Literal, Optional, Dict, Any, Union, List
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Literal, Optional, Union
 from urllib.parse import urlparse
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
+
 ALL_QUALITIES = (144, 240, 360, 480, 720, 1080)
 
 
 def url_validator(pattern: str | re.Pattern):
     if isinstance(pattern, str):
         pattern = re.compile(pattern)
+
     def decorator(func):
         def wrapper(_, url, **kwargs):
             if not pattern.match(url):
                 raise TypeError(f"Uncorrected url for {_.__class__.__name__} player")
             return func(_, url, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -31,18 +35,25 @@ class Video:
     - extra_headers - required UserAgent values for play or download this video. If not needed, default dict is empty
     """
 
-    def __init__(self,
-                 type: Literal["mp4", "m3u8", "mpd", "audio", "webm"],
-                 quality: Literal[0, 144, 240, 360, 480, 720, 1080],
-                 url: str,
-                 headers: Optional[Dict[str, str]] = None):
+    def __init__(
+        self,
+        type: Literal["mp4", "m3u8", "mpd", "audio", "webm"],
+        quality: Literal[0, 144, 240, 360, 480, 720, 1080],
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+    ):
         self.type = type
         self.quality = quality
         self.url = url
         self.headers = headers or {}
 
     def dict(self) -> Dict[str, Any]:
-        return {"type": self.type, "quality": self.quality, "url": self.url, "headers": self.headers}
+        return {
+            "type": self.type,
+            "quality": self.quality,
+            "url": self.url,
+            "headers": self.headers,
+        }
 
     def __str__(self):
         return f"{self.type} {self.quality} {urlparse(self.url).netloc}"
@@ -62,6 +73,7 @@ class Video:
 class ABCVideoExtractor(ABC):
     URL_RULE: Union[str, re.Pattern] = NotImplemented
     DEFAULT_HTTP_CONFIG: Dict[str, Any] = {}
+
     def __init__(self, **httpx_kwargs):
         self.http = BaseHTTPSync(**self.DEFAULT_HTTP_CONFIG, **httpx_kwargs)
         self.a_http = BaseHTTPAsync(**self.DEFAULT_HTTP_CONFIG, **httpx_kwargs)

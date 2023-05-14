@@ -1,11 +1,20 @@
 from typing import List, Union
 
-
-from anicli_api.base import BaseExtractor, BaseOngoing, BaseSource, BaseEpisode, BaseAnime, BaseSearch, MainSchema
+from anicli_api.base import (
+    BaseAnime,
+    BaseEpisode,
+    BaseExtractor,
+    BaseOngoing,
+    BaseSearch,
+    BaseSource,
+    MainSchema,
+)
 from anicli_api.player.base import Video
+
 
 class VostAPI:
     """dummy animevost API implementation"""
+
     HTTP = BaseExtractor.HTTP
     HTTP_ASYNC = BaseExtractor.HTTP_ASYNC
     BASE_URL = "https://api.animevost.org/v1/"
@@ -50,9 +59,9 @@ class VostAPI:
         return await self.a_api_request("POST", api_method="playlist", data={"id": id})  # type: ignore
 
 
-
 class Extractor(BaseExtractor):
     API = VostAPI()
+
     def search(self, query: str) -> List["Search"]:
         # search entrypoint
         return [Search.from_kwargs(**kw) for kw in VostAPI().search(query)["data"]]
@@ -87,6 +96,7 @@ class _SearchOrOngoing(MainSchema):
     type: str
     director: str
     series: str  # '{\'1 серия\':\'147459278\ ...'
+
     def get_anime(self) -> "Anime":
         response = VostAPI().playlist(self.id)
         return Anime.from_kwargs(**self.dict(), playlist=response)
@@ -98,6 +108,7 @@ class _SearchOrOngoing(MainSchema):
 
 class Search(_SearchOrOngoing, BaseSearch):
     pass
+
 
 class Ongoing(_SearchOrOngoing, BaseOngoing):
     pass

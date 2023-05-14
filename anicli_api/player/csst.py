@@ -3,6 +3,7 @@ import re
 from typing import List
 
 from scrape_schema.fields.regex import ReMatchListDict
+
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["CsstOnline"]
@@ -14,7 +15,8 @@ player_validator = url_validator(_URL_EQ)
 
 class CsstOnline(BaseVideoExtractor):
     URL_RULE = _URL_EQ
-    RE_URLS = re.compile(r'\[(?P<quality>\d{3,4})p\](?P<url>https?://(?:www\.)?.*?\.mp4)')
+    RE_URLS = re.compile(r"\[(?P<quality>\d{3,4})p\](?P<url>https?://(?:www\.)?.*?\.mp4)")
+
     @player_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
         response = self.http.get(url).text
@@ -33,7 +35,5 @@ class CsstOnline(BaseVideoExtractor):
         ]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(*CsstOnline().parse("https://csst.online/embed/487794"), sep="\n")
-
-

@@ -2,8 +2,9 @@ import json
 import re
 from typing import List
 
-from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 from parsel import Selector
+
+from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["Dzen"]
 _URL_EQ = re.compile(r"https://(www.)?dzen\.ru/embed/\w+\?")
@@ -29,12 +30,12 @@ class Dzen(BaseVideoExtractor):
         js_script = sel.xpath("//body/script/text()").get()
         jsn = js_script.strip().replace(");", "").replace("Sandbox.init(", "")
         jsn = json.loads(jsn)
-        url_audio = jsn['data']['content']['audio_source_url']
-        url_mpd = jsn['data']['content']['streams'][0]['url']
-        url_m3u8 = jsn['data']['content']['streams'][1]['url']
+        url_audio = jsn["data"]["content"]["audio_source_url"]
+        url_mpd = jsn["data"]["content"]["streams"][0]["url"]
+        url_m3u8 = jsn["data"]["content"]["streams"][1]["url"]
 
         return [
             Video(type="audio", quality=0, url=url_audio),
             Video(type="mpd", quality=1080, url=url_mpd),
-            Video(type="m3u8", quality=1080, url=url_m3u8)
+            Video(type="m3u8", quality=1080, url=url_m3u8),
         ]

@@ -2,9 +2,10 @@ import warnings
 from abc import abstractmethod
 from typing import List
 
-from scrape_schema import BaseSchema, BaseSchemaConfig
 from parsel import Selector
-from anicli_api._http import HTTPSync, HTTPAsync
+from scrape_schema import BaseSchema, BaseSchemaConfig
+
+from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.player import ALL_DECODERS
 from anicli_api.player.base import Video
 
@@ -12,6 +13,7 @@ from anicli_api.player.base import Video
 class MainSchema(BaseSchema):
     HTTP = HTTPSync
     HTTP_ASYNC = HTTPAsync
+
     class Config(BaseSchemaConfig):
         parsers_config = {Selector: {}}
 
@@ -20,15 +22,19 @@ class BaseExtractor:
     HTTP = HTTPSync
     HTTP_ASYNC = HTTPAsync
     BASE_URL: str
+
     @abstractmethod
     def search(self, query: str):
         pass
+
     @abstractmethod
     async def a_search(self, query: str):
         pass
+
     @abstractmethod
     def ongoing(self):
         pass
+
     @abstractmethod
     async def a_ongoing(self):
         pass
@@ -38,12 +44,15 @@ class BaseSearch(MainSchema):
     @abstractmethod
     def get_anime(self):
         pass
+
     @abstractmethod
     async def a_get_anime(self):
         pass
 
+
 class BaseOngoing(MainSchema):
     pass
+
     @abstractmethod
     def get_anime(self):
         pass
@@ -51,6 +60,8 @@ class BaseOngoing(MainSchema):
     @abstractmethod
     async def a_get_anime(self):
         pass
+
+
 class BaseAnime(MainSchema):
     @abstractmethod
     def get_episodes(self):
@@ -78,6 +89,7 @@ class BaseSource(MainSchema):
     def _check_url_arg(self) -> None:
         if self.url is NotImplemented:
             raise AttributeError(f"{self.__class__.__name__} missing url attribute.")
+
     def get_videos(self) -> List["Video"]:
         self._check_url_arg()
         for extractor in self.ALL_VIDEO_EXTRACTORS:
@@ -91,6 +103,9 @@ class BaseSource(MainSchema):
         for extractor in self.ALL_VIDEO_EXTRACTORS:
             if self.url == extractor():
                 return await extractor().a_parse(self.url)
-        warnings.warn(f"Failed extractor videos from {self.url}. "
-                      f"Maybe needed video extractor not implemented?", stacklevel=4)
+        warnings.warn(
+            f"Failed extractor videos from {self.url}. "
+            f"Maybe needed video extractor not implemented?",
+            stacklevel=4,
+        )
         return []

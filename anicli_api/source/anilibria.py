@@ -1,8 +1,16 @@
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
-
-from anicli_api.base import BaseExtractor, BaseOngoing, BaseSource, BaseEpisode, BaseAnime, BaseSearch, MainSchema
+from anicli_api.base import (
+    BaseAnime,
+    BaseEpisode,
+    BaseExtractor,
+    BaseOngoing,
+    BaseSearch,
+    BaseSource,
+    MainSchema,
+)
 from anicli_api.player.base import Video
+
 
 class Anilibria:
     """Dummmy API interface
@@ -54,6 +62,7 @@ class Anilibria:
 class Extractor(BaseExtractor):
     BASE_URL = ""  # BASEURL
     API = Anilibria()
+
     def search(self, query: str) -> List["Search"]:
         # search entrypoint
         return [Search.from_kwargs(**kw) for kw in self.API.search_titles(search=query)]
@@ -126,6 +135,7 @@ class Anime(BaseAnime):
     blocked: dict
     player: dict
     torrents: dict
+
     def get_episodes(self) -> List["Episode"]:
         return [
             Episode.from_kwargs(

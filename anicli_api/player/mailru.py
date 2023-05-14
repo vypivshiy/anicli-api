@@ -1,8 +1,9 @@
 import re
-from typing import List, Dict
+from typing import Dict, List
 
 from httpx import Response
 from scrape_schema.fields.regex import ReMatch
+
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["MailRu"]
@@ -14,11 +15,12 @@ player_validator = url_validator(_URL_EQ)
 
 class MailRu(BaseVideoExtractor):
     URL_RULE = _URL_EQ
-    DEFAULT_HTTP_CONFIG = {"headers":{
-        "Upgrade-Insecure-Requests": "1",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,"
-                  "application/signed-exchange;v=b3;q=0.7"
-    }
+    DEFAULT_HTTP_CONFIG = {
+        "headers": {
+            "Upgrade-Insecure-Requests": "1",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,"
+            "application/signed-exchange;v=b3;q=0.7",
+        }
     }
 
     @player_validator
@@ -39,16 +41,14 @@ class MailRu(BaseVideoExtractor):
         return [
             Video(
                 type="mp4",
-                url=f"https:{video['url']}"
-                if video["url"].startswith('//')
-                else video["url"],
+                url=f"https:{video['url']}" if video["url"].startswith("//") else video["url"],
                 quality=int(video["key"].rstrip("p")),  # type: ignore
-                headers={"Cookie": f"video_key={cookie}"}
+                headers={"Cookie": f"video_key={cookie}"},
             )
             for video in response.json()["videos"]
         ]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     vids = MailRu().parse("https://my.mail.ru/video/embed/358279802395848306")
     print(vids[0].url, vids[0].headers)

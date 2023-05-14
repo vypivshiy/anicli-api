@@ -1,9 +1,10 @@
 import json
 import re
-from typing import List
 from html import unescape
+from typing import List
 
 from parsel import Selector
+
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["Aniboom"]
@@ -14,11 +15,14 @@ player_validator = url_validator(_URL_EQ)
 
 class Aniboom(BaseVideoExtractor):
     URL_RULE = _URL_EQ
-    DEFAULT_HTTP_CONFIG={"headers": {"referer": "https://animego.org/"}}
-    VIDEO_HEADERS = {"Referer": "https://aniboom.one/",
-                    "Accept-Language": "ru-RU",
-                               "Origin": "https://aniboom.one",
-                               "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36"}
+    DEFAULT_HTTP_CONFIG = {"headers": {"referer": "https://animego.org/"}}
+    VIDEO_HEADERS = {
+        "Referer": "https://aniboom.one/",
+        "Accept-Language": "ru-RU",
+        "Origin": "https://aniboom.one",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+    }
+
     @player_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
         response = self.http.get(url).text
@@ -38,15 +42,28 @@ class Aniboom(BaseVideoExtractor):
         # TODO create m3u8, dash URL parsers
         if jsn.get("dash"):
             return [
-                Video(type="mpd", quality=1080, url=json.loads(jsn["dash"])['src'],
-                      headers=self.VIDEO_HEADERS),
-                Video(type="m3u8", quality=1080, url=json.loads(jsn["hls"])['src'],
-                      headers=self.VIDEO_HEADERS)
+                Video(
+                    type="mpd",
+                    quality=1080,
+                    url=json.loads(jsn["dash"])["src"],
+                    headers=self.VIDEO_HEADERS,
+                ),
+                Video(
+                    type="m3u8",
+                    quality=1080,
+                    url=json.loads(jsn["hls"])["src"],
+                    headers=self.VIDEO_HEADERS,
+                ),
             ]
-        return [Video(type="m3u8", quality=1080, url=json.loads(jsn["hls"])['src'],
-                      headers=self.VIDEO_HEADERS),
-            ]
+        return [
+            Video(
+                type="m3u8",
+                quality=1080,
+                url=json.loads(jsn["hls"])["src"],
+                headers=self.VIDEO_HEADERS,
+            ),
+        ]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(Aniboom().parse("https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30"))

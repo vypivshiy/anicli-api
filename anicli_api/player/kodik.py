@@ -1,10 +1,11 @@
 import re
 from base64 import b64decode
-from typing import List, Dict
-
-from scrape_schema import ScField, BaseSchema
-from scrape_schema.fields.regex import ReMatch
+from typing import Dict, List
 from urllib.parse import urlsplit
+
+from scrape_schema import BaseSchema, ScField
+from scrape_schema.fields.regex import ReMatch
+
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["Kodik"]
@@ -25,9 +26,9 @@ class _KodikPayload(BaseSchema):
     info = property(lambda self: {})
 
 
-
 class Kodik(BaseVideoExtractor):
     URL_RULE = _URL_EQ
+
     @staticmethod
     def _decode(url_encoded: str) -> str:
         # 30.03.23
@@ -38,25 +39,30 @@ class Kodik(BaseVideoExtractor):
 
         # Note: this solution writen by chatgpt
         def char_wrapper(e):
-            return chr((ord(e.group(0)) + 13 - (65 if e.group(0) <= "Z" else 97))
-                       % 26 + (65 if e.group(0) <= "Z" else 97))
+            return chr(
+                (ord(e.group(0)) + 13 - (65 if e.group(0) <= "Z" else 97)) % 26
+                + (65 if e.group(0) <= "Z" else 97)
+            )
 
         base64_url = re.sub(r"[a-zA-Z]", char_wrapper, url_encoded)
         if not base64_url.endswith("=="):
             base64_url += "=="
         return f"https:{b64decode(base64_url).decode()}"
+
     @kodik_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
         response = self.http.get(url).text
         payload = _KodikPayload(response).dict()
         url_api = f"https://{urlsplit(url).netloc}/gvi"
         response_api = self.http.post(
-            url_api, data=payload,
+            url_api,
+            data=payload,
             headers={
-                    "origin": "https://kodik.info",
-                    "referer": url_api.replace("/gvi", ""),
-                    "accept": "application/json, text/javascript, */*; q=0.01",
-                }).json()["links"]
+                "origin": "https://kodik.info",
+                "referer": url_api.replace("/gvi", ""),
+                "accept": "application/json, text/javascript, */*; q=0.01",
+            },
+        ).json()["links"]
         return self._extract(response_api)
 
     @kodik_validator
@@ -65,22 +71,31 @@ class Kodik(BaseVideoExtractor):
             response = (await client.get(url)).text
             payload = _KodikPayload(response).dict()
             url_api = f"https://{urlsplit(url).netloc}/gvi"
-            response_api = (await client.post(
-                url_api, data=payload,
-                headers={
-                    "origin": "https://kodik.info",
-                    "referer": url_api.replace("/gvi", ""),
-                    "accept": "application/json, text/javascript, */*; q=0.01",
-                }).json())["links"]
+            response_api = (
+                await client.post(
+                    url_api,
+                    data=payload,
+                    headers={
+                        "origin": "https://kodik.info",
+                        "referer": url_api.replace("/gvi", ""),
+                        "accept": "application/json, text/javascript, */*; q=0.01",
+                    },
+                ).json()
+            )["links"]
             return self._extract(response_api)
 
     def _extract(self, response_api: Dict) -> List[Video]:
         return [
-            Video(type="m3u8", quality=360, url=self._decode(response_api['360'][0]['src'])),
-            Video(type="m3u8", quality=480, url=self._decode(response_api['480'][0]['src'])),
+            Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"])),
+            Video(type="m3u8", quality=480, url=self._decode(response_api["480"][0]["src"])),
             # maybe return only 360, 480 keys
-            Video(type="m3u8", quality=720, url=self._decode(response_api['480'][0]['src']).replace('360.mp4', '720.mp4')),
+            Video(
+                type="m3u8",
+                quality=720,
+                url=self._decode(response_api["480"][0]["src"]).replace("360.mp4", "720.mp4"),
+            ),
         ]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     Kodik().parse("https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p")
