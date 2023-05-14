@@ -51,3 +51,5 @@ stdout_handler = logging.StreamHandler()
 stdout_handler.setFormatter(formatter)
 logger.addHandler(stdout_handler)
 logger = StyleAdapter(logger)  # type: ignore
+sc_schema_logger = logging.getLogger("scrape_schema")
+sc_schema_logger.setLevel(logging.ERROR)
