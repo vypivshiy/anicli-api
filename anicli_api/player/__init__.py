@@ -5,5 +5,7 @@ from anicli_api.player.kodik import Kodik
 from anicli_api.player.okru import OkRu
 from anicli_api.player.sibnet import SibNet
 from anicli_api.player.vkcom import VkCom
+from anicli_api.player.csst import CsstOnline
+from anicli_api.player.mailru import MailRu
 
-ALL_DECODERS = (OkRu, VkCom, Dzen, Kodik, Aniboom, AnimeJoy, SibNet)
+ALL_DECODERS = (Kodik, Aniboom, SibNet, AnimeJoy, CsstOnline, MailRu, OkRu, VkCom, Dzen)
