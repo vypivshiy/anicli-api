@@ -1,4 +1,5 @@
 from typing import Dict, List, TypedDict
+from urllib.parse import urlsplit
 
 from parsel import Selector
 from scrape_schema import ScField
@@ -85,6 +86,9 @@ class Search(BaseSearch):
             response = await client.get(self.url)
             return Anime(response.text)
 
+    def __str__(self):
+        return f"{self.title} ({self.alt_name})"
+
 
 class Ongoing(BaseOngoing):
     url: ScField[str, ParselXPath('//div[@class="titleup"]/h2/a', callback=get_attr("href"))]
@@ -92,7 +96,7 @@ class Ongoing(BaseOngoing):
     alt_name: ScField[
         str, ParselXPath('//div[@class="blkdesc"]/p/span[@itemprop="alternativeHeadline"]')
     ]
-    _thumbnail_path: ScField[str, ParselXPath('//div[@class="text"]/picture/img')]
+    _thumbnail_path: ScField[str, ParselXPath('//div[@class="text"]/picture/img', callback=get_attr('src'))]
     _metadata: ScField[
         List[str],
         ParselXPathList(
@@ -110,11 +114,14 @@ class Ongoing(BaseOngoing):
             response = await client.get(self.url)
             return Anime(response)
 
+    def __str__(self):
+        return f"{self.title} ({self.alt_name})"
+
 
 class Anime(BaseAnime):
     title: ScField[str, ParselXPath('//h1[@class="h2 ntitle"]')]
     alt_name: ScField[str, ParselXPath('//h2[@class="romanji"]')]
-    _thumbnail_path: ScField[str, ParselXPath('//div[@class="text"]/picture/img')]
+    _thumbnail_path: ScField[str, ParselXPath('//div[@class="text"]/picture/img', callback=get_attr('src'))]
     thumbnail = property(lambda self: f"https://animejoy.ru{self._thumbnail_path}")
     _metadata: ScField[List[str], ParselXPathList('//div[@class="blkdesc"]/p[@class="zerop"]')]
     description: ScField[
@@ -126,6 +133,9 @@ class Anime(BaseAnime):
     ]
     url: ScField[str, ParselXPath('//meta[@property="og:url"]', callback=get_attr("content"))]
     news_id = property(lambda self: self.url.split("/")[-1].split("-")[0])
+
+    def __str__(self):
+        return f"{self.title} ({self.alt_name})"
 
     def _extract_episode_meta(self, response: str) -> List["Episode"]:
         sel = Selector(response)
@@ -193,6 +203,9 @@ class Episode(BaseEpisode):
     _video_meta: List[_SourceDict]
     name: str
 
+    def __str__(self):
+        return self.name
+
     def get_sources(self) -> List["Source"]:
         return [
             Source.from_kwargs(url=meta["url"], name=meta["name"], player_id=meta["player_id"])
@@ -207,6 +220,9 @@ class Source(BaseSource):
     url: str
     name: str
     player_id: str
+
+    def __str__(self):
+        return f"{urlsplit(self.url).netloc} ({self.name})"
 
 
 if __name__ == "__main__":

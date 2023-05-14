@@ -97,6 +97,9 @@ class _SearchOrOngoing(MainSchema):
     director: str
     series: str  # '{\'1 серия\':\'147459278\ ...'
 
+    def __str__(self):
+        return f"{self.title} {self.year} ({self.rating}) {self.type}"
+
     def get_anime(self) -> "Anime":
         response = VostAPI().playlist(self.id)
         return Anime.from_kwargs(**self.dict(), playlist=response)
@@ -132,14 +135,15 @@ class Anime(BaseAnime):
     series: str  # '{\'1 серия\':\'147459278\ ...'
     playlist: List[Dict]
 
+    def __str__(self):
+        return f"{self.title} [{self.year}] {self.type} {self.rating}"
+
     async def a_get_episodes(self) -> List["Episode"]:
         return self.get_episodes()
 
     def get_episodes(self) -> List["Episode"]:
         return [Episode.from_kwargs(**kw) for kw in self.playlist]
 
-    def __str__(self):
-        return f"{self.title} {self.year} {self.rating}\n{self.genre}\n{self.description}"
 
 
 class Episode(BaseEpisode):
@@ -163,6 +167,9 @@ class Episode(BaseEpisode):
 class Source(BaseSource):
     hd: str
     std: str
+
+    def __str__(self):
+        return "Animevost"
 
     def get_videos(self) -> List[Video]:
         return [

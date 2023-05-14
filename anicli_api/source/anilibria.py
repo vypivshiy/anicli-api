@@ -1,4 +1,5 @@
 from typing import Any, List, Optional
+from urllib.parse import urlsplit
 
 from anicli_api.base import (
     BaseAnime,
@@ -136,6 +137,9 @@ class Anime(BaseAnime):
     player: dict
     torrents: dict
 
+    def __str__(self):
+        return f"{list(self.names.values())}"
+
     def get_episodes(self) -> List["Episode"]:
         return [
             Episode.from_kwargs(
@@ -161,6 +165,9 @@ class Episode(BaseEpisode):
     hls: dict
     torrents: dict
 
+    def __str__(self):
+        return f"{self.host} {self.serie}"
+
     def get_sources(self) -> List["Source"]:
         return [
             Source.from_kwargs(
@@ -180,6 +187,9 @@ class Source(BaseSource):
     fhd: Optional[str]
     hd: str
     sd: str
+
+    def __str__(self):
+        return f"{urlsplit(self.fhd).netloc or urlsplit(self.hd).netloc}"
 
     def get_videos(self) -> List["Video"]:
         if self.fhd:

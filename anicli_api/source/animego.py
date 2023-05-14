@@ -1,4 +1,5 @@
 from typing import Dict, List
+from urllib.parse import urlsplit
 
 from parsel import Selector
 from scrape_schema import ScField
@@ -78,6 +79,9 @@ class Search(BaseSearch):
         ),
     ]
 
+    def __str__(self):
+        return f"{self.title} {self.name} ({self.rating})"
+
     def get_anime(self) -> "Anime":
         response = self.HTTP().get(self.url)
         return Anime(response.text)
@@ -98,6 +102,9 @@ class Ongoing(BaseOngoing):
         str, ParselXPath("//div[@class='ml-3 text-right']/div[@class='text-gray-dark-6']")
     ]
     _onclick: ScField[str, ParselXPath("//div", callback=get_attr("onclick"))]
+
+    def __str__(self):
+        return f"{self.title} {self.episode} ({self.dub})"
 
     @property
     def thumbnail(self):
@@ -151,6 +158,9 @@ class Anime(BaseAnime):
     ]  # desktop agent
     anime_id = property(lambda self: self.url.split("-")[-1])
 
+    def __str__(self):
+        return f"{self.title} {self.alt_titles} ({self.rating})"
+
     @staticmethod
     def _get_dubbers(response: str) -> Dict[str, str]:
         sel = Selector(response)
@@ -195,6 +205,9 @@ class Episode(BaseEpisode):
     released: ScField[str, ParselXPath("//div", callback=get_attr("data-episode-released"))]
     _dubbers_table: Dict[str, str]
 
+    def __str__(self):
+        return f"{self.title} {self.num} {self.released}"
+
     def get_sources(self) -> List["Source"]:
         response = (
             self.HTTP()
@@ -238,8 +251,5 @@ class Source(BaseSource):
     url = property(lambda self: f"https:{self._url}")
     dub = property(lambda self: self._dubbers_table.get(self._data_provide_dubbing))
 
-    def get_videos(self):
-        pass
-
-    async def a_get_videos(self):
-        pass
+    def __str__(self):
+        return f"{urlsplit(self.url).netloc} {self.name} ({self.dub})"
