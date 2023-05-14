@@ -22,7 +22,7 @@ HEADERS: Dict[str, str] = {
 # DDoS protection check by "Server" key header
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
 
-__all__ = ("BaseHTTPSync", "BaseHTTPAsync", "HTTPSync", "HTTPAsync", "Singleton", "ja3_path")
+__all__ = ("BaseHTTPSync", "BaseHTTPAsync", "HTTPSync", "HTTPAsync", "Singleton")
 
 
 class Singleton:

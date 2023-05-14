@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from typing import List, Any, Dict, Type
+from typing import Any, Dict, List, Type
 
 from parsel import Selector
 from scrape_schema import BaseSchema, BaseSchemaConfig
