@@ -1,7 +1,6 @@
 from anicli_api.source.animejoy import Extractor  # can usage any source
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     ex = Extractor()
     print("PRESS CTRL + C for exit app")
     while True:
