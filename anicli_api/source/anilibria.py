@@ -104,7 +104,7 @@ class _SearchOrOngoing(MainSchema):
         return self.get_anime()
 
     def get_anime(self) -> "Anime":
-        return Anime.from_kwargs(**self.dict())
+        return Anime.from_kwargs(**self.__dict__)  # dict() method didn't see annotated attrs
 
     def __str__(self):
         return f"{list(self.names.values())[0]}"
@@ -205,3 +205,13 @@ class Source(BaseSource):
 
     async def a_get_videos(self) -> List["Video"]:
         return self.get_videos()
+
+
+if __name__ == "__main__":
+    ex = Extractor()
+    r = ex.search("lai")
+    an = r[0].get_anime()
+    eps = an.get_episodes()
+    sss = eps[0].get_sources()
+    vids = sss[0].get_videos()
+    print(*vids)
