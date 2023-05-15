@@ -1,0 +1,92 @@
+from typing import Dict, List
+
+from urllib.parse import urlsplit
+
+from parsel import Selector
+from scrape_schema import ScField
+from scrape_schema.callbacks.parsel import crop_by_xpath_all as cbxa
+from scrape_schema.callbacks.parsel import get_attr, get_text, replace_text
+from scrape_schema.fields.parsel import ParselXPath, ParselXPathList
+
+from anicli_api.base import (
+    BaseAnime,
+    BaseEpisode,
+    BaseExtractor,
+    BaseOngoing,
+    BaseSearch,
+    BaseSource,
+)
+
+
+class {{ source_name }}(BaseExtractor):
+    BASE_URL = "{{ base_url }}"  # BASEURL
+
+    def search(self, query: str) -> List["Search"]:
+        # search entrypoint
+        pass
+
+    async def a_search(self, query: str) -> List["Search"]:
+        # async search entrypoint
+        pass
+
+    def ongoing(self) -> List["Ongoing"]:
+        response = self.HTTP().get(self.BASE_URL)
+        return Ongoing.from_crop_rule_list(
+            response.text, crop_rule=cbxa()])  # past crop_rule XPath
+        )
+
+    async def a_ongoing(self) -> List["Ongoing"]:
+    async with self.HTTP_ASYNC() as client:
+        response = await client.get(self.BASE_URL)
+        return Ongoing.from_crop_rule_list(
+            response.text, crop_rule=cbxa()  # past crop_rule XPath
+            )
+
+
+class Search(BaseSearch):
+    # past xpath to main anime page
+    url: ScField[str, ParselXPath()]
+
+    def get_anime(self) -> "Anime":
+        response = self.HTTP().get(self.url)
+        return Anime(response.text)
+
+    async def a_get_anime(self) -> "Anime":
+        async with self.HTTP_ASYNC() as client:
+            response = await client.get(self.url)
+            return Anime(response.text)
+
+
+class Ongoing(BaseOngoing):
+    # past xpath to main anime page
+    url: ScField[str, ParselXPath()]
+
+    def get_anime(self) -> "Anime":
+        response = self.HTTP().get(self.url)
+        return Anime(response.text)
+
+    async def a_get_anime(self) -> "Anime":
+        async with self.HTTP_ASYNC() as client:
+            response = await client.get(self.url)
+            return Anime(response.text)
+
+
+class Anime(BaseAnime):
+    def get_episodes(self) -> List["Episode"]:
+        pass
+
+    async def a_get_episodes(self) -> List["Episode"]:
+        pass
+
+
+class Episode(BaseEpisode):
+    def get_sources(self) -> List["Source"]:
+        pass
+
+    async def a_get_sources(self) -> List["Source"]:
+        pass
+
+
+class Source(BaseSource):
+    url: str  # should be implemented
+    pass
