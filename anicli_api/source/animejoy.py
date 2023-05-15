@@ -96,7 +96,9 @@ class Ongoing(BaseOngoing):
     alt_name: ScField[
         str, ParselXPath('//div[@class="blkdesc"]/p/span[@itemprop="alternativeHeadline"]')
     ]
-    _thumbnail_path: ScField[str, ParselXPath('//div[@class="text"]/picture/img', callback=get_attr('src'))]
+    _thumbnail_path: ScField[
+        str, ParselXPath('//div[@class="text"]/picture/img', callback=get_attr("src"))
+    ]
     _metadata: ScField[
         List[str],
         ParselXPathList(
@@ -121,7 +123,9 @@ class Ongoing(BaseOngoing):
 class Anime(BaseAnime):
     title: ScField[str, ParselXPath('//h1[@class="h2 ntitle"]')]
     alt_name: ScField[str, ParselXPath('//h2[@class="romanji"]')]
-    _thumbnail_path: ScField[str, ParselXPath('//div[@class="text"]/picture/img', callback=get_attr('src'))]
+    _thumbnail_path: ScField[
+        str, ParselXPath('//div[@class="text"]/picture/img', callback=get_attr("src"))
+    ]
     thumbnail = property(lambda self: f"https://animejoy.ru{self._thumbnail_path}")
     _metadata: ScField[List[str], ParselXPathList('//div[@class="blkdesc"]/p[@class="zerop"]')]
     description: ScField[

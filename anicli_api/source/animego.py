@@ -18,10 +18,10 @@ from anicli_api.base import (
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://animego.org/"
+    BASE_URL = "https://animego.org"
 
     def search(self, query: str) -> List["Search"]:
-        response = self.HTTP().get(f"{self.BASE_URL}search/anime", params={"q": query})
+        response = self.HTTP().get(f"{self.BASE_URL}/search/anime", params={"q": query})
         return Search.from_crop_rule_list(
             response.text,
             crop_rule=cbxa(
@@ -253,3 +253,13 @@ class Source(BaseSource):
 
     def __str__(self):
         return f"{urlsplit(self.url).netloc} {self.name} ({self.dub})"
+
+
+if __name__ == "__main__":
+    ex = Extractor()
+    res = ex.search("lain")
+    an = res[0].get_anime()
+    episodes = an.get_episodes()
+    sss = episodes[0].get_sources()
+    vids = sss[0].get_videos()
+    print(*vids)

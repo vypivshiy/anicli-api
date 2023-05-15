@@ -145,7 +145,6 @@ class Anime(BaseAnime):
         return [Episode.from_kwargs(**kw) for kw in self.playlist]
 
 
-
 class Episode(BaseEpisode):
     name: str
     preview: str
@@ -172,6 +171,7 @@ class Source(BaseSource):
         return "Animevost"
 
     def get_videos(self) -> List[Video]:
+        # TODO move to player dir
         return [
             Video(type="mp4", quality=480, url=self.std),
             Video(type="mp4", quality=720, url=self.hd),
@@ -179,3 +179,13 @@ class Source(BaseSource):
 
     async def a_get_videos(self) -> List[Video]:
         return self.get_videos()
+
+
+if __name__ == "__main__":
+    ex = Extractor()
+    ong = ex.ongoing()
+    res = ex.search("lai")
+    an = res[0].get_anime()
+    eps = an.get_episodes()
+    sss = eps[0].get_sources()
+    print()
