@@ -36,7 +36,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 httpx = {extras = ["http2"], version = "^0.24.0"}
-scrape-schema = {extras = ["parsel"], version = "^0.2.3"}
+scrape-schema = {version = "^0.3.0"}
 
 
 [tool.poetry.group.dev.dependencies]
