@@ -1,7 +1,6 @@
 import re
 from typing import List
 
-from scrape_schema.fields.regex import ReMatchList
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -23,9 +22,7 @@ class AnimeJoy(BaseVideoExtractor):
 
     def _extract(self, response: str) -> List[Video]:
         # some extract logic
-        url_1080, url_360 = ReMatchList(re.compile(r"](https?://(?:www\.)?.*?\.mp4)")).extract(
-            response
-        )
+        url_1080, url_360 = re.findall(r"](https?://(?:www\.)?.*?\.mp4)", response)
         return [
             Video(type="mp4", quality=1080, url=url_1080),
             Video(type="mp4", quality=360, url=url_360),

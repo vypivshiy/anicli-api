@@ -1,7 +1,6 @@
 import re
 from typing import List
 
-from scrape_schema.fields.regex import ReMatch
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -25,7 +24,7 @@ class SibNet(BaseVideoExtractor):
             return self._extract(response)
 
     def _extract(self, response: str) -> List[Video]:
-        path = ReMatch(re.compile(r'"(?P<url>/v/.*?\.mp4)"')).extract(response)
+        path = re.search(r'"(?P<url>/v/.*?\.mp4)"', response)[1]
         url = f"https://video.sibnet.ru{path}"
         return [Video(type="mp4", quality=480, url=url, headers={"Referer": url})]
 

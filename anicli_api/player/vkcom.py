@@ -1,11 +1,7 @@
 import re
-from base64 import b64decode
-from typing import Dict, List
-from urllib.parse import urlsplit
+from typing import List
 
 from parsel import Selector
-from scrape_schema import BaseSchema, ScField
-from scrape_schema.fields.regex import ReMatch
 
 from anicli_api.player.base import ALL_QUALITIES, BaseVideoExtractor, Video, url_validator
 

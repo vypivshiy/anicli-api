@@ -2,7 +2,6 @@
 import re
 from typing import List
 
-from scrape_schema.fields.regex import ReMatchListDict
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -29,7 +28,7 @@ class CsstOnline(BaseVideoExtractor):
             return self._extract(response)
 
     def _extract(self, response: str) -> List[Video]:
-        url_data = ReMatchListDict(self.RE_URLS).extract(response)
+        url_data = list(re.finditer(self.RE_URLS, response))
         return [
             Video(type="mp4", quality=data["quality"], url=data["url"]) for data in url_data[:4]
         ]

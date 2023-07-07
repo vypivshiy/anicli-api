@@ -1,11 +1,7 @@
 from typing import Dict, List
 from urllib.parse import urlsplit
 
-from parsel import Selector
-from scrape_schema import ScField
-from scrape_schema.callbacks.parsel import crop_by_xpath_all as cbxa
-from scrape_schema.callbacks.parsel import get_attr, get_text, replace_text
-from scrape_schema.fields.parsel import ParselXPath, ParselXPathList
+from scrape_schema import Sc, Parsel, sc_param
 
 from anicli_api.base import (
     BaseAnime,
@@ -22,62 +18,37 @@ class Extractor(BaseExtractor):
 
     def search(self, query: str) -> List["Search"]:
         response = self.HTTP().get(f"{self.BASE_URL}/search/anime", params={"q": query})
-        return Search.from_crop_rule_list(
-            response.text,
-            crop_rule=cbxa(
-                "//div[@class='row']/div[@class='animes-grid-item col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 col-ul-2']"
-            ),
-        )
+        chunks = Parsel().xpath(
+            "//div[@class='row']/div[@class='animes-grid-item col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 col-ul-2']"
+        ).sc_parse(response.text)
+        return [Search(chunk) for chunk in chunks.getall()]
 
     async def a_search(self, query: str) -> List["Search"]:
         async with self.HTTP_ASYNC() as client:
             response = await client.get(f"{self.BASE_URL}search/anime", params={"q": query})
-            return Search.from_crop_rule_list(
-                response.text,
-                crop_rule=cbxa(
-                    "//div[@class='row']/div[@class='animes-grid-item col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 col-ul-2']"
-                ),
-            )
+            chunks = Parsel().xpath(
+                "//div[@class='row']/div[@class='animes-grid-item col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 col-ul-2']"
+            ).getall().sc_parse(response.text)
+            return [Search(chunk) for chunk in chunks]
 
     def ongoing(self) -> List["Ongoing"]:
         response = self.HTTP().get(self.BASE_URL)
-        return Ongoing.from_crop_rule_list(
-            response.text, crop_rule=cbxa('//*[starts-with(@class, "last-update-item")]')
-        )
+        chunks = Parsel().xpath('//*[starts-with(@class, "last-update-item")]').getall().sc_parse(response.text)
+        return [Ongoing(chunk) for chunk in chunks]
 
     async def a_ongoing(self) -> List["Ongoing"]:
         async with self.HTTP_ASYNC() as client:
             response = await client.get(self.BASE_URL)
-            return Ongoing.from_crop_rule_list(
-                response.text, crop_rule=cbxa('//*[starts-with(@class, "last-update-item")]')
-            )
+            chunks = Parsel().xpath('//*[starts-with(@class, "last-update-item")]').getall().sc_parse(response.text)
+            return [Ongoing(chunk) for chunk in chunks]
 
 
 class Search(BaseSearch):
-    thumbnail: ScField[str, ParselXPath("//a/div", callback=get_attr("data-original"))]
-    rating: ScField[
-        float,
-        ParselXPath(
-            "//div[@class='p-rate-flag__text']", default="0", callback=replace_text(",", ".")
-        ),
-    ]
-    name: ScField[
-        str, ParselXPath("//div[@class='text-gray-dark-6 small mb-1 d-none d-sm-block']/div")
-    ]
-    title: ScField[
-        str,
-        ParselXPath(
-            "//div[@class='h5 font-weight-normal mb-2 card-title text-truncate']/a",
-            callback=get_attr("title"),
-        ),
-    ]
-    url: ScField[
-        str,
-        ParselXPath(
-            "//div[@class='h5 font-weight-normal mb-2 card-title text-truncate']/a",
-            callback=get_attr("href"),
-        ),
-    ]
+    thumbnail: Sc[str, Parsel().xpath("//a/div/@data-original").get()]
+    rating: Sc[float, Parsel(default=.0).xpath("//div[@class='p-rate-flag__text']/text()").get().sc_replace(",", ".")]
+    name: Sc[str, Parsel().xpath("//div[@class='text-gray-dark-6 small mb-1 d-none d-sm-block']/div/text()").get()]
+    title: Sc[str, Parsel().xpath("//div[@class='h5 font-weight-normal mb-2 card-title text-truncate']/a/@title").get()]
+    url: Sc[str, Parsel().xpath("//div[@class='h5 font-weight-normal mb-2 card-title text-truncate']/a/@href").get()]
 
     def __str__(self):
         return f"{self.title} {self.name} ({self.rating})"
@@ -93,30 +64,26 @@ class Search(BaseSearch):
 
 
 class Ongoing(BaseOngoing):
-    _thumb_style: ScField[
-        str, ParselXPath("//div[@class='img-square lazy br-50']", callback=get_attr("style"))
-    ]
-    title: ScField[str, ParselXPath("//span[@class='last-update-title font-weight-600']")]
-    episode: ScField[str, ParselXPath("//div[@class='font-weight-600 text-truncate']")]
-    dub: ScField[
-        str, ParselXPath("//div[@class='ml-3 text-right']/div[@class='text-gray-dark-6']")
-    ]
-    _onclick: ScField[str, ParselXPath("//div", callback=get_attr("onclick"))]
+    _thumb_style: Sc[str, Parsel().xpath("//div[@class='img-square lazy br-50']/@style").get()]
+    title: Sc[str, Parsel().xpath("//span[@class='last-update-title font-weight-600']/text()").get()]
+    episode: Sc[str, Parsel().get("//div[@class='font-weight-600 text-truncate']/text()").get()]
+    dub: Sc[str, Parsel().xpath("//div[@class='ml-3 text-right']/div[@class='text-gray-dark-6']/text()").get()]
+    _onclick: Sc[str, Parsel().xpath("//div/@onclick").get()]
 
     def __str__(self):
         return f"{self.title} {self.episode} ({self.dub})"
 
-    @property
+    @sc_param
     def thumbnail(self):
         return self._thumb_style.replace("background-image: url(", "").replace(");", "")
 
-    @property
+    @sc_param
     def url(self):
         path = self._onclick.replace("location.href='", "").replace("'", "")
         return f"https://animego.org{path}"
 
-    @property
-    def num(self):
+    @sc_param
+    def num(self) -> int:
         return int(self.episode.replace(" серия", "").replace(" Серия", ""))
 
     def get_anime(self) -> "Anime":
@@ -130,46 +97,27 @@ class Ongoing(BaseOngoing):
 
 
 class Anime(BaseAnime):
-    rating: ScField[
-        float,
-        ParselXPath(
-            '//*[@id="itemRatingBlock"]/div[1]/div[2]/div[1]/span[1]',
-            default="0",
-            callback=replace_text(",", "."),
-        ),
-    ]
-    title: ScField[str, ParselXPath("//div[@class='anime-title']/div/h1")]
-    alt_titles: ScField[List[str], ParselXPathList('//ul[@class="list-unstyled small mb-0"]/li')]
+    rating: Sc[float, Parsel(default=.0).xpath(
+        '//*[@id="itemRatingBlock"]/div[1]/div[2]/div[1]/span[1]/text()').get().sc_replace(",", ".")]
+    title: Sc[str, Parsel().xpath("//div[@class='anime-title']/div/h1/text()").get()]
+    alt_titles: Sc[List[str], Parsel().xpath('//ul[@class="list-unstyled small mb-0"]/li/text()').getall()]
     # todo create normal structure
-    _raw_metadata: ScField[
-        str,
-        ParselXPath(
-            '//div[@class="anime-info"]/dl[@class="row"]',
-            callback=get_text(strip=True, deep=True, sep=" "),
-        ),
-    ]
-    url: ScField[str, ParselXPath("//html/head/link[@rel='canonical']", callback=get_attr("href"))]
-    description: ScField[
-        str,
-        ParselXPath(
-            "//div[@class='description pb-3']", callback=get_text(strip=True, sep=" ")
-        ),  # mobile agent
-        ParselXPath("//div[@data-readmore='content']", callback=get_text(strip=True, sep=" ")),
-    ]  # desktop agent
-    anime_id = property(lambda self: self.url.split("-")[-1])
+    _raw_metadata: Sc[str, Parsel().xpath('//div[@class="anime-info"]/dl[@class="row"]/text()').getall()]
+    url: Sc[str, Parsel().xpath("//html/head/link[@rel='canonical']/@href").get()]
+    description: Sc[str, Parsel().xpath("//div[@class='description pb-3']/text()").get()]  # mobile agent
+    # ParselXPath("//div[@data-readmore='content']", callback=get_text(strip=True, sep=" "))]  # desktop agent
+    anime_id = sc_param(lambda self: self.url.split("-")[-1])
 
     def __str__(self):
         return f"{self.title} {self.alt_titles} ({self.rating})"
 
     @staticmethod
     def _get_dubbers(response: str) -> Dict[str, str]:
-        sel = Selector(response)
-        dubbers_id: List[str] = ParselXPathList(
-            '//*[@id="video-dubbing"]/span', callback=get_attr("data-dubbing")
-        ).extract(sel, type_=List[str])
-        dubbers_name: List[str] = ParselXPathList(
-            '//*[@id="video-dubbing"]/span', callback=get_text(deep=True, strip=True)
-        ).extract(sel)
+        # sel = Selector(response)
+        dubbers_id: List[str] = Parsel().xpath(
+            '//*[@id="video-dubbing"]/span/@data-dubbing').getall().sc_parse(response)
+        dubbers_name: List[str] = Parsel().xpath(
+            '//*[@id="video-dubbing"]/span/text()').getall().sc_parse(response)
         return dict(zip(dubbers_id, dubbers_name))
 
     def get_episodes(self) -> List["Episode"]:
@@ -180,50 +128,48 @@ class Anime(BaseAnime):
         )
 
         _dubbers_table = self._get_dubbers(response)
-        return Episode.from_crop_rule_list(
-            response,
-            crop_rule=cbxa('//*[@id="video-carousel"]/div/div'),
-            _dubbers_table=_dubbers_table,
-        )
+        chunks = Parsel().xpath('//*[@id="video-carousel"]/div/div').getall().sc_parse(response)
+        episodes = [Episode(chunk) for chunk in chunks]
+        for ep in episodes:
+            setattr(ep, "_dubbers_table", _dubbers_table)
+        return episodes
 
     async def a_get_episodes(self) -> List["Episode"]:
         async with self.HTTP_ASYNC() as client:
             response = await client.get(self.url)
             _dubbers_table = self._get_dubbers(response)
-            return Episode.from_crop_rule_list(
-                response,
-                crop_rule=cbxa('//*[@id="video-carousel"]/div/div'),
-                _dubbers_table=_dubbers_table,
-            )
+            chunks = Parsel().xpath('//*[@id="video-carousel"]/div/div').getall().sc_parse(response)
+            episodes = [Episode(chunk) for chunk in chunks]
+            for ep in episodes:
+                setattr(ep, "_dubbers_table", _dubbers_table)
+            return episodes
 
 
 class Episode(BaseEpisode):
-    num: ScField[int, ParselXPath("//div", callback=get_attr("data-episode"))]
-    _episode_type: ScField[int, ParselXPath("//div", callback=get_attr("data-episode-type"))]
-    data_id: ScField[int, ParselXPath("//div", callback=get_attr("data-id"))]
-    title: ScField[str, ParselXPath("//div", callback=get_attr("data-episode-title"))]
-    released: ScField[str, ParselXPath("//div", callback=get_attr("data-episode-released"))]
+    num: Sc[int, Parsel().xpath("//div/@data-episode").get()]
+    _episode_type: Sc[int, Parsel().xpath("//div/@data-episode-type").get()]
+    data_id: Sc[int, Parsel().xpath("//div/@data-id").get()]
+    title: Sc[str, Parsel().xpath("//div/@data-episode-title").get()]
+    released: Sc[str, Parsel().xpath("//div/@data-episode-released").get()]
     _dubbers_table: Dict[str, str]
 
     def __str__(self):
         return f"{self.title} {self.num} {self.released}"
 
     def get_sources(self) -> List["Source"]:
-        response = (
-            self.HTTP()
-            .get(
-                "https://animego.org/anime/series",
-                params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.data_id},
-            )
-            .json()["content"]
-        )
-        return Source.from_crop_rule_list(
-            response,
-            crop_rule=cbxa(
-                '//*[@id="video-players"]/span',
-            ),
-            _dubbers_table=self._dubbers_table,
-        )
+        response = self.HTTP().get(
+            "https://animego.org/anime/series",
+            params={
+                "dubbing": 2,
+                "provider": 24,
+                "episode": self.num,
+                "id": self.data_id}).json()["content"]
+
+        chunks = Parsel().xpath('//*[@id="video-players"]/span').getall().sc_parse(response)
+        sources = [Source(chunk) for chunk in chunks]
+        for source in sources:
+            setattr(source, "_dubbers_table", self._dubbers_table)
+        return sources
 
     async def a_get_sources(self) -> List["Source"]:
         async with self.HTTP_ASYNC() as client:
@@ -231,25 +177,21 @@ class Episode(BaseEpisode):
                 "https://animego.org/anime/series",
                 params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.data_id},
             ).json()["content"]
-            return Source.from_crop_rule_list(
-                response,
-                crop_rule=cbxa(
-                    '//*[@id="video-players"]/span',
-                ),
-                _dubbers_table=self._dubbers_table,
-            )
+            chunks = Parsel().xpath('//*[@id="video-players"]/span').getall().sc_parse(response)
+            sources = [Source(chunk) for chunk in chunks]
+            for source in sources:
+                setattr(source, "_dubbers_table", self._dubbers_table)
+            return sources
 
 
 class Source(BaseSource):
     _dubbers_table: Dict[str, str]
-    _url: ScField[str, ParselXPath("//span", callback=get_attr("data-player"))]
-    _data_provider: ScField[str, ParselXPath("//span", callback=get_attr("data-provider"))]
-    _data_provide_dubbing: ScField[
-        str, ParselXPath("//span", callback=get_attr("data-provide-dubbing"))
-    ]
-    name: ScField[str, ParselXPath("//span/span")]
-    url = property(lambda self: f"https:{self._url}")
-    dub = property(lambda self: self._dubbers_table.get(self._data_provide_dubbing))
+    _url: Sc[str, Parsel().xpath("//span/@data-player").get()]
+    _data_provider: Sc[str, Parsel().xpath("//span/@data-provider").get()]
+    _data_provide_dubbing: Sc[str, Parsel().xpath("//span/@data-provide-dubbing").get()]
+    name: Sc[str, Parsel().xpath("//span/span/@text").get()]
+    url = sc_param(lambda self: f"https:{self._url}")
+    dub = sc_param(lambda self: self._dubbers_table.get(self._data_provide_dubbing))
 
     def __str__(self):
         return f"{urlsplit(self.url).netloc} {self.name} ({self.dub})"

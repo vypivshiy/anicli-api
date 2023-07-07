@@ -3,7 +3,7 @@ from abc import abstractmethod
 from typing import Any, Dict, List, Type
 
 from parsel import Selector
-from scrape_schema import BaseSchema, BaseSchemaConfig
+from scrape_schema import BaseSchema
 
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.player import ALL_DECODERS
@@ -14,8 +14,13 @@ class MainSchema(BaseSchema):
     HTTP = HTTPSync
     HTTP_ASYNC = HTTPAsync
 
-    class Config(BaseSchemaConfig):
-        parsers_config = {Selector: {}}  # type: ignore
+    @classmethod
+    def from_kwargs(cls, **kwargs):
+        """ignore fields parse and set attrs directly"""
+        cls_ = cls("")
+        for k, v in kwargs.items():
+            setattr(cls_, k, v)
+        return cls_
 
 
 class BaseExtractor:

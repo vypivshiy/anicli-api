@@ -2,7 +2,6 @@ import re
 from typing import Dict, List
 
 from httpx import Response
-from scrape_schema.fields.regex import ReMatch
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 

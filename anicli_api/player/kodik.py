@@ -3,8 +3,7 @@ from base64 import b64decode
 from typing import Dict, List
 from urllib.parse import urlsplit
 
-from scrape_schema import BaseSchema, ScField
-from scrape_schema.fields.regex import ReMatch
+from scrape_schema import BaseSchema, Sc, Parsel, sc_param
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -15,15 +14,15 @@ kodik_validator = url_validator(_URL_EQ)
 
 class _KodikPayload(BaseSchema):
     # first parse params for JSON request to .../gvi entrypoint
-    domain: ScField[str, ReMatch(r'var domain = "(.*?)";')]
-    d_sign: ScField[str, ReMatch(r'var d_sign = "(.*?)";')]
-    pd: ScField[str, ReMatch(r'var pd = "(.*?)";')]
-    ref: ScField[str, ReMatch(r'var ref = "(.*?)";')]
-    type: ScField[str, ReMatch(r"videoInfo.type = '(.*?)';")]
-    hash: ScField[str, ReMatch(r"videoInfo.hash = '(.*?)';")]
-    id: ScField[str, ReMatch(r"videoInfo.id = '(.*?)';")]
-    bad_user = property(lambda self: True)
-    info = property(lambda self: {})
+    domain: Sc[str, Parsel().re(r'var domain = "(.*?)";')[0]]
+    d_sign: Sc[str, Parsel().re(r'var d_sign = "(.*?)";')[0]]
+    pd: Sc[str, Parsel().re(r'var pd = "(.*?)";')[0]]
+    ref: Sc[str, Parsel().re(r'var ref = "(.*?)";')[0]]
+    type: Sc[str, Parsel().re(r"videoInfo.type = '(.*?)';")[0]]
+    hash: Sc[str, Parsel().re(r"videoInfo.hash = '(.*?)';")[0]]
+    id: Sc[str, Parsel().re(r"videoInfo.id = '(.*?)';")[0]]
+    bad_user = sc_param(lambda self: True)
+    info = sc_param(lambda self: {})
 
 
 class Kodik(BaseVideoExtractor):

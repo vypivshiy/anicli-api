@@ -2,10 +2,7 @@ import warnings
 from typing import List
 
 from parsel import Selector
-from scrape_schema import ScField
-from scrape_schema.callbacks.parsel import crop_by_xpath_all as cbxa
-from scrape_schema.callbacks.parsel import get_attr, get_text, replace_text
-from scrape_schema.fields.parsel import NestedParselList, ParselXPath
+from scrape_schema import Sc, sc_param, Parsel, Nested
 
 from anicli_api.base import (
     BaseAnime,
@@ -23,41 +20,33 @@ class Extractor(BaseExtractor):
 
     def search(self, query: str) -> List["Search"]:
         response = self.HTTP().get(f"{self.BASE_URL}/anime", params={"query": query})
-        return Search.from_crop_rule_list(
-            response.text, crop_rule=cbxa('//div[@class="anime--block__desu"]')
-        )
+        chunks = Parsel().xpath('//div[@class="anime--block__desu"]').getall().sc_parse(response.text)
+        return [Search(ch) for ch in chunks]
 
     async def a_search(self, query: str) -> List["Search"]:
         # async search entrypoint
         async with self.HTTP_ASYNC() as client:
             response = await client.get(f"{self.BASE_URL}/anime", params={"query": query})
-            return Search.from_crop_rule_list(response.text,
-                                              crop_rule=cbxa('//div[@class="anime--block__desu"]'))
+            chunks = Parsel().xpath('//div[@class="anime--block__desu"]').getall().sc_parse(response.text)
+            return [Search(ch) for ch in chunks]
 
     def ongoing(self) -> List["Ongoing"]:
         # ongoing entrypoint
         response = self.HTTP().get(self.BASE_URL)
-        return Ongoing.from_crop_rule_list(
-            response.text, crop_rule=cbxa('//div[@class="anime--block__desu"]')
-        )
+        chunks = Parsel().xpath('//div[@class="anime--block__desu"]').getall().sc_parse(response.text)
+        return [Ongoing(ch) for ch in chunks]
 
     async def a_ongoing(self) -> List["Ongoing"]:
         async with self.HTTP_ASYNC() as client:
             response = await client.get(self.BASE_URL)
-            return Ongoing.from_crop_rule_list(
-                response.text, crop_rule=cbxa('//div[@class="anime--block__desu"]')
-            )
+            chunks = Parsel().xpath('//div[@class="anime--block__desu"]').getall().sc_parse(response.text)
+            return [Ongoing(ch) for ch in chunks]
 
 
 class Search(BaseSearch):
     # past xpath to main anime page
-    url: ScField[str, ParselXPath("//a", callback=get_attr("href"))]
-    name: ScField[
-        str,
-        ParselXPath(
-            '//div[@class="anime--block__name"]', callback=get_text(deep=True, strip=True, sep=" ")
-        ),
-    ]
+    url: Sc[str, Parsel().xpath("//a/@href").get()]
+    name: Sc[str, Parsel().xpath('//div[@class="anime--block__name"]/text()').get()]
     # url = property(lambda self: f"https://sovetromantica.com{self._path}")
 
     def get_anime(self) -> "Anime":
@@ -75,11 +64,9 @@ class Search(BaseSearch):
 
 class Ongoing(BaseOngoing):
     # past xpath to main anime page
-    _path: ScField[
-        str, ParselXPath('//div[@class="block--full block--shadow"]/a', callback=get_attr("href"))
-    ]
-    name: ScField[str, ParselXPath('//meta[@itemprop="name"]', callback=get_attr("content"))]
-    url = property(lambda self: f"https://sovetromantica.com{self._path}")
+    _path: Sc[str, Parsel().xpath('//div[@class="block--full block--shadow"]/a/@href').get()]
+    name: Sc[str, Parsel().xpath('//meta[@itemprop="name"]/@content').get()]
+    url: str = sc_param(lambda self: f"https://sovetromantica.com{self._path}")
 
     def get_anime(self) -> "Anime":
         response = self.HTTP().get(self.url)
@@ -96,24 +83,17 @@ class Ongoing(BaseOngoing):
 
 class Anime(BaseAnime):
     class _Episode(MainSchema):
-        name: ScField[str, ParselXPath("//a/div/span")]
-        _url_path: ScField[str, ParselXPath("//a", callback=get_attr("href"))]
-        image: ScField[str, ParselXPath("//a/img", callback=get_attr("src"))]
-        ep_id: ScField[str, ParselXPath("//div", callback=get_attr("id"))]
+        name: Sc[str, Parsel().xpath("//a/div/span/text()").get()]
+        _url_path: Sc[str, Parsel().xpath("//a/@href").get()]
+        image: Sc[str, Parsel().xpath("//a/img/@src").get()]
+        ep_id: Sc[str, Parsel().xpath("//div/@id").get()]
 
-        @property
+        @sc_param
         def url(self):
             return f"https://sovetromantica.com{self._url_path}"
 
-    name: ScField[
-        str, ParselXPath('//div[@class="block--full anime-name"]/div[@class="block--container"]')
-    ]
-    _episodes: ScField[
-        List[_Episode],
-        NestedParselList(
-            _Episode, crop_rule=cbxa("//div[contains(@class, 'episodes-slick_item')]")
-        ),
-    ]
+    name: Sc[str, Parsel().xpath('//div[@class="block--full anime-name"]/div[@class="block--container"]/text()').get()]
+    _episodes: Sc[List[_Episode], Nested(Parsel().xpath("//div[contains(@class, 'episodes-slick_item')]").getall())]
 
     def get_episodes(self) -> List["Episode"]:
         if not self._episodes:
@@ -147,20 +127,19 @@ class Episode(BaseEpisode):
 
     def get_sources(self) -> List["Source"]:
         response = self.HTTP().get(self.url)
-        sel = Selector(response.text)
-        video = ParselXPath(
-            '//meta[@property="ya:ovs:content_url"]', callback=get_attr("content")
-        ).extract(sel)
+        video = Parsel().xpath(
+            '//meta[@property="ya:ovs:content_url"]/@content').get().sc_parse(response.text)
         return [Source.from_kwargs(url=video)]
 
     async def a_get_sources(self) -> List["Source"]:
         async with self.HTTP_ASYNC() as client:
             response = await client.get(self.url)
-            sel = Selector(response.text)
-            video = ParselXPath(
-                '//meta[@property="ya:ovs:content_url"]', callback=get_attr("content")
-            ).extract(sel)
+            video = Parsel().xpath(
+                '//meta[@property="ya:ovs:content_url"]/@content').get().sc_parse(response.text)
             return [Source.from_kwargs(url=video)]
+
+    def dict(self):
+        return {"name": self.name, "image": self.image, "ep_id": self.ep_id, "url": self.url}
 
     def __str__(self):
         return self.name
@@ -169,6 +148,9 @@ class Episode(BaseEpisode):
 class Source(BaseSource):
     url: str
     name: str = "SovietRomantica (Subtitles)"
+
+    def dict(self):
+        return {"url": self.url, "name": self.name}
 
     def __str__(self):
         return self.name
@@ -183,4 +165,4 @@ if __name__ == "__main__":
     eps = an.get_episodes()
     sou = eps[0].get_sources()
     vid = sou[0].get_videos()
-    print()
+    print(vid)
