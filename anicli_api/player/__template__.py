@@ -1,9 +1,10 @@
 import re
 from typing import List
 
-from scrape_schema.fields.regex import ReMatch
-
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
+
+# from scrape_schema import Parsel, Sc, sc_param
+
 
 __all__ = ["PlayerExtractor"]
 # url validator pattern

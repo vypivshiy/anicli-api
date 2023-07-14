@@ -3,7 +3,7 @@ from base64 import b64decode
 from typing import Dict, List
 from urllib.parse import urlsplit
 
-from scrape_schema import BaseSchema, Sc, Parsel, sc_param
+from scrape_schema import BaseSchema, Parsel, Sc, sc_param
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -39,8 +39,7 @@ class Kodik(BaseVideoExtractor):
         # Note: this solution writen by chatgpt
         def char_wrapper(e):
             return chr(
-                (ord(e.group(0)) + 13 - (65 if e.group(0) <= "Z" else 97)) % 26
-                + (65 if e.group(0) <= "Z" else 97)
+                (ord(e.group(0)) + 13 - (65 if e.group(0) <= "Z" else 97)) % 26 + (65 if e.group(0) <= "Z" else 97)
             )
 
         base64_url = re.sub(r"[a-zA-Z]", char_wrapper, url_encoded)

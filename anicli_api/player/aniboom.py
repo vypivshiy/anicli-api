@@ -1,6 +1,4 @@
-import json
 import re
-from html import unescape
 from typing import List
 
 from parsel import Selector
@@ -20,7 +18,8 @@ class Aniboom(BaseVideoExtractor):
         "Referer": "https://aniboom.one/",
         "Accept-Language": "ru-RU",
         "Origin": "https://aniboom.one",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
     }
 
     @player_validator
@@ -37,32 +36,28 @@ class Aniboom(BaseVideoExtractor):
     def _extract(self, response: str) -> List[Video]:
         # if pre unescape response - parsel selector uncorrect get data-parameters attr
         sel = Selector(response)
-        jsn_string = sel.xpath('//*[@id="video"]/@data-parameters').get()
-        jsn = json.loads(unescape(jsn_string))  # type: ignore
+        jsn = sel.xpath('//*[@id="video"]/@data-parameters')
         # TODO create m3u8, dash URL parsers
-        if jsn.get("dash"):
-            return [
+        videos: List[Video] = []
+        if dash := jsn.jmespath("dash"):
+            videos.append(
                 Video(
                     type="mpd",
                     quality=1080,
-                    url=json.loads(jsn["dash"])["src"],
+                    url=dash.re(r"https:.*\.mpd")[0].replace("\\", ""),
                     headers=self.VIDEO_HEADERS,
-                ),
+                )
+            )
+        if hls := jsn.jmespath("hls"):
+            videos.append(
                 Video(
                     type="m3u8",
                     quality=1080,
-                    url=json.loads(jsn["hls"])["src"],
+                    url=hls.re(r"https:.*\.m3u8")[0].replace("\\", ""),
                     headers=self.VIDEO_HEADERS,
-                ),
-            ]
-        return [
-            Video(
-                type="m3u8",
-                quality=1080,
-                url=json.loads(jsn["hls"])["src"],
-                headers=self.VIDEO_HEADERS,
-            ),
-        ]
+                )
+            )
+        return videos
 
 
 if __name__ == "__main__":

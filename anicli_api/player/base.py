@@ -56,7 +56,7 @@ class Video:
         }
 
     def __str__(self):
-        return f"{self.type} {self.quality} {urlparse(self.url).netloc}"
+        return f"[{self.quality}] {urlparse(self.url).netloc}...{self.type}"
 
     def __hash__(self):
         return hash((self.type, self.quality, urlparse(self.url).netloc))

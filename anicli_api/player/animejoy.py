@@ -1,7 +1,6 @@
 import re
 from typing import List
 
-
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["AnimeJoy"]
@@ -21,7 +20,6 @@ class AnimeJoy(BaseVideoExtractor):
         return self._extract(url)
 
     def _extract(self, response: str) -> List[Video]:
-        # some extract logic
         url_1080, url_360 = re.findall(r"](https?://(?:www\.)?.*?\.mp4)", response)
         return [
             Video(type="mp4", quality=1080, url=url_1080),

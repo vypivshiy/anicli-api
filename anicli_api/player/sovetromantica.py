@@ -5,9 +5,7 @@ from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["SovietRomanticaPlayer"]
 # url validator pattern
-_URL_EQ = re.compile(
-    r"https?://(www\.)?[a-z1-9]{1,6}\.sovetromantica\.com/(?:anime|dorama)/.*\.m3u8"
-)
+_URL_EQ = re.compile(r"https?://(www\.)?[a-z1-9]{1,6}\.sovetromantica\.com/(?:anime|dorama)/.*\.m3u8")
 # url validate decorator
 player_validator = url_validator(_URL_EQ)
 

@@ -1,7 +1,7 @@
-import json
 import re
 from typing import List
 
+import chompjs
 from parsel import Selector
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
@@ -28,8 +28,7 @@ class Dzen(BaseVideoExtractor):
     def _extract(self, response) -> List[Video]:
         sel = Selector(response)
         js_script = sel.xpath("//body/script/text()").get()  # type: ignore
-        jsn = js_script.strip().replace(");", "").replace("Sandbox.init(", "")  # type: ignore
-        jsn = json.loads(jsn)
+        jsn = chompjs.parse_js_object(js_script)
         url_audio = jsn["data"]["content"]["audio_source_url"]
         url_mpd = jsn["data"]["content"]["streams"][0]["url"]
         url_m3u8 = jsn["data"]["content"]["streams"][1]["url"]
@@ -39,3 +38,7 @@ class Dzen(BaseVideoExtractor):
             Video(type="mpd", quality=1080, url=url_mpd),
             Video(type="m3u8", quality=1080, url=url_m3u8),
         ]
+
+
+if __name__ == "__main__":
+    Dzen().parse("https://dzen.ru/embed/vh1fMeui3d3Y?from_block=partner&from=zen&mute=1&autoplay=0&tv=0")

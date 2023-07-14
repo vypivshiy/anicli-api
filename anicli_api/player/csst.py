@@ -2,7 +2,6 @@
 import re
 from typing import List
 
-
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["CsstOnline"]
@@ -29,9 +28,7 @@ class CsstOnline(BaseVideoExtractor):
 
     def _extract(self, response: str) -> List[Video]:
         url_data = list(re.finditer(self.RE_URLS, response))
-        return [
-            Video(type="mp4", quality=data["quality"], url=data["url"]) for data in url_data[:4]
-        ]
+        return [Video(type="mp4", quality=data["quality"], url=data["url"]) for data in url_data[:4]]
 
 
 if __name__ == "__main__":

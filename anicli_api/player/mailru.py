@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List
+from typing import List
 
 from httpx import Response
 
@@ -17,7 +17,8 @@ class MailRu(BaseVideoExtractor):
     DEFAULT_HTTP_CONFIG = {
         "headers": {
             "Upgrade-Insecure-Requests": "1",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,"
+            "Accept": "text/html,application/xhtml+xml,application/"
+            "xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,"
             "application/signed-exchange;v=b3;q=0.7",
         }
     }

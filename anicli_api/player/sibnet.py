@@ -1,7 +1,6 @@
 import re
 from typing import List
 
-
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["SibNet"]
@@ -24,9 +23,12 @@ class SibNet(BaseVideoExtractor):
             return self._extract(response)
 
     def _extract(self, response: str) -> List[Video]:
-        path = re.search(r'"(?P<url>/v/.*?\.mp4)"', response)[1]
-        url = f"https://video.sibnet.ru{path}"
-        return [Video(type="mp4", quality=480, url=url, headers={"Referer": url})]
+
+        if path := re.search(r'"(?P<url>/v/.*?\.mp4)"', response):
+            url = f"https://video.sibnet.ru{path[1]}"
+            return [Video(type="mp4", quality=480, url=url, headers={"Referer": url})]
+        else:
+            raise IndexError("Failed parse sibnet")
 
 
 if __name__ == "__main__":
