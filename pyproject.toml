@@ -38,12 +38,12 @@ python = "^3.8"
 httpx = {extras = ["http2"], version = "^0.24.0"}
 scrape-schema = {version = "^0.3.0"}
 chompjs = "^1.2.2"
+ruff = "^0.0.278"
 
 
 [tool.poetry.group.dev.dependencies]
 pytest = {extras = ["coverage"], version = "^7.2.0"}
 pytest-cov = "^4.0.0"
-flake8 = "^5.0.0"
 pyproject-flake8 = "5.0.4"
 mypy = "^0.982"
 pytest-asyncio = "^0.20.2"
@@ -64,20 +64,6 @@ jinja2 = "^3.1.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-
-[tool.flake8]
-exclude = [
-'.git',
-'__pycache__',
-'dist',
-'env',
-'venv',
-'.venv',
-'__template__.py']
-max-line-length = 120
-max-complexity = 8
-ignore = ['F405', 'F403', 'W503', 'E501', 'F401', 'E203', 'F722', 'F821']
-
 [tool.mypy]
 python_version = 3.8
 pretty = true
@@ -85,10 +71,36 @@ ignore_missing_imports = true
 exclude = ["env", ".env", "venv", "__pycache__", "examples", "__template__.py"]
 files=["anicli_api/*"]
 
+
+[tool.ruff]
+target-version = "py38"
+line-length = 120
+select = ["E", "F"]
+ignore = [
+  # Allow non-abstract empty methods in abstract base classes
+  "B027",
+  # Allow boolean positional values in function calls, like `dict.get(... True)`
+  "FBT003",
+  # Ignore checks for possible passwords
+  "S105", "S106", "S107",
+  # Ignore complexity
+  "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+]
+unfixable = [
+  # Don't touch unused imports
+  "F401",
+]
+
+exclude = [
+  "examples",
+  "venv",
+  "__init__.py"
+]
+
 [tool.black]
-line-length = 99
+line-length = 120
 target-version = ['py38']
 
 [tool.isort]
 profile = "black"
-line_length = 99
+line_length = 120
