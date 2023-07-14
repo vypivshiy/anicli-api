@@ -13,9 +13,7 @@ if __name__ == "__main__":
         base_url = base_url.rstrip("/")
 
     netloc = urlsplit(base_url).netloc.split(".")[0]
-    code = env.get_template("anicli_api_source.j2").render(
-        base_url=base_url, source_name=netloc.title()
-    )
+    code = env.get_template("anicli_api_source.j2").render(base_url=base_url, source_name=netloc.title())
     print(f"generated snippet: {netloc}.py")
     with open(f"{netloc}.py", "w") as f:
         f.write(code)

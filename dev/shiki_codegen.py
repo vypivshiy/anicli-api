@@ -1,7 +1,6 @@
 """
 Shikimori Codegen api wrapper
 """
-import json
 import re
 
 import httpx
