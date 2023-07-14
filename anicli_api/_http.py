@@ -1,12 +1,12 @@
 """
 This module contains httpx.Client and httpx.AsyncClient classes with the following settings:
 
-1. User-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114
+1. User-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N)
+AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114
 
 2. x-requested-with: XMLHttpRequest
 
 """
-import ssl
 from typing import Dict
 
 from httpx import AsyncClient, Client, Response
@@ -59,18 +59,14 @@ def check_ddos_protect_hook(resp: Response):
     If response return 403 code or server headers contains *cloudflare* or *ddos-guard* strings and
     **Connection = close,** throw ConnectionError traceback
     """
-    logger.debug(
-        "{} check DDOS protect :\nstatus [{}] {}", resp.url, resp.status_code, resp.headers
-    )
+    logger.debug("{} check DDOS protect :\nstatus [{}] {}", resp.url, resp.status_code, resp.headers)
     if (
         resp.headers.get("Server") in DDOS_SERVICES
         and resp.headers.get("Connection", None) == "close"
         or resp.status_code == 403
     ):
         logger.error("Ooops, {} have ddos protect :(", resp.url)
-        raise ConnectionError(
-            f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return 403 code."
-        )
+        raise ConnectionError(f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return 403 code.")
 
 
 class HTTPSync(Singleton, BaseHTTPSync):
