@@ -1,14 +1,6 @@
 from typing import Dict, List, Union
 
-from anicli_api.base import (
-    BaseAnime,
-    BaseEpisode,
-    BaseExtractor,
-    BaseOngoing,
-    BaseSearch,
-    BaseSource,
-    MainSchema,
-)
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 from anicli_api.player.base import Video
 
 
@@ -23,9 +15,7 @@ class VostAPI:
         response = self.HTTP().request(method, self.BASE_URL + api_method, **kwargs)
         return response.json()
 
-    async def a_api_request(
-        self, method: str, *, api_method: str, **kwargs
-    ) -> Union[Dict, List[Dict]]:
+    async def a_api_request(self, method: str, *, api_method: str, **kwargs) -> Union[Dict, List[Dict]]:
         async with self.HTTP_ASYNC() as session:
             response = await session.request(method, self.BASE_URL + api_method, **kwargs)
             return response.json()

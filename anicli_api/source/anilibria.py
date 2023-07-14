@@ -1,15 +1,7 @@
 from typing import Any, List, Optional
 from urllib.parse import urlsplit
 
-from anicli_api.base import (
-    BaseAnime,
-    BaseEpisode,
-    BaseExtractor,
-    BaseOngoing,
-    BaseSearch,
-    BaseSource,
-    MainSchema,
-)
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 from anicli_api.player.base import Video
 
 

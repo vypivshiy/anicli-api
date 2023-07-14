@@ -1,18 +1,9 @@
 import warnings
 from typing import List
 
-from parsel import Selector
-from scrape_schema import Sc, sc_param, Parsel, Nested
+from scrape_schema import Nested, Parsel, Sc, sc_param
 
-from anicli_api.base import (
-    BaseAnime,
-    BaseEpisode,
-    BaseExtractor,
-    BaseOngoing,
-    BaseSearch,
-    BaseSource,
-    MainSchema,
-)
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 
 
 class Extractor(BaseExtractor):
@@ -32,7 +23,7 @@ class Extractor(BaseExtractor):
 
     def ongoing(self) -> List["Ongoing"]:
         # ongoing entrypoint
-        response = self.HTTP().get(self.BASE_URL)
+        response = self.HTTP().get(f"{self.BASE_URL}/anime")
         chunks = Parsel().xpath('//div[@class="anime--block__desu"]').getall().sc_parse(response.text)
         return [Ongoing(ch) for ch in chunks]
 
@@ -46,7 +37,8 @@ class Extractor(BaseExtractor):
 class Search(BaseSearch):
     # past xpath to main anime page
     url: Sc[str, Parsel().xpath("//a/@href").get()]
-    name: Sc[str, Parsel().xpath('//div[@class="anime--block__name"]/text()').get()]
+    title: Sc[str, Parsel().xpath('//div[@class="anime--block__name"]/text()').get()]
+    thumbnail: Sc[str, Parsel().xpath('//*[@class="anime--poster lazy loaded"]/@src').get()]
     # url = property(lambda self: f"https://sovetromantica.com{self._path}")
 
     def get_anime(self) -> "Anime":
@@ -64,9 +56,9 @@ class Search(BaseSearch):
 
 class Ongoing(BaseOngoing):
     # past xpath to main anime page
-    _path: Sc[str, Parsel().xpath('//div[@class="block--full block--shadow"]/a/@href').get()]
-    name: Sc[str, Parsel().xpath('//meta[@itemprop="name"]/@content').get()]
-    url: str = sc_param(lambda self: f"https://sovetromantica.com{self._path}")
+    url: Sc[str, Parsel().xpath("//a/@href").get()]
+    title: Sc[str, Parsel().xpath('//div[@class="anime--block__name"]/text()').get()]
+    thumbnail: Sc[str, Parsel().xpath('//*[@class="anime--poster lazy loaded"]/@src').get()]
 
     def get_anime(self) -> "Anime":
         response = self.HTTP().get(self.url)
@@ -83,25 +75,49 @@ class Ongoing(BaseOngoing):
 
 class Anime(BaseAnime):
     class _Episode(MainSchema):
-        name: Sc[str, Parsel().xpath("//a/div/span/text()").get()]
+        title: Sc[str, Parsel().xpath("//a/div/span/text()").get()]
         _url_path: Sc[str, Parsel().xpath("//a/@href").get()]
         image: Sc[str, Parsel().xpath("//a/img/@src").get()]
         ep_id: Sc[str, Parsel().xpath("//div/@id").get()]
 
         @sc_param
+        def num(self) -> int:
+            return int(self.title.split("#")[-1])
+
+        @sc_param
         def url(self):
             return f"https://sovetromantica.com{self._url_path}"
 
-    name: Sc[str, Parsel().xpath('//div[@class="block--full anime-name"]/div[@class="block--container"]/text()').get()]
-    _episodes: Sc[List[_Episode], Nested(Parsel().xpath("//div[contains(@class, 'episodes-slick_item')]").getall())]
+    _titles: Sc[
+        str,
+        Parsel().xpath('//div[@class="block--full anime-name"]/div[@class="block--container"]/text()').get(),
+    ]
+
+    _episodes: Sc[
+        List[_Episode],
+        Nested(Parsel().xpath("//div[contains(@class, 'episodes-slick_item')]").getall()),
+    ]
+
+    @sc_param
+    def title(self):
+        return self._titles.split(" / ")[0]
+
+    @sc_param
+    def alt_titles(self):
+        return [self._titles.split(" / ")[-1]]
+
+    thumbnail: Sc[str, Parsel().xpath('//*[@id="poster"]/@src').get()]
+    description = None
+    genres: Sc[List[str], Parsel().xpath('//div[@class="animeTagInfo"]/a/text()').getall()]
+    episodes_available = None
+    episodes_total = None
+    aired = None
 
     def get_episodes(self) -> List["Episode"]:
         if not self._episodes:
             # episodes may not be uploaded. e.g:
             # https://sovetromantica.com/anime/1398-tsundere-akuyaku-reijou-liselotte-to-jikkyou-no-endou-kun-to-kaisetsu-no-kobayashi-san
-            warnings.warn(
-                "Episodes not available, return empty list", category=RuntimeWarning, stacklevel=3
-            )
+            warnings.warn("Episodes not available, return empty list", category=RuntimeWarning, stacklevel=3)
             return []
         return [Episode.from_kwargs(**ep.dict()) for ep in self._episodes]
 
@@ -109,40 +125,37 @@ class Anime(BaseAnime):
         if not self._episodes:
             # episodes may not be uploaded. e.g:
             # https://sovetromantica.com/anime/1398-tsundere-akuyaku-reijou-liselotte-to-jikkyou-no-endou-kun-to-kaisetsu-no-kobayashi-san
-            warnings.warn(
-                "Episodes not available, return empty list", category=RuntimeWarning, stacklevel=3
-            )
+            warnings.warn("Episodes not available, return empty list", category=RuntimeWarning, stacklevel=3)
             return []
         return [Episode.from_kwargs(**ep.dict()) for ep in self._episodes]
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class Episode(BaseEpisode):
-    name: str
+    title: str
+    num: int
     image: str
     ep_id: str
     url: str
 
+    def dict(self):
+        return {"title": self.title, "num": self.num}
+
     def get_sources(self) -> List["Source"]:
         response = self.HTTP().get(self.url)
-        video = Parsel().xpath(
-            '//meta[@property="ya:ovs:content_url"]/@content').get().sc_parse(response.text)
+        video = Parsel().xpath('//meta[@property="ya:ovs:content_url"]/@content').get().sc_parse(response.text)
         return [Source.from_kwargs(url=video)]
 
     async def a_get_sources(self) -> List["Source"]:
         async with self.HTTP_ASYNC() as client:
             response = await client.get(self.url)
-            video = Parsel().xpath(
-                '//meta[@property="ya:ovs:content_url"]/@content').get().sc_parse(response.text)
+            video = Parsel().xpath('//meta[@property="ya:ovs:content_url"]/@content').get().sc_parse(response.text)
             return [Source.from_kwargs(url=video)]
 
-    def dict(self):
-        return {"name": self.name, "image": self.image, "ep_id": self.ep_id, "url": self.url}
-
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class Source(BaseSource):
