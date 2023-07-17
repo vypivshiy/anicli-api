@@ -1,7 +1,8 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, ClassVar, Type
 
+from parsel import Selector
 from scrape_schema import BaseSchema
 
 from anicli_api._http import HTTPAsync, HTTPSync
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 
 
 class MainSchema(BaseSchema):
+    _Selector: ClassVar[Type[Selector]] = Selector
     HTTP = HTTPSync
     HTTP_ASYNC = HTTPAsync
 
