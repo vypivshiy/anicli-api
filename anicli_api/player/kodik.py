@@ -45,7 +45,12 @@ class Kodik(BaseVideoExtractor):
         base64_url = re.sub(r"[a-zA-Z]", char_wrapper, url_encoded)
         if not base64_url.endswith("=="):
             base64_url += "=="
-        return f"https:{b64decode(base64_url).decode()}"
+        decoded_url = b64decode(base64_url).decode()
+        return (
+            decoded_url
+            if decoded_url.startswith("https")
+            else f"https:{b64decode(base64_url).decode()}"
+        )
 
     @kodik_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
