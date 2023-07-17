@@ -1431,14 +1431,14 @@ files = [
 
 [[package]]
 name = "scrape-schema"
-version = "0.3.6"
+version = "0.3.7"
 description = "A library for converting any text (xml, html, plain text, stdout, etc) to python datatypes"
 category = "main"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "scrape_schema-0.3.6-py3-none-any.whl", hash = "sha256:1d2141e8fec84c315b1ce403db6b36b9ab20a4624ed0a252661370d6dbd89462"},
-    {file = "scrape_schema-0.3.6.tar.gz", hash = "sha256:9d35d2f43caf66bf5d510750c67dfa91e727cf57e1413a563bcc1053091df410"},
+    {file = "scrape_schema-0.3.7-py3-none-any.whl", hash = "sha256:3112daa60280f7a5664a0bad34cbeea98e47fe15af4106e6f4e7e3b2e5c1ac5e"},
+    {file = "scrape_schema-0.3.7.tar.gz", hash = "sha256:a8cf5ef1da40981e18cf1657f5206d61fcc9e9aa896906857ab57c9525ef3ba1"},
 ]
 
 [package.dependencies]
@@ -1448,8 +1448,8 @@ parsel = "*"
 typing-extensions = {version = "*", markers = "python_version < \"3.11\""}
 
 [package.extras]
-ci = ["black", "bs4", "flake8", "hatch", "isort", "mypy", "parsel", "pytest", "selectolax"]
-dev = ["black", "flake8", "isort", "mypy", "parsel", "pytest"]
+ci = ["black", "flake8", "hatch", "isort", "mypy", "parsel", "pytest"]
+dev = ["black", "flake8", "isort", "mypy", "pytest"]
 docs = ["mkdocs-material"]
 
 [[package]]
