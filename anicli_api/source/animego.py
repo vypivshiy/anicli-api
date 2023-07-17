@@ -173,11 +173,13 @@ class Anime(BaseAnime):
         dubbers_id: List[str] = (
             Parsel().xpath('//*[@id="video-dubbing"]/span/@data-dubbing').getall().sc_parse(response)
         )
-        dubbers_name: List[str] = (Parsel()
-                                   .xpath('//*[@id="video-dubbing"]/span/span/text()')
-                                   .getall()
-                                   .fn(lambda lst: [s.strip() for s in lst])
-                                   .sc_parse(response))
+        dubbers_name: List[str] = (
+            Parsel()
+            .xpath('//*[@id="video-dubbing"]/span/span/text()')
+            .getall()
+            .fn(lambda lst: [s.strip() for s in lst])
+            .sc_parse(response)
+        )
         return dict(zip(dubbers_id, dubbers_name))
 
     def get_episodes(self) -> List["Episode"]:
@@ -203,7 +205,7 @@ class Anime(BaseAnime):
 
 class Episode(BaseEpisode):
     _episode_type: Sc[int, Parsel().xpath("//div/@data-episode-type").get()]
-    _dubbers_table: Dict[str, str] # setattr
+    _dubbers_table: Dict[str, str]  # setattr
     num: Sc[int, Parsel().xpath("//div/@data-episode").get()]
     title: Sc[str, Parsel().xpath("//div/@data-episode-title").get()]
 
