@@ -1,6 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, ClassVar, Type
+from typing import TYPE_CHECKING, ClassVar, List, Optional, Type
 
 from parsel import Selector
 from scrape_schema import BaseSchema
@@ -111,6 +111,7 @@ class BaseEpisode(MainSchema):
 class BaseSource(MainSchema):
     ALL_VIDEO_EXTRACTORS = ALL_DECODERS
     url: str = NotImplemented
+    dub: str = NotImplemented
 
     def _pre_validate_url_attr(self) -> None:
         if self.url is NotImplemented:
