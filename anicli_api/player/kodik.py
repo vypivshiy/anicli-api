@@ -91,7 +91,7 @@ class Kodik(BaseVideoExtractor):
             Video(
                 type="m3u8",
                 quality=720,
-                url=self._decode(response_api["480"][0]["src"]).replace("360.mp4", "720.mp4"),
+                url=self._decode(response_api["480"][0]["src"]).replace("480.mp4", "720.mp4"),
             ),
         ]
 
