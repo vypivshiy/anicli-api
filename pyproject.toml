@@ -39,6 +39,7 @@ httpx = {extras = ["http2"], version = "^0.24.0"}
 scrape-schema = {version = "^0.3.0"}
 chompjs = "^1.2.2"
 ruff = "^0.0.278"
+colorlog = "^6.7.0"
 
 
 [tool.poetry.group.dev.dependencies]
