@@ -22,34 +22,49 @@ HEADERS: Dict[str, str] = {
 # DDoS protection check by "Server" key header
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
 
-__all__ = ("BaseHTTPSync", "BaseHTTPAsync", "HTTPSync", "HTTPAsync", "Singleton")
+__all__ = ("BaseHTTPSync", "BaseHTTPAsync", "HTTPSync", "HTTPAsync")
 
 
-class Singleton:
-    _instance = None
+class HttpxSingleton:
+    _client_instance = None
+    _client_instance_init = False
+
+    _async_client_instance = None
+    _async_client_instance_init = False
 
     def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+        if issubclass(cls, HTTPSync):
+            if not cls._client_instance:
+                cls._client_instance = super().__new__(cls)
+            return cls._client_instance
+
+        elif issubclass(cls, HTTPAsync):
+            if not cls._async_client_instance:
+                cls._async_client_instance = super().__new__(cls)
+            return cls._async_client_instance
+
+
 
 
 class BaseHTTPSync(Client):
     """httpx.Client class with configured user agent and enabled redirects"""
 
     def __init__(self, **kwargs):
-        super().__init__(http2=True, **kwargs)
-        self.headers.update(HEADERS)
-        self.follow_redirects = True
+        super().__init__(http2=kwargs.pop("http2", True), **kwargs)
+        self.headers.update(HEADERS.copy())
+        self.headers.update(kwargs.pop("headers", {}))
+        self.follow_redirects = kwargs.pop("follow_redirects", True)
 
 
 class BaseHTTPAsync(AsyncClient):
     """httpx.AsyncClient class with configured user agent and enabled redirects"""
 
-    def __init__(self, http2: bool = True, **kwargs):
+    def __init__(self, **kwargs):
+        http2 = kwargs.pop("http2", True)
         super().__init__(http2=http2, **kwargs)
-        self.headers.update(HEADERS)
-        self.follow_redirects = True
+        self._headers.update(HEADERS.copy())
+        self._headers.update(kwargs.pop("headers", {}))
+        self.follow_redirects = kwargs.pop("follow_redirects", True)
 
 
 def check_ddos_protect_hook(resp: Response):
@@ -69,18 +84,20 @@ def check_ddos_protect_hook(resp: Response):
         raise ConnectionError(f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return 403 code.")
 
 
-class HTTPSync(Singleton, BaseHTTPSync):
+class HTTPSync(HttpxSingleton, BaseHTTPSync):
     """
     Base singleton **sync** HTTP class with recommended config.
 
     Used in extractors and can configure at any point in the program"""
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.event_hooks.update({"response": [check_ddos_protect_hook]})
+        if not self._client_instance_init:  # dirty hack for update arguments
+            super().__init__(**kwargs)
+            self.event_hooks.update({"response": [check_ddos_protect_hook]})
+            self._client_instance_init = True
 
 
-class HTTPAsync(Singleton, BaseHTTPAsync):
+class HTTPAsync(HttpxSingleton, BaseHTTPAsync):
     """
     Base singleton **async** HTTP class with recommended config
 
@@ -88,5 +105,7 @@ class HTTPAsync(Singleton, BaseHTTPAsync):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.event_hooks.update({"response": [check_ddos_protect_hook]})
+        if not self._async_client_instance_init:  # dirty hack for update arguments
+            super().__init__(**kwargs)
+            self.event_hooks.update({"response": [check_ddos_protect_hook]})
+            self._async_client_instance_init = True
