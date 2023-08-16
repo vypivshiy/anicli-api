@@ -1,6 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Type, Any
+from typing import TYPE_CHECKING, Any, ClassVar, List, Optional, Type
 
 from parsel import Selector
 from scrape_schema import BaseSchema
