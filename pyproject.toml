@@ -36,9 +36,8 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 httpx = {extras = ["http2"], version = "^0.24.0"}
-scrape-schema = {version = "^0.3.0"}
+scrape-schema = "^0.4.0"
 chompjs = "^1.2.2"
-ruff = "^0.0.278"
 colorlog = "^6.7.0"
 
 
@@ -52,6 +51,8 @@ twine = "^4.0.1"
 isort = "^5.10.1"
 black = "^22.10.0"
 urllib3 = "1.26.15"
+ruff = "^0.0.284"
+
 
 [tool.poetry.group.doc.dependencies]
 sphinx = "^5.3.0"
