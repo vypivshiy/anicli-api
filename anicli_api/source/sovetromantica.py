@@ -35,7 +35,6 @@ class Extractor(BaseExtractor):
 
 
 class Search(BaseSearch):
-    # past xpath to main anime page
     url: Sc[str, Parsel().xpath("//a/@href").get()]
     title: Sc[str, Parsel().xpath('//div[@class="anime--block__name"]/text()').get()]
     thumbnail: Sc[str, Parsel().xpath('//*[@class="anime--poster lazy loaded"]/@src').get()]
@@ -51,7 +50,7 @@ class Search(BaseSearch):
             return Anime(response.text)
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class Ongoing(BaseOngoing):
@@ -70,7 +69,7 @@ class Ongoing(BaseOngoing):
             return Anime(response.text)
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class Anime(BaseAnime):
@@ -155,7 +154,7 @@ class Episode(BaseEpisode):
             return [Source.from_kwargs(url=video)]
 
     def __str__(self):
-        return self.title
+        return f"{self.num} {self.title}"
 
 
 class Source(BaseSource):
