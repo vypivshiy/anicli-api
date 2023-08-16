@@ -138,9 +138,18 @@ class Anime(BaseAnime):
     def alt_titles(self) -> List[str]:
         return self._script_jmespath.jmespath("alternativeHeadline").getall()
 
-    episodes_available: Sc[int, Parsel(default=0).xpath("//dl/dd[2]/text()").re(r"\d+")[0]]
+    # >Эпизоды</dt><dd class="col-6 col-sm-8 mb-1">13</dd> (lain)
+    # or >Эпизоды</dt><dd class="col-6 col-sm-8 mb-1">6 / <span>12</span>  (random ongoing)
+    _episodes_available: Sc[int, Parsel(default=0).re(r"(\d+)\s*/ <span>\s*\d+</span>")[0]]
+
+    @sc_param
+    def episodes_available(self):
+        # if anime is released - episodes_available == episodes_total
+        return self.episodes_total if self._script_jmespath.jmespath("endDate").get() else self._episodes_available
+
     thumbnail: Sc[str, Parsel().css("#content img").xpath("@src").get()]
-    _description: Sc[List[str], Parsel().xpath("//div[@data-readmore='content']/text()").getall()]  # mobile agent
+    # mobile agent required
+    _description: Sc[List[str], Parsel().xpath("//div[@data-readmore='content']/text()").getall()]
 
     @sc_param
     def description(self) -> str:
@@ -152,7 +161,7 @@ class Anime(BaseAnime):
 
     @sc_param
     def episodes_total(self) -> int:
-        return int(self._script_jmespath.jmespath("numberOfEpisodes").get())
+        return int(self._script_jmespath.jmespath("numberOfEpisodes").get()) or -1
 
     @sc_param
     def aired(self) -> str:
@@ -213,7 +222,7 @@ class Episode(BaseEpisode):
     released: Sc[str, Parsel().xpath("//div/@data-episode-released").get()]
 
     def __str__(self):
-        return f"{self.title} {self.num} {self.released}"
+        return f"{self.num} {self.title} {self.released}"
 
     def get_sources(self) -> List["Source"]:
         response = (
@@ -250,6 +259,7 @@ class Source(BaseSource):
     _data_provider: Sc[str, Parsel().xpath("//span/@data-provider").get()]
     _data_provide_dubbing: Sc[str, Parsel().xpath("//span/@data-provide-dubbing").get()]
     name: Sc[str, Parsel().xpath("//span/span/text()").get()]
+
     url = sc_param(lambda self: f"https:{self._url}")
     dub = sc_param(lambda self: self._dubbers_table.get(self._data_provide_dubbing))
 
