@@ -14,10 +14,16 @@ from httpx import AsyncClient, Client, Response
 from anicli_api._logger import logger
 
 HEADERS: Dict[str, str] = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36",
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36',
     # XMLHttpRequest required
-    "x-requested-with": "XMLHttpRequest",
+    'x-requested-with': "XMLHttpRequest",
+    'Sec-Ch-Ua': '"Not.A/Brand";v="8", "Chromium";v="114"',
+    'Sec-Ch-Ua-Mobile': '?1',
+    'Sec-Ch-Ua-Platform': '"Android"',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'same-origin'
 }
 # DDoS protection check by "Server" key header
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
@@ -42,8 +48,6 @@ class HttpxSingleton:
             if not cls._async_client_instance:
                 cls._async_client_instance = super().__new__(cls)
             return cls._async_client_instance
-
-
 
 
 class BaseHTTPSync(Client):
