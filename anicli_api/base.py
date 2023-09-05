@@ -109,6 +109,7 @@ class BaseEpisode(MainSchema):
 class BaseSource(MainSchema):
     ALL_VIDEO_EXTRACTORS = ALL_DECODERS
     url: str = NotImplemented
+    name: str = NotImplemented
 
     def _pre_validate_url_attr(self) -> None:
         if self.url is NotImplemented:
