@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Any
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 from anicli_api.player.base import Video
@@ -50,6 +50,7 @@ class VostAPI:
 
 
 class Extractor(BaseExtractor):
+    BASE_URL = "https://api.animevost.org/v1/"
     API = VostAPI()
 
     def search(self, query: str) -> List["Search"]:
@@ -86,6 +87,25 @@ class _SearchOrOngoing(MainSchema):
     type: str
     director: str
     series: str  # '{\'1 серия\':\'147459278\ ...'
+
+    def dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "genre": self.genre,
+            "year": self.year,
+            "urlImagePreview": self.urlImagePreview,
+            "screenImage": self.screenImage,
+            "isFavorite": self.isFavorite,
+            "isLikes": self.isLikes,
+            "rating": self.rating,
+            "votes": self.votes,
+            "timer": self.timer,
+            "type": self.type,
+            "director": self.director,
+            "series": self.series,
+        }
 
     def __str__(self):
         return f"{self.title} {self.year} ({self.rating}) {self.type}"
@@ -125,6 +145,26 @@ class Anime(BaseAnime):
     series: str  # '{\'1 серия\':\'147459278\ ...'
     playlist: List[Dict]
 
+    def dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "genre": self.genre,
+            "year": self.year,
+            "urlImagePreview": self.urlImagePreview,
+            "screenImage": self.screenImage,
+            "isFavorite": self.isFavorite,
+            "isLikes": self.isLikes,
+            "rating": self.rating,
+            "votes": self.votes,
+            "timer": self.timer,
+            "type": self.type,
+            "director": self.director,
+            "series": self.series,
+            "playlist": self.playlist,
+        }
+
     def __str__(self):
         return f"{self.title} [{self.year}] {self.type} {self.rating}"
 
@@ -143,6 +183,9 @@ class Episode(BaseEpisode):
     hd: str
     std: str
 
+    def dict(self) -> Dict[str, Any]:
+        return {"name": str, "preview": str}
+
     async def a_get_sources(self) -> List["Source"]:
         return self.get_sources()
 
@@ -157,6 +200,9 @@ class Source(BaseSource):
     hd: str
     std: str
 
+    def dict(self) -> Dict[str, Any]:
+        return {"hd": self.hd, "std": self.std}
+
     def __str__(self):
         return "Animevost"
 
@@ -169,13 +215,3 @@ class Source(BaseSource):
 
     async def a_get_videos(self) -> List[Video]:
         return self.get_videos()
-
-
-if __name__ == "__main__":
-    ex = Extractor()
-    ong = ex.ongoing()
-    res = ex.search("lai")
-    an = res[0].get_anime()
-    eps = an.get_episodes()
-    sss = eps[0].get_sources()
-    print()
