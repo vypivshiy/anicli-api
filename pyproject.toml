@@ -36,9 +36,8 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 httpx = {extras = ["http2"], version = "^0.24.0"}
-scrape-schema = {version = "^0.3.0"}
+scrape-schema = {version = "^0.5.0"}
 chompjs = "^1.2.2"
-ruff = "^0.0.278"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -49,12 +48,8 @@ mypy = "^0.982"
 pytest-asyncio = "^0.20.2"
 twine = "^4.0.1"
 isort = "^5.10.1"
+ruff = "^0.0.278"
 black = "^22.10.0"
-urllib3 = "1.26.15"
-
-[tool.poetry.group.doc.dependencies]
-sphinx = "^5.3.0"
-sphinx-rtd-theme = "^1.1.1"
 
 
 [tool.poetry.group.codegen.dependencies]
