@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 from urllib.parse import urlsplit
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
@@ -53,7 +53,7 @@ class Anilibria:
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = ""  # BASEURL
+    BASE_URL = "https://api.anilibria.tv/v2/"  # BASEURL
     API = Anilibria()
 
     def search(self, query: str) -> List["Search"]:
@@ -92,6 +92,27 @@ class _SearchOrOngoing(MainSchema):
     player: dict
     torrents: dict
 
+    def dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "code": self.code,
+            "names": self.names,
+            "announce": self.announce,
+            "status": self.status,
+            "posters": self.posters,
+            "updated": self.updated,
+            "last_change": self.last_change,
+            "type": self.type,
+            "genres": self.genres,
+            "team": self.team,
+            "season": self.season,
+            "description": self.description,
+            "in_favorites": self.in_favorites,
+            "blocked": self.blocked,
+            "player": self.player,
+            "torrents": self.torrents,
+        }
+
     async def a_get_anime(self) -> "Anime":
         return self.get_anime()
 
@@ -129,6 +150,27 @@ class Anime(BaseAnime):
     player: dict
     torrents: dict
 
+    def dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "code": self.code,
+            "names": self.names,
+            "announce": self.announce,
+            "status": self.status,
+            "posters": self.posters,
+            "updated": self.updated,
+            "last_change": self.last_change,
+            "type": self.type,
+            "genres": self.genres,
+            "team": self.team,
+            "season": self.season,
+            "description": self.description,
+            "in_favorites": self.in_favorites,
+            "blocked": self.blocked,
+            "player": self.player,
+            "torrents": self.torrents,
+        }
+
     def __str__(self):
         return f"{list(self.names.values())}"
 
@@ -157,6 +199,18 @@ class Episode(BaseEpisode):
     hls: dict
     torrents: dict
 
+    def dict(self) -> Dict[str, Any]:
+        return {
+            "alternative_player": self.alternative_player,
+            "host": self.host,
+            "serie": self.serie,
+            "created_timestamp": self.created_timestamp,
+            "preview": self.preview,
+            "skips": self.skips,
+            "hls": self.hls,
+            "torrents": self.torrents,
+        }
+
     def __str__(self):
         return f"{self.host} {self.serie}"
 
@@ -179,6 +233,12 @@ class Source(BaseSource):
     fhd: Optional[str]
     hd: str
     sd: str
+
+    def dict(self) -> Dict[str, Any]:
+        return {"torrents": self.torrents,
+                "fhd": self.fhd,
+                "hd": self.hd,
+                "sd": self.sd}
 
     def __str__(self):
         return f"{urlsplit(self.fhd).netloc or urlsplit(self.hd).netloc}"
