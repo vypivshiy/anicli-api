@@ -93,7 +93,3 @@ class Kodik(BaseVideoExtractor):
                 url=self._decode(response_api["480"][0]["src"]).replace("360.mp4", "720.mp4"),
             ),
         ]
-
-
-if __name__ == "__main__":
-    Kodik().parse("https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p")

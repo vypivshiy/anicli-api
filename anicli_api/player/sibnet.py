@@ -23,13 +23,8 @@ class SibNet(BaseVideoExtractor):
             return self._extract(response)
 
     def _extract(self, response: str) -> List[Video]:
-
         if path := re.search(r'"(?P<url>/v/.*?\.mp4)"', response):
             url = f"https://video.sibnet.ru{path[1]}"
             return [Video(type="mp4", quality=480, url=url, headers={"Referer": url})]
         else:
             raise IndexError("Failed parse sibnet")
-
-
-if __name__ == "__main__":
-    SibNet().parse("https://video.sibnet.ru/shell.php?videoid=4779967")

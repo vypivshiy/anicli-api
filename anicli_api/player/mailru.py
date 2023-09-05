@@ -47,8 +47,3 @@ class MailRu(BaseVideoExtractor):
             )
             for video in response.json()["videos"]
         ]
-
-
-if __name__ == "__main__":
-    vids = MailRu().parse("https://my.mail.ru/video/embed/358279802395848306")
-    print(vids[0].url, vids[0].headers)

@@ -58,7 +58,3 @@ class Aniboom(BaseVideoExtractor):
                 )
             )
         return videos
-
-
-if __name__ == "__main__":
-    print(Aniboom().parse("https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30"))

@@ -34,9 +34,3 @@ class VkCom(BaseVideoExtractor):
             Video(type="mp4", url=jsn[url_key], quality=int(url_key.lstrip("url"))) for url_key in urls_keys
         ]
         return videos
-        # videos = sel.xpath('//video[@id="video_player"]/source/@src').getall()
-        # return [Video(type="mp4", quality=q, url=u) for q, u in zip(ALL_QUALITIES, videos)]
-
-
-if __name__ == "__main__":
-    print(VkCom().parse("https://vk.com/video_ext.php?oid=793268683&id=456239019&hash=0f28589bfca114f7"))

@@ -29,7 +29,3 @@ class CsstOnline(BaseVideoExtractor):
     def _extract(self, response: str) -> List[Video]:
         url_data = list(re.finditer(self.RE_URLS, response))
         return [Video(type="mp4", quality=data["quality"], url=data["url"]) for data in url_data[:4]]
-
-
-if __name__ == "__main__":
-    print(*CsstOnline().parse("https://csst.online/embed/487794"), sep="\n")
