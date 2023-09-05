@@ -138,7 +138,7 @@ class Anime(BaseAnime):
     def alt_titles(self) -> List[str]:
         return self._script_jmespath.jmespath("alternativeHeadline").getall()
 
-    episodes_available: Sc[int, Parsel(default=0).xpath("//dl/dd[2]").re(r"\d+")[0]]
+    episodes_available: Sc[int, Parsel(default=0).xpath("//dl/dd[2]/text()").re(r"\d+")[0]]
     thumbnail: Sc[str, Parsel().css("#content img").xpath("@src").get()]
     _description: Sc[List[str], Parsel().xpath("//div[@data-readmore='content']/text()").getall()]  # mobile agent
 
@@ -158,7 +158,7 @@ class Anime(BaseAnime):
     def aired(self) -> str:
         if end_date := self._script_jmespath.jmespath("endDate").get():
             return self._script_jmespath.jmespath("startDate").get() + " " + end_date
-        return self._script_jmespath.jmespath("startDate").get() + " " + " ?"
+        return self._script_jmespath.jmespath("startDate").get() + " " + "?"
 
     url: Sc[str, Parsel().xpath("//html/head/link[@rel='canonical']/@href").get()]
     anime_id = sc_param(lambda self: self.url.split("-")[-1])
@@ -173,7 +173,13 @@ class Anime(BaseAnime):
         dubbers_id: List[str] = (
             Parsel().xpath('//*[@id="video-dubbing"]/span/@data-dubbing').getall().sc_parse(response)
         )
-        dubbers_name: List[str] = Parsel().xpath('//*[@id="video-dubbing"]/span/text()').getall().sc_parse(response)
+        dubbers_name: List[str] = (
+            Parsel()
+            .xpath('//*[@id="video-dubbing"]/span/span/text()')
+            .getall()
+            .fn(lambda lst: [s.strip() for s in lst])
+            .sc_parse(response)
+        )
         return dict(zip(dubbers_id, dubbers_name))
 
     def get_episodes(self) -> List["Episode"]:
@@ -198,11 +204,11 @@ class Anime(BaseAnime):
 
 
 class Episode(BaseEpisode):
+    _episode_type: Sc[int, Parsel().xpath("//div/@data-episode-type").get()]
+    _dubbers_table: Dict[str, str]  # setattr
     num: Sc[int, Parsel().xpath("//div/@data-episode").get()]
     title: Sc[str, Parsel().xpath("//div/@data-episode-title").get()]
 
-    _episode_type: Sc[int, Parsel().xpath("//div/@data-episode-type").get()]
-    _dubbers_table: Dict[str, str]
     data_id: Sc[int, Parsel().xpath("//div/@data-id").get()]
     released: Sc[str, Parsel().xpath("//div/@data-episode-released").get()]
 
@@ -243,7 +249,7 @@ class Source(BaseSource):
     _url: Sc[str, Parsel().xpath("//span/@data-player").get()]
     _data_provider: Sc[str, Parsel().xpath("//span/@data-provider").get()]
     _data_provide_dubbing: Sc[str, Parsel().xpath("//span/@data-provide-dubbing").get()]
-    name: Sc[str, Parsel().xpath("//span/span/@text").get()]
+    name: Sc[str, Parsel().xpath("//span/span/text()").get()]
     url = sc_param(lambda self: f"https:{self._url}")
     dub = sc_param(lambda self: self._dubbers_table.get(self._data_provide_dubbing))
 
