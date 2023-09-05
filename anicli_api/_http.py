@@ -59,13 +59,13 @@ def check_ddos_protect_hook(resp: Response):
     If response return 403 code or server headers contains *cloudflare* or *ddos-guard* strings and
     **Connection = close,** throw ConnectionError traceback
     """
-    logger.debug("{} check DDOS protect :\nstatus [{}] {}", resp.url, resp.status_code, resp.headers)
+    logger.debug("%s check DDOS protect :\nstatus [%s] %s", resp.url, resp.status_code, resp.headers)
     if (
         resp.headers.get("Server") in DDOS_SERVICES
         and resp.headers.get("Connection", None) == "close"
         or resp.status_code == 403
     ):
-        logger.error("Ooops, {} have ddos protect :(", resp.url)
+        logger.error("Ooops, %s have ddos protect :(", resp.url)
         raise ConnectionError(f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return 403 code.")
 
 
