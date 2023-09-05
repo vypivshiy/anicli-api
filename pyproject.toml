@@ -86,7 +86,8 @@ unfixable = [
 exclude = [
   "examples",
   "venv",
-  "__init__.py"
+  "__init__.py",
+    "tests"
 ]
 
 [tool.black]
