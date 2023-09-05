@@ -1,4 +1,4 @@
-from anicli_api.source.animejoy import Extractor  # can usage any source
+from anicli_api.source.animego import Extractor  # can usage any source
 
 if __name__ == "__main__":
     ex = Extractor()
