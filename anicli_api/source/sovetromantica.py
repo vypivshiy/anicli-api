@@ -1,8 +1,8 @@
 # mypy: disable-error-code="assignment"
 import warnings
-from typing import List, Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from scrape_schema import Nested, Parsel, Sc, sc_param
+from scrape_schema import Nested, Parsel, sc_param
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 
@@ -92,11 +92,9 @@ class Anime(BaseAnime):
         def url(self):
             return f"https://sovetromantica.com{self._url_path}"
 
-    _titles: str = Parsel().xpath(
-        '//div[@class="block--full anime-name"]/div[@class="block--container"]/text()').get()
+    _titles: str = Parsel().xpath('//div[@class="block--full anime-name"]/div[@class="block--container"]/text()').get()
 
-    _episodes: List[_Episode] = Nested(
-        Parsel().xpath("//div[contains(@class, 'episodes-slick_item')]").getall())
+    _episodes: List[_Episode] = Nested(Parsel().xpath("//div[contains(@class, 'episodes-slick_item')]").getall())
 
     @sc_param
     def title(self):
@@ -109,15 +107,17 @@ class Anime(BaseAnime):
     thumbnail: str = Parsel().xpath('//*[@id="poster"]/@src').get()
     genres: List[str] = Parsel().xpath('//div[@class="animeTagInfo"]/a/text()').getall()
     description: Optional[str] = Parsel().xpath('//div[@class="block--full anime-description"]/text()').get()
-    episodes_total: Optional[int] = Parsel().xpath('//ul[@class="anime-info_block"]/li[2]/span/text()').get()
-    aired: Optional[int] = Parsel().xpath('//ul[@class="anime-info_block"]/li[3]/span/text()').get()
+    episodes_total: Optional[str] = Parsel().xpath('//ul[@class="anime-info_block"]/li[2]/span/text()').get()
+    aired: Optional[str] = Parsel().xpath('//ul[@class="anime-info_block"]/li[3]/span/text()').get()
     episodes_available = None
 
     def dict(self) -> Dict[str, Any]:
         dct = super().dict()
-        dct.update({
-            "episodes_available": self.episodes_available,
-        })
+        dct.update(
+            {
+                "episodes_available": self.episodes_available,
+            }
+        )
         return dct
 
     def get_episodes(self) -> List["Episode"]:
