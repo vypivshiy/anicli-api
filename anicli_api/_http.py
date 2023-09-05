@@ -44,8 +44,6 @@ class HttpxSingleton:
             return cls._async_client_instance
 
 
-
-
 class BaseHTTPSync(Client):
     """httpx.Client class with configured user agent and enabled redirects"""
 
