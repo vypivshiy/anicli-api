@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Dict
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlsplit
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
@@ -235,10 +235,7 @@ class Source(BaseSource):
     sd: str
 
     def dict(self) -> Dict[str, Any]:
-        return {"torrents": self.torrents,
-                "fhd": self.fhd,
-                "hd": self.hd,
-                "sd": self.sd}
+        return {"torrents": self.torrents, "fhd": self.fhd, "hd": self.hd, "sd": self.sd}
 
     def __str__(self):
         return f"{urlsplit(self.fhd).netloc or urlsplit(self.hd).netloc}"

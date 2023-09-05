@@ -1,4 +1,4 @@
-from typing import Dict, List, Union, Any
+from typing import Any, Dict, List, Union
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 from anicli_api.player.base import Video
