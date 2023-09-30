@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anicli_api"
-version = "0.4.3"
+version = "0.4.11"
 description = "Anime extractor api implementation"
 authors = ["Georgiy aka Vypivshiy"]
 license = "MIT"
@@ -36,7 +36,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 httpx = {extras = ["http2"], version = "^0.24.0"}
-scrape-schema = {version = "^0.5.0"}
+scrape-schema = {version = "^0.6.0"}
 chompjs = "^1.2.2"
 
 
