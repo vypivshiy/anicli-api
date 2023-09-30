@@ -21,6 +21,10 @@ class MainSchema(BaseSchema):
         cls_ = cls("")
         for k, v in kwargs.items():
             setattr(cls_, k, v)
+
+            # patch magic methods for correct dict() method output
+            cls_.__schema_annotations__[k] = type(v)
+            cls_.__schema_fields__[k] = v
         return cls_
 
 
