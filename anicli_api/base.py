@@ -2,7 +2,7 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, List, Optional
 
-from scrape_schema import BaseSchema
+from scrape_schema import BaseSchema, Callback
 
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.player import ALL_DECODERS
@@ -24,7 +24,7 @@ class MainSchema(BaseSchema):
 
             # patch magic methods for correct dict() method output
             cls_.__schema_annotations__[k] = type(v)
-            cls_.__schema_fields__[k] = v
+            cls_.__schema_fields__[k] = Callback(lambda: v)
         return cls_
 
 
