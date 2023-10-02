@@ -14,21 +14,17 @@ class SibNet(BaseVideoExtractor):
     @player_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
         response = self.http.get(url).text
-        return self._extract(response, url)
+        return self._extract(response)
 
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
             response = (await client.get(url)).text
-            return self._extract(response, url)
+            return self._extract(response)
 
-    def _extract(self, response: str, referer: str) -> List[Video]:
+    def _extract(self, response: str) -> List[Video]:
         if path := re.search(r'"(?P<url>/v/.*?\.mp4)"', response):
             url = f"https://video.sibnet.ru{path[1]}"
-            return [Video(type="mp4", quality=480, url=url, headers={"Referer": referer})]
+            return [Video(type="mp4", quality=480, url=url, headers={"Referer": url})]
         else:
             raise IndexError("Failed parse sibnet")
-
-
-if __name__ == "__main__":
-    print(SibNet().parse("https://video.sibnet.ru/shell.php?videoid=4779967")[0].__dict__)

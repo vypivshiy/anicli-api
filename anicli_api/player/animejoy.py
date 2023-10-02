@@ -25,8 +25,3 @@ class AnimeJoy(BaseVideoExtractor):
             Video(type="mp4", quality=1080, url=url_1080),
             Video(type="mp4", quality=360, url=url_360),
         ]
-
-
-if __name__ == "__main__":
-    U = """https://animejoy.ru/player/playerjs.html?file=[1080p]https://noda3.cdnjoy.site/Tsunlise/KAZOKU/01-1080.mp4,[360p]https://noda3.cdnjoy.site/Tsunlise/KAZOKU/01-360.mp4"""
-    print(AnimeJoy().parse(U))

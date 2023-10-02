@@ -38,7 +38,3 @@ class Dzen(BaseVideoExtractor):
             Video(type="mpd", quality=1080, url=url_mpd),
             Video(type="m3u8", quality=1080, url=url_m3u8),
         ]
-
-
-if __name__ == "__main__":
-    Dzen().parse("https://dzen.ru/embed/vh1fMeui3d3Y?from_block=partner&from=zen&mute=1&autoplay=0&tv=0")

@@ -3,9 +3,6 @@ from typing import List
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
-# from scrape_schema import Parsel, Sc, sc_param
-
-
 __all__ = ["PlayerExtractor"]
 # url validator pattern
 _URL_EQ = re.compile(r"https?://(www\.)?.")

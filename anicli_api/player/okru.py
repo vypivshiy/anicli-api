@@ -49,7 +49,3 @@ class OkRu(BaseVideoExtractor):
             ]
             return videos
         raise Exception("Failed extract video")
-
-
-if __name__ == "__main__":
-    print(OkRu().parse("https://ok.ru/videoembed/4998442453635"))

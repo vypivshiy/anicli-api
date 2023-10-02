@@ -1,19 +1,20 @@
+import logging
+
 import colorlog
 
 __all__ = ["logger"]
 
 
-logger = colorlog.getLogger("anicli-api")
-logger.setLevel(colorlog.INFO)
+handler = colorlog.StreamHandler()
+_formatter = colorlog.ColoredFormatter(fmt="%(log_color)s %(asctime)s [%(levelname)-8s] %(name)s: %(message)s'")
 
-formatter = colorlog.ColoredFormatter(
-    fmt="%(log_color)s %(asctime)s [anicli-api] [%(levelname)-8s]" " %(name)s: %(message)s'"
-)
-
-stdout_handler = colorlog.StreamHandler()
-stdout_handler.setFormatter(formatter)
-logger.addHandler(stdout_handler)
+logger = logging.getLogger("anicli-api")  # type: ignore
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
-sc_schema_logger = colorlog.getLogger("scrape_schema")
-sc_schema_logger.setLevel(colorlog.ERROR)
+_logger_cast = logging.getLogger("type_caster")
+_logger_cast.setLevel(logging.ERROR)  # type: ignore
+
+_sc_schema_logger = logging.getLogger("scrape_schema")
+_sc_schema_logger.setLevel(logging.ERROR)

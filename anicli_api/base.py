@@ -1,9 +1,8 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar, List, Optional, Type
+from typing import TYPE_CHECKING, List, Optional
 
-from parsel import Selector
-from scrape_schema import BaseSchema
+from scrape_schema import BaseSchema, Callback
 
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.player import ALL_DECODERS
@@ -13,7 +12,6 @@ if TYPE_CHECKING:
 
 
 class MainSchema(BaseSchema):
-    _Selector: ClassVar[Type[Selector]] = Selector
     HTTP = HTTPSync
     HTTP_ASYNC = HTTPAsync
 
@@ -23,6 +21,10 @@ class MainSchema(BaseSchema):
         cls_ = cls("")
         for k, v in kwargs.items():
             setattr(cls_, k, v)
+
+            # patch magic methods for correct dict() method output
+            cls_.__schema_annotations__[k] = type(v)
+            cls_.__schema_fields__[k] = Callback(lambda: v)
         return cls_
 
 
@@ -111,25 +113,25 @@ class BaseEpisode(MainSchema):
 class BaseSource(MainSchema):
     ALL_VIDEO_EXTRACTORS = ALL_DECODERS
     url: str = NotImplemented
-    dub: str = NotImplemented
+    name: str = NotImplemented
 
     def _pre_validate_url_attr(self) -> None:
         if self.url is NotImplemented:
             raise AttributeError(f"{self.__class__.__name__} missing url attribute.")
 
-    def get_videos(self, **httpx_kwargs: Any) -> List["Video"]:
+    def get_videos(self) -> List["Video"]:
         self._pre_validate_url_attr()
         for extractor in self.ALL_VIDEO_EXTRACTORS:
             if self.url == extractor():
-                return extractor(**httpx_kwargs).parse(self.url)
+                return extractor().parse(self.url)
         warnings.warn(f"Failed extractor videos from {self.url}", stacklevel=4)
         return []
 
-    async def a_get_videos(self, **httpx_kwargs: Any) -> List["Video"]:
+    async def a_get_videos(self) -> List["Video"]:
         self._pre_validate_url_attr()
         for extractor in self.ALL_VIDEO_EXTRACTORS:
             if self.url == extractor():
-                return await extractor(**httpx_kwargs).a_parse(self.url)
+                return await extractor().a_parse(self.url)
         warnings.warn(
             f"Failed extractor videos from {self.url}. " f"Maybe needed video extractor not implemented?",
             stacklevel=4,

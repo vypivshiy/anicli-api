@@ -1,13 +1,14 @@
+# mypy: disable-error-code="assignment"
 import warnings
-from typing import List
+from typing import Any, Dict, List, Optional
 
-from scrape_schema import Nested, Parsel, Sc, sc_param
+from scrape_schema import Nested, Parsel, sc_param
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://sovetromantica.com"  # BASEURL
+    BASE_URL = "https://sovetromantica.com"
 
     def search(self, query: str) -> List["Search"]:
         response = self.HTTP().get(f"{self.BASE_URL}/anime", params={"query": query})
@@ -35,10 +36,17 @@ class Extractor(BaseExtractor):
 
 
 class Search(BaseSearch):
-    url: Sc[str, Parsel().xpath("//a/@href").get()]
-    title: Sc[str, Parsel().xpath('//div[@class="anime--block__name"]/text()').get()]
-    thumbnail: Sc[str, Parsel().xpath('//*[@class="anime--poster lazy loaded"]/@src').get()]
-    # url = property(lambda self: f"https://sovetromantica.com{self._path}")
+    url: str = Parsel().xpath("//a/@href").get()
+    # span[1] eng name, span[2] ru name
+    title: str = Parsel().xpath('//div[@class="anime--block__name"]/span[2]/text()').get()
+    _thumbnail: str = Parsel().xpath('//div[@class="anime--poster--loading"]/img/@src').get()
+
+    @sc_param
+    def thumbnail(self):
+        return "https://sovetromantica.com" + self._thumbnail
+
+    def __str__(self):
+        return self.title
 
     def get_anime(self) -> "Anime":
         response = self.HTTP().get(self.url)
@@ -49,15 +57,12 @@ class Search(BaseSearch):
             response = await client.get(self.url)
             return Anime(response.text)
 
-    def __str__(self):
-        return self.title
-
 
 class Ongoing(BaseOngoing):
     # past xpath to main anime page
-    url: Sc[str, Parsel().xpath("//a/@href").get()]
-    title: Sc[str, Parsel().xpath('//div[@class="anime--block__name"]/text()').get()]
-    thumbnail: Sc[str, Parsel().xpath('//*[@class="anime--poster lazy loaded"]/@src').get()]
+    url: str = Parsel().xpath("//a/@href").get()
+    title: str = Parsel().xpath('//div[@class="anime--block__name"]/text()').get()
+    thumbnail: str = Parsel().xpath('//*[@class="anime--poster lazy loaded"]/@src').get()
 
     def get_anime(self) -> "Anime":
         response = self.HTTP().get(self.url)
@@ -74,10 +79,10 @@ class Ongoing(BaseOngoing):
 
 class Anime(BaseAnime):
     class _Episode(MainSchema):
-        title: Sc[str, Parsel().xpath("//a/div/span/text()").get()]
-        _url_path: Sc[str, Parsel().xpath("//a/@href").get()]
-        image: Sc[str, Parsel().xpath("//a/img/@src").get()]
-        ep_id: Sc[str, Parsel().xpath("//div/@id").get()]
+        title: str = Parsel().xpath("//a/div/span/text()").get()
+        _url_path: str = Parsel().xpath("//a/@href").get()
+        image: str = Parsel().xpath("//a/img/@src").get()
+        ep_id: str = Parsel().xpath("//div/@id").get()
 
         @sc_param
         def num(self) -> int:
@@ -87,15 +92,9 @@ class Anime(BaseAnime):
         def url(self):
             return f"https://sovetromantica.com{self._url_path}"
 
-    _titles: Sc[
-        str,
-        Parsel().xpath('//div[@class="block--full anime-name"]/div[@class="block--container"]/text()').get(),
-    ]
+    _titles: str = Parsel().xpath('//div[@class="block--full anime-name"]/div[@class="block--container"]/text()').get()
 
-    _episodes: Sc[
-        List[_Episode],
-        Nested(Parsel().xpath("//div[contains(@class, 'episodes-slick_item')]").getall()),
-    ]
+    _episodes: List[_Episode] = Nested(Parsel().xpath("//div[contains(@class, 'episodes-slick_item')]").getall())
 
     @sc_param
     def title(self):
@@ -105,12 +104,21 @@ class Anime(BaseAnime):
     def alt_titles(self):
         return [self._titles.split(" / ")[-1]]
 
-    thumbnail: Sc[str, Parsel().xpath('//*[@id="poster"]/@src').get()]
-    description = None
-    genres: Sc[List[str], Parsel().xpath('//div[@class="animeTagInfo"]/a/text()').getall()]
+    thumbnail: str = Parsel().xpath('//*[@id="poster"]/@src').get()
+    genres: List[str] = Parsel().xpath('//div[@class="animeTagInfo"]/a/text()').getall()
+    description: Optional[str] = Parsel().xpath('//div[@class="block--full anime-description"]/text()').get()
+    episodes_total: Optional[str] = Parsel().xpath('//ul[@class="anime-info_block"]/li[2]/span/text()').get()
+    aired: Optional[str] = Parsel().xpath('//ul[@class="anime-info_block"]/li[3]/span/text()').get()
     episodes_available = None
-    episodes_total = None
-    aired = None
+
+    def dict(self) -> Dict[str, Any]:
+        dct = super().dict()
+        dct.update(
+            {
+                "episodes_available": self.episodes_available,
+            }
+        )
+        return dct
 
     def get_episodes(self) -> List["Episode"]:
         if not self._episodes:
@@ -154,7 +162,7 @@ class Episode(BaseEpisode):
             return [Source.from_kwargs(url=video)]
 
     def __str__(self):
-        return f"{self.num} {self.title}"
+        return self.title
 
 
 class Source(BaseSource):

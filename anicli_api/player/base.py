@@ -1,5 +1,6 @@
 import re
 from abc import ABC, abstractmethod
+from functools import wraps
 from typing import Any, Dict, List, Literal, Optional, Union
 from urllib.parse import urlparse
 
@@ -13,6 +14,7 @@ def url_validator(pattern: Union[str, re.Pattern]):
         pattern = re.compile(pattern)
 
     def decorator(func):
+        @wraps(func)
         def wrapper(_, url, **kwargs):
             if not pattern.match(url):
                 raise TypeError(f"Uncorrected url for {_.__class__.__name__} player")
