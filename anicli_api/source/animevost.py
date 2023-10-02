@@ -1,4 +1,7 @@
-from typing import Any, Dict, List, Union
+import re
+from typing import Dict, List, Union
+
+import chompjs
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
 from anicli_api.player.base import Video
@@ -53,9 +56,33 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://api.animevost.org/v1/"
     API = VostAPI()
 
+    @classmethod
+    def __extract_meta_data(cls, kw: dict) -> dict:
+        """standardize API response for objects"""
+        # playlist = cls.API.playlist(kw['id'])
+        # get total episodes
+        if match := re.search(r"\s(\d+).?\]", kw["title"]):
+            total = int(match[1]) if match[1].isdigit() else -1
+        else:
+            total = -1
+        return dict(
+            title=kw["title"],
+            thumbnail=kw["urlImagePreview"],
+            url=cls.BASE_URL,
+            # anime meta
+            _alt_titles=[],  # stored to title key
+            _description=kw["description"],
+            _genres=kw["genre"].split(","),
+            _episodes_available=len(chompjs.parse_js_object(kw["series"]).keys()),
+            _episodes_total=total,
+            _aired=kw["year"],  # TODO convert to date
+            # episodes and video meta key. Get from API.playlist method
+            _id=kw["id"],  # extract playlist key
+        )
+
     def search(self, query: str) -> List["Search"]:
         # search entrypoint
-        return [Search.from_kwargs(**kw) for kw in VostAPI().search(query)["data"]]
+        return [Search.from_kwargs(**(self.__extract_meta_data(kw))) for kw in VostAPI().search(query)["data"]]
 
     async def a_search(self, query: str) -> List["Search"]:
         # async search entrypoint
@@ -63,7 +90,7 @@ class Extractor(BaseExtractor):
 
     def ongoing(self) -> List["Ongoing"]:
         # ongoing entrypoint
-        return [Ongoing.from_kwargs(**kw) for kw in VostAPI().last()["data"]]
+        return [Ongoing.from_kwargs(**(self.__extract_meta_data(kw))) for kw in VostAPI().last()["data"]]
 
     async def a_ongoing(self) -> List["Ongoing"]:
         # async ongoing entrypoint
@@ -72,51 +99,52 @@ class Extractor(BaseExtractor):
 
 class _SearchOrOngoing(MainSchema):
     # TODO add convert camel case to snake case
-    id: int
     title: str
-    description: str
-    genre: str
-    year: str
-    urlImagePreview: str
-    screenImage: List[str]
-    isFavorite: int
-    isLikes: int
-    rating: int
-    votes: int
-    timer: int
-    type: str
-    director: str
-    series: str  # '{\'1 серия\':\'147459278\ ...'
-
-    def dict(self) -> Dict[str, Any]:
-        return {
-            "id": self.id,
-            "title": self.title,
-            "description": self.description,
-            "genre": self.genre,
-            "year": self.year,
-            "urlImagePreview": self.urlImagePreview,
-            "screenImage": self.screenImage,
-            "isFavorite": self.isFavorite,
-            "isLikes": self.isLikes,
-            "rating": self.rating,
-            "votes": self.votes,
-            "timer": self.timer,
-            "type": self.type,
-            "director": self.director,
-            "series": self.series,
-        }
+    thumbnail: str
+    url: str
+    # anime meta
+    _alt_titles: list[str]
+    _description: str
+    _genres: list[str]
+    _episodes_available: int
+    _episodes_total: int
+    _aired: str  # TODO convert to date
+    # episodes and video meta key. Get playlist from API.playlist method
+    _id: int
 
     def __str__(self):
-        return f"{self.title} {self.year} ({self.rating}) {self.type}"
+        return self.title
 
     def get_anime(self) -> "Anime":
-        response = VostAPI().playlist(self.id)
-        return Anime.from_kwargs(**self.dict(), playlist=response)
+        playlist = VostAPI().playlist(self._id)
+        # if response contains one episode - return dict else list[dict]
+        if isinstance(playlist, dict):
+            playlist = [playlist]
+        return Anime.from_kwargs(
+            title=self.title,
+            alt_titles=self._alt_titles,
+            description=self._description,
+            genres=self._genres,
+            episodes_available=self._episodes_available,
+            episodes_total=self._episodes_total,
+            aired=self._aired,
+            _playlist=playlist,
+        )
 
     async def a_get_anime(self) -> "Anime":
-        response = await VostAPI().a_playlist(self.id)
-        return Anime.from_kwargs(**self.dict(), playlist=response)
+        playlist = await VostAPI().a_playlist(self._id)
+        if isinstance(playlist, dict):
+            playlist = [playlist]
+        return Anime.from_kwargs(
+            title=self.title,
+            alt_titles=self._alt_titles,
+            description=self._description,
+            genres=self._genres,
+            episodes_available=self._episodes_available,
+            episodes_total=self._episodes_total,
+            aired=self._aired,
+            _playlist=playlist,
+        )
 
 
 class Search(_SearchOrOngoing, BaseSearch):
@@ -128,80 +156,57 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 
 
 class Anime(BaseAnime):
-    id: int
     title: str
+    alt_title: str
+    thumbnail: str
     description: str
-    genre: str
-    year: str
-    urlImagePreview: str
-    screenImage: List[str]
-    isFavorite: int
-    isLikes: int
-    rating: int
-    votes: int
-    timer: int
-    type: str
-    director: str
-    series: str  # '{\'1 серия\':\'147459278\ ...'
-    playlist: List[Dict]
-
-    def dict(self) -> Dict[str, Any]:
-        return {
-            "id": self.id,
-            "title": self.title,
-            "description": self.description,
-            "genre": self.genre,
-            "year": self.year,
-            "urlImagePreview": self.urlImagePreview,
-            "screenImage": self.screenImage,
-            "isFavorite": self.isFavorite,
-            "isLikes": self.isLikes,
-            "rating": self.rating,
-            "votes": self.votes,
-            "timer": self.timer,
-            "type": self.type,
-            "director": self.director,
-            "series": self.series,
-            "playlist": self.playlist,
-        }
+    genres: list[str]
+    episodes_available: int
+    episodes_total: int
+    aired: int
+    # playlist
+    _playlist: list[dict]
 
     def __str__(self):
-        return f"{self.title} [{self.year}] {self.type} {self.rating}"
+        return self.title
 
     async def a_get_episodes(self) -> List["Episode"]:
         return self.get_episodes()
 
     def get_episodes(self) -> List["Episode"]:
-        return [Episode.from_kwargs(**kw) for kw in self.playlist]
+        return [
+            Episode.from_kwargs(
+                name=kw["name"],
+                num=i,
+                # video meta
+                _hd=kw["hd"],
+                _std=kw["std"],
+            )
+            for i, kw in enumerate(self._playlist, 1)
+        ]
 
 
 class Episode(BaseEpisode):
     name: str
-    preview: str
+    num: int
 
     # video meta
-    hd: str
-    std: str
-
-    def dict(self) -> Dict[str, Any]:
-        return {"name": str, "preview": str}
+    _hd: str
+    _std: str
 
     async def a_get_sources(self) -> List["Source"]:
         return self.get_sources()
 
     def get_sources(self) -> List["Source"]:
-        return [Source.from_kwargs(hd=self.hd, std=self.std)]
+        return [Source.from_kwargs(hd=self._hd, std=self._std)]
 
     def __str__(self):
-        return f"{self.name}"
+        return self.name
 
 
 class Source(BaseSource):
     hd: str
     std: str
-
-    def dict(self) -> Dict[str, Any]:
-        return {"hd": self.hd, "std": self.std}
 
     def __str__(self):
         return "Animevost"
@@ -215,3 +220,11 @@ class Source(BaseSource):
 
     async def a_get_videos(self) -> List[Video]:
         return self.get_videos()
+
+
+if __name__ == "__main__":
+    ex = Extractor()
+    res = ex.ongoing()
+    print(res[0].get_anime().get_episodes()[0].get_sources()[0].get_videos())
+    res = ex.search("lai")
+    print(res[0].get_anime().get_episodes()[0].get_sources()[0].get_videos())
