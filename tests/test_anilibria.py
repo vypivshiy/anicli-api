@@ -13,7 +13,7 @@ def extractor():
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
 def test_search(extractor):
     result = extractor.search("chainsaw")
-    assert result[0].dict()["id"] == 9261
+    assert result[0].title == 'Человек-бензопила'
     anime = result[0].get_anime()
     episodes = anime.get_episodes()
     assert len(episodes) == 12
