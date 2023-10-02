@@ -56,45 +56,42 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://api.anilibria.tv/v2/"  # BASEURL
     API = Anilibria()
 
-    @staticmethod
-    def __extract_meta_data(kw: dict) -> dict:
+    @classmethod
+    def __extract_meta_data(cls, kw: dict) -> dict:
         """extract response data for anicli application"""
         return dict(
-            title=kw['names']['ru'],
-            url='STUB VALUE',
+            title=kw["names"]["ru"],
+            url=cls.BASE_URL,
             thumbnail=f"https://{kw['player']['host']}{kw['posters']['small']['url']}",
             # anime_info meta
-            _alt_titles=[kw['names'][n] for n in kw['names'].keys() if kw['names'][n] is not None and n != 'ru'],
-            _description=kw['description'],
-            _genres=kw['genres'],
-            _episodes_available=kw['torrents']['series']['last'],
-            _episodes_total=kw['type']['series'],
-            _aired=kw['season']['year'],  # TODO format to full date
+            _alt_titles=[kw["names"][n] for n in kw["names"].keys() if kw["names"][n] is not None and n != "ru"],
+            _description=kw["description"],
+            _genres=kw["genres"],
+            _episodes_available=kw["torrents"]["series"]["last"],
+            _episodes_total=kw["type"]["series"],
+            _aired=kw["season"]["year"],  # TODO format to full date
             # episodes and video meta
-            _episodes_and_videos=kw['player']['playlist'],
-            _host=kw['player']['host']
+            _episodes_and_videos=kw["player"]["playlist"],
+            _host=kw["player"]["host"],
         )
 
     def search(self, query: str) -> List["Search"]:
         # search entrypoint
-        return [
-            Search.from_kwargs(**self.__extract_meta_data(kw))
-            for kw in self.API.search_titles(search=query)]
+        return [Search.from_kwargs(**self.__extract_meta_data(kw)) for kw in self.API.search_titles(search=query)]
 
     async def a_search(self, query: str) -> List["Search"]:
         # async search entrypoint
-        return [Search.from_kwargs(**self.__extract_meta_data(kw))
-                for kw in (await self.API.a_search_titles(search=query))]
+        return [
+            Search.from_kwargs(**self.__extract_meta_data(kw)) for kw in (await self.API.a_search_titles(search=query))
+        ]
 
     def ongoing(self) -> List["Ongoing"]:
         # ongoing entrypoint
-        return [Search.from_kwargs(**self.__extract_meta_data(kw))
-                for kw in self.API.get_updates()]
+        return [Search.from_kwargs(**self.__extract_meta_data(kw)) for kw in self.API.get_updates()]
 
     async def a_ongoing(self) -> List["Ongoing"]:
         # async ongoing entrypoint
-        return [Search.from_kwargs(**self.__extract_meta_data(kw))
-                for kw in (await self.API.a_get_updates())]
+        return [Search.from_kwargs(**self.__extract_meta_data(kw)) for kw in (await self.API.a_get_updates())]
 
 
 class _SearchOrOngoing(MainSchema):
@@ -120,12 +117,13 @@ class _SearchOrOngoing(MainSchema):
             title=self.title,
             alt_title=self._alt_titles,
             description=self._description,
+            thumbnail=self.thumbnail,
             genres=self._genres,
             episodes_available=self._episodes_available,
             episodes_total=self._episodes_total,
             aired=self._aired,
             _episodes_and_videos=self._episodes_and_videos,
-            _host=self._host
+            _host=self._host,
         )
 
     def __str__(self):
@@ -143,6 +141,7 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 class Anime(BaseAnime):
     title: str
     alt_title: str
+    thumbnail: str
     description: str
     genres: list[str]
     episodes_available: int
@@ -156,11 +155,13 @@ class Anime(BaseAnime):
 
     def get_episodes(self) -> List["Episode"]:
         return [
-            Episode.from_kwargs(title=f'Episode {num}',
-                                num=item['serie'],
-                                _fhd=f"https://{self._host}{item['hls']['fhd']}",
-                                _hd=f"https://{self._host}{item['hls']['hd']}",
-                                _sd=f"https://{self._host}{item['hls']['sd']}")
+            Episode.from_kwargs(
+                title=f"Episode {num}",
+                num=item["serie"],
+                _fhd=f"https://{self._host}{item['hls']['fhd']}",
+                _hd=f"https://{self._host}{item['hls']['hd']}",
+                _sd=f"https://{self._host}{item['hls']['sd']}",
+            )
             for num, item in self._episodes_and_videos.items()
         ]
 
@@ -180,15 +181,7 @@ class Episode(BaseEpisode):
         return self.title
 
     def get_sources(self) -> List["Source"]:
-        return [
-            Source.from_kwargs(
-                name="Anilibria",
-                url="",
-                _fhd=self._fhd,
-                _hd=self._hd,
-                _sd=self._sd
-            )
-        ]
+        return [Source.from_kwargs(name="Anilibria", url="", _fhd=self._fhd, _hd=self._hd, _sd=self._sd)]
 
     async def a_get_sources(self) -> List["Source"]:
         return self.get_sources()
