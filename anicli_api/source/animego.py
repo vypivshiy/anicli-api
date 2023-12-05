@@ -23,7 +23,7 @@ class OngoingView(OngoingViewOld):
     @staticmethod
     def _parse_dub(part: Selector) -> str:
         val_0 = part.css(".text-gray-dark-6 ::text").get()
-        return val_0.replace(')', '').replace('(', '')  # type: str
+        return val_0.replace(')', '').replace('(', '')  # type: ignore
 
 
 class Extractor(BaseExtractor):
@@ -121,8 +121,8 @@ class Anime(BaseAnime):
         return self._extract(resp)
 
     async def a_get_episodes(self):
-        resp = await self._a_http().get(f'https://animego.org/anime/{self.id}/player?_allow=true').json()['content']
-        return self._extract(resp)
+        resp = await self._a_http().get(f'https://animego.org/anime/{self.id}/player?_allow=true')
+        return self._extract(resp.json()['content'])
 
 
 @dataclass
