@@ -1,105 +1,110 @@
-from typing import List
+from dataclasses import dataclass
+from typing import Dict, List
 
-from scrape_schema import Parsel, Sc
 
-from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
+from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
+# from anicli_api.source.schemas
+
+# schema patches
+
+# end patches
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = ""  # BASEURL
+    BASE_URL = "https://example.com"
 
-    def search(self, query: str) -> List["Search"]:
-        """an anime search entrypoint"""
+    @staticmethod
+    def _extract_search(resp: str) -> List["Search"]:
         pass
 
-    async def a_search(self, query: str) -> List["Search"]:
-        """an anime search entrypoint (async)"""
+    @staticmethod
+    def _extract_ongoing(resp: str) -> List["Ongoing"]:
         pass
 
-    def ongoing(self) -> List["Ongoing"]:
-        """an ongoing search entrypoint"""
-        pass
+    def search(self, query: str):
+        resp = self.HTTP().get(f"")
+        return self._extract_search(resp.text)
 
-    async def a_ongoing(self) -> List["Ongoing"]:
-        """an ongoing search entrypoint (async)"""
-        pass
+    async def a_search(self, query: str):
+        resp = await self.HTTP_ASYNC().get(f"")
+        return self._extract_search(resp.text)
+
+    def ongoing(self):
+        resp = self.HTTP().get(self.BASE_URL)
+        return self._extract_ongoing(resp.text)
+
+    async def a_ongoing(self):
+        resp = await self.HTTP_ASYNC().get(self.BASE_URL)
+        return self._extract_ongoing(resp.text)
 
 
+@dataclass
 class Search(BaseSearch):
-    url: Sc[str, Parsel()]
-    title: Sc[str, Parsel()]
-    thumbnail: Sc[str, Parsel()]
 
-    # metadata: Sc[str, Parsel()]
-
-    def get_anime(self) -> "Anime":
+    @staticmethod
+    def _extract(resp: str) -> "Anime":
         pass
 
-    async def a_get_anime(self) -> "Anime":
-        pass
+    def get_anime(self):
+        resp = self._http().get(self.url)
+        return self._extract(resp.text)
 
-    def __str__(self):
-        # past string code for print view render
-        return f"{self.title}"
+    async def a_get_anime(self):
+        resp = await self._a_http().get(self.url)
+        return self._extract(resp.text)
 
 
+@dataclass
 class Ongoing(BaseOngoing):
-    url: Sc[str, Parsel()]
-    title: Sc[str, Parsel()]
-    thumbnail: Sc[str, Parsel()]
 
-    # metadata: str(ep, dub, etc)
-
-    def get_anime(self) -> "Anime":
+    @staticmethod
+    def _extract(resp: str) -> "Anime":
         pass
 
-    async def a_get_anime(self) -> "Anime":
-        pass
+    def get_anime(self):
+        resp = self._http().get(self.url)
+        return self._extract(resp.text)
 
-    def __str__(self):
-        return f"{self.title}"
+    async def a_get_anime(self):
+        resp = await self._a_http().get(self.url)
+        return self._extract(resp.text)
 
 
+@dataclass
 class Anime(BaseAnime):
-    # implement this minimal fields
 
-    title: Sc[str, Parsel()]
-    alt_titles: Sc[List[str], Parsel()]
-    thumbnail: Sc[str, Parsel()]
-    description: Sc[str, Parsel()]
-    genres: Sc[str, Parsel()]
-    episodes_available: Sc[int, Parsel()]
-    episodes_total: Sc[int, Parsel()]
-    aired: Sc[str, Parsel()]
-
-    def get_episodes(self) -> List["Episode"]:
+    @staticmethod
+    def _extract(resp: str) -> List["Episode"]:
         pass
 
-    async def a_get_episodes(self) -> List["Episode"]:
-        pass
+    def get_episodes(self):
+        resp = self._http().get(f'')
+        return self._extract(resp.text)
 
-    def __str__(self):
-        # past string code for print view render
-        return (
-            f"{self.title} ({', '.join(self.alt_titles)}) {self.aired} {', '.join(self.genres)} "
-            f"[{self.episodes_available} of {self.episodes_total}] ~{self.description}"
-        )
+    async def a_get_episodes(self):
+        resp = await self._a_http().get(f'')
+        return self._extract(resp.text)
 
 
+@dataclass
 class Episode(BaseEpisode):
-    num: Sc[int, Parsel()]
-    title: Sc[str, Parsel()]
 
-    def get_sources(self) -> List["Source"]:
+    def _extract(self, resp: str) -> List["Source"]:
         pass
 
-    async def a_get_sources(self) -> List["Source"]:
-        pass
+    def get_sources(self):
+        resp = self._http().get('')
+        return self._extract(resp.text)
 
-    def __str__(self):
-        # past string code for print view render
-        return f"{self.num} {self.title}"
+    async def a_get_sources(self):
+        resp = await self._a_http().get('')
+        return self._extract(resp.text)
 
 
+@dataclass
 class Source(BaseSource):
-    url: Sc[str, Parsel()]  # should be implemented
+    pass
+
+
+if __name__ == '__main__':
+    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())

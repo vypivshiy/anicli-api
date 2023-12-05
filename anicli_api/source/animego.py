@@ -1,288 +1,164 @@
-from typing import Dict, List, Tuple
-from urllib.parse import urlsplit
+from cgitb import text
+from dataclasses import dataclass
+from typing import Dict
 
 from parsel import Selector
-from scrape_schema import Parsel, Sc, sc_param
 
-from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
+from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
+from anicli_api.source.schemas.animego import SourceView, EpisodeView, SearchView, DubbersView
+from anicli_api.source.schemas.animego import AnimeView as AnimeViewOld
+from anicli_api.source.schemas.animego import OngoingView as OngoingViewOld
+
+
+# patches
+class AnimeView(AnimeViewOld):
+    @staticmethod
+    def _parse_description(part: Selector) -> str:
+        # remove whitespaces patch
+        val_0 = part.css(".description ::text").getall()
+        return " ".join(line.strip() for line in val_0)
+
+
+class OngoingView(OngoingViewOld):
+    @staticmethod
+    def _parse_dub(part: Selector) -> str:
+        val_0 = part.css(".text-gray-dark-6 ::text").get()
+        return val_0.replace(')', '').replace('(', '')  # type: str
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://animego.org"
 
-    def search(self, query: str) -> List["Search"]:
-        response = self.HTTP().get(f"{self.BASE_URL}/search/anime", params={"q": query})
-        chunks = (
-            Parsel()
-            .xpath(
-                "//div[@class='row']/div[@class='animes-grid-item col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 col-ul-2']"
-            )
-            .sc_parse(response.text)
-        )
-        return [Search(chunk) for chunk in chunks.getall()]
-
-    async def a_search(self, query: str) -> List["Search"]:
-        async with self.HTTP_ASYNC() as client:
-            response = await client.get(f"{self.BASE_URL}search/anime", params={"q": query})
-            chunks = (
-                Parsel()
-                .xpath(
-                    "//div[@class='row']/div[@class='animes-grid-item col-6 col-sm-6 col-md-4 col-lg-3 col-xl-2 "
-                    "col-ul-2']"
-                )
-                .getall()
-                .sc_parse(response.text)
-            )
-            return [Search(chunk) for chunk in chunks]
+    @staticmethod
+    def _extract_search(resp: str):
+        data = SearchView(resp).parse().view()
+        return [Search(**d) for d in data]
 
     @staticmethod
-    def _ongoing_clear_dupes(ongoings: List["Ongoing"]) -> List["Ongoing"]:
-        """remove url duplicates for decrease output result"""
-        result: Dict[Tuple[int, str], Ongoing] = {}
-        for ongoing in ongoings:
-            tuple_key = (ongoing.num, ongoing.url)
-            if not result.get(tuple_key, None):
-                result[tuple_key] = ongoing
+    def _extract_ongoing(resp: str):
+        data = OngoingView(resp).parse().view()
+        ongs = [Ongoing(**d) for d in data]
+        # remove duplicates and accumulate by episode and dubber keys
+        sorted_ongs = {}
+        for ong in ongs:
+            key = hash(ong.url + ong.episode)
+            if sorted_ongs.get(key):
+                sorted_ongs[key].dub += f', {ong.dub}'
             else:
-                result[tuple_key].dub += f", {ongoing.dub}"
-        return list(result.values())
+                sorted_ongs[key] = ong
+        return list(sorted_ongs.values())
 
-    def ongoing(self) -> List["Ongoing"]:
-        response = self.HTTP().get(self.BASE_URL)
-        chunks = Parsel().xpath('//*[starts-with(@class, "last-update-item")]').getall().sc_parse(response.text)
-        return self._ongoing_clear_dupes([Ongoing(chunk) for chunk in chunks])
+    def search(self, query: str):
+        resp = self.HTTP().get(f"{self.BASE_URL}/search/anime", params={"q": query})
+        return self._extract_search(resp.text)
 
-    async def a_ongoing(self) -> List["Ongoing"]:
-        async with self.HTTP_ASYNC() as client:
-            response = await client.get(self.BASE_URL)
-            chunks = Parsel().xpath('//*[starts-with(@class, "last-update-item")]').getall().sc_parse(response.text)
-            return self._ongoing_clear_dupes([Ongoing(chunk) for chunk in chunks])
+    async def a_search(self, query: str):
+        resp = await self.HTTP_ASYNC().get(f"{self.BASE_URL}/search/anime", params={"q": query})
+        return self._extract_search(resp.text)
+
+    def ongoing(self):
+        resp = self.HTTP().get(self.BASE_URL)
+        return self._extract_ongoing(resp.text)
+
+    async def a_ongoing(self):
+        resp = await self.HTTP_ASYNC().get(self.BASE_URL)
+        return self._extract_ongoing(resp.text)
 
 
+@dataclass
 class Search(BaseSearch):
-    title: Sc[
-        str,
-        Parsel().xpath("//div[@class='h5 font-weight-normal mb-2 card-title text-truncate']/a/@title").get(),
-    ]
-    url: Sc[
-        str,
-        Parsel().xpath("//div[@class='h5 font-weight-normal mb-2 card-title text-truncate']/a/@href").get(),
-    ]
-    thumbnail: Sc[str, Parsel().xpath("//a/div/@data-original").get()]
-
-    rating: Sc[
-        float,
-        Parsel(default=0.0).xpath("//div[@class='p-rate-flag__text']/text()").get().sc_replace(",", "."),
-    ]
-    name: Sc[
-        str,
-        Parsel().xpath("//div[@class='text-gray-dark-6 small mb-1 d-none d-sm-block']/div/text()").get(),
-    ]
-
-    def __str__(self):
-        return f"{self.title} [{self.name}] ({self.rating}/10)"
-
-    def get_anime(self) -> "Anime":
-        response = self.HTTP().get(self.url)
-        return Anime(response.text)
-
-    async def a_get_anime(self) -> "Anime":
-        async with self.HTTP_ASYNC() as client:
-            response = await client.get(self.url)
-            return Anime(response.text)
-
-
-class Ongoing(BaseOngoing):
-    _onclick: Sc[str, Parsel().xpath("//div/@onclick").get()]
-    _thumb_style: Sc[str, Parsel().xpath("//div[@class='img-square lazy br-50']/@style").get()]
-
-    title: Sc[str, Parsel().xpath("//span[@class='last-update-title font-weight-600']/text()").get()]
-    thumbnail: str = sc_param(lambda self: self._thumb_style.replace("background-image: url(", "").replace(");", ""))
-
-    @sc_param
-    def url(self) -> str:
-        path = self._onclick.replace("location.href='", "").replace("'", "")
-        return f"https://animego.org{path}"
-
-    name: Sc[str, Parsel().xpath("//div[@class='font-weight-600 text-truncate']/text()").get()]
-    dub: Sc[
-        str,
-        Parsel().xpath("//div[@class='ml-3 text-right']/div[@class='text-gray-dark-6']/text()").get(),
-    ]
-
-    def __str__(self):
-        return f"{self.title} {self.name} ({self.dub})"
-
-    @sc_param
-    def num(self) -> int:
-        return int(self.name.replace(" серия", "").replace(" Серия", ""))
-
-    def get_anime(self) -> "Anime":
-        response = self.HTTP().get(self.url)
-        return Anime(response.text)
-
-    async def a_get_anime(self) -> "Anime":
-        async with self.HTTP_ASYNC() as client:
-            response = await client.get(self.url)
-            return Anime(response.text)
-
-
-class Anime(BaseAnime):
-    _script_jmespath: Sc[Selector, Parsel(auto_type=False).xpath("//script[@type='application/ld+json']/text()")]
-
-    @sc_param
-    def title(self) -> str:
-        return self._script_jmespath.jmespath("name").get()
-
-    @sc_param
-    def alt_titles(self) -> List[str]:
-        return self._script_jmespath.jmespath("alternativeHeadline").getall()
-
-    # >Эпизоды</dt><dd class="col-6 col-sm-8 mb-1">13</dd> (lain)
-    # or >Эпизоды</dt><dd class="col-6 col-sm-8 mb-1">6 / <span>12</span>  (random ongoing)
-    _episodes_available: Sc[int, Parsel(default=0).re(r"(\d+)\s*/ <span>\s*\d+</span>")[0]]
-
-    @sc_param
-    def episodes_available(self):
-        # if anime is released - episodes_available == episodes_total
-        return self.episodes_total if self._script_jmespath.jmespath("endDate").get() else self._episodes_available
-
-    thumbnail: Sc[str, Parsel().css("#content img").xpath("@src").get()]
-    # mobile agent required
-    _description: Sc[List[str], Parsel().xpath("//div[@data-readmore='content']/text()").getall()]
-
-    @sc_param
-    def description(self) -> str:
-        return " ".join(s.strip() for s in self._description)
-
-    @sc_param
-    def genres(self) -> List[str]:
-        return self._script_jmespath.jmespath("genre").getall()
-
-    @sc_param
-    def episodes_total(self) -> int:
-        return int(self._script_jmespath.jmespath("numberOfEpisodes").get()) or -1
-
-    @sc_param
-    def aired(self) -> str:
-        if end_date := self._script_jmespath.jmespath("endDate").get():
-            return self._script_jmespath.jmespath("startDate").get() + " " + end_date
-        return self._script_jmespath.jmespath("startDate").get() + " " + "?"
-
-    url: Sc[str, Parsel().xpath("//html/head/link[@rel='canonical']/@href").get()]
-    anime_id = sc_param(lambda self: self.url.split("-")[-1])
-
-    @sc_param
-    def rating(self) -> float:
-        return float(self._script_jmespath.jmespath("aggregateRating.ratingValue").get())
 
     @staticmethod
-    def _get_dubbers(response: str) -> Dict[str, str]:
-        # sel = Selector(response)
-        dubbers_id: List[str] = (
-            Parsel().xpath('//*[@id="video-dubbing"]/span/@data-dubbing').getall().sc_parse(response)
-        )
-        dubbers_name: List[str] = (
-            Parsel()
-            .xpath('//*[@id="video-dubbing"]/span/span/text()')
-            .getall()
-            .fn(lambda lst: [s.strip() for s in lst])
-            .sc_parse(response)
-        )
-        return dict(zip(dubbers_id, dubbers_name))
+    def _extract(resp: str):
+        data = AnimeView(resp).parse().view()[0]
+        return Anime(**data)
 
-    def get_episodes(self) -> List["Episode"]:
-        response = self.HTTP().get(f"https://animego.org/anime/{self.anime_id}/player?_allow=true").json()["content"]
+    def get_anime(self):
+        resp = self._http().get(self.url)
+        return self._extract(resp.text)
 
-        _dubbers_table = self._get_dubbers(response)
-        chunks = Parsel().xpath('//*[@id="video-carousel"]/div/div').getall().sc_parse(response)
-        episodes = [Episode(chunk) for chunk in chunks]
-        for ep in episodes:
-            setattr(ep, "_dubbers_table", _dubbers_table)
-        return episodes
-
-    async def a_get_episodes(self) -> List["Episode"]:
-        async with self.HTTP_ASYNC() as client:
-            response = await client.get(self.url)
-            _dubbers_table = self._get_dubbers(response)
-            chunks = Parsel().xpath('//*[@id="video-carousel"]/div/div').getall().sc_parse(response)
-            episodes = [Episode(chunk) for chunk in chunks]
-            for ep in episodes:
-                setattr(ep, "_dubbers_table", _dubbers_table)
-            return episodes
+    async def a_get_anime(self):
+        resp = await self._a_http().get(self.url)
+        return self._extract(resp.text)
 
 
+@dataclass
+class Ongoing(BaseOngoing):
+    episode: str
+    dub: str
+
+    @staticmethod
+    def _extract(resp: str):
+        data = AnimeView(resp).parse().view()[0]
+        return Anime(**data)
+
+    def get_anime(self):
+        resp = self._http().get(self.url)
+        return self._extract(resp.text)
+
+    async def a_get_anime(self):
+        resp = await self._a_http().get(self.url)
+        return self._extract(resp.text)
+
+    def __str__(self):
+        return f"{self.title} {self.episode} ({self.dub})"
+
+
+@dataclass
+class Anime(BaseAnime):
+    id: str
+    raw_json: str
+
+    @staticmethod
+    def _extract(resp: str):
+        episodes_data = EpisodeView(resp).parse().view()
+        dubbers_data = DubbersView(resp).parse().view()
+        dubbers = {d['id']: d['name'] for d in dubbers_data}
+        return [Episode(**d, dubbers=dubbers) for d in episodes_data]
+
+    def get_episodes(self):
+        resp = self._http().get(f'https://animego.org/anime/{self.id}/player?_allow=true').json()['content']
+        return self._extract(resp)
+
+    async def a_get_episodes(self):
+        resp = await self._a_http().get(f'https://animego.org/anime/{self.id}/player?_allow=true').json()['content']
+        return self._extract(resp)
+
+
+@dataclass
 class Episode(BaseEpisode):
-    _episode_type: Sc[int, Parsel().xpath("//div/@data-episode-type").get()]
-    _dubbers_table: Dict[str, str]  # setattr
-    num: Sc[int, Parsel().xpath("//div/@data-episode").get()]
-    title: Sc[str, Parsel().xpath("//div/@data-episode-title").get()]
+    dubbers: Dict[str, str]
+    id: str  # episode id
 
-    data_id: Sc[int, Parsel().xpath("//div/@data-id").get()]
-    released: Sc[str, Parsel().xpath("//div/@data-episode-released").get()]
+    def _extract(self, resp: str):
+        data = SourceView(resp).parse().view()
+        data_source = [{"title": f'{self.dubbers.get(d["data_provide_dubbing"], "???").strip()}',
+                        "url": d['url']} for d in data]
+        return [Source(**d) for d in data_source]
 
-    def __str__(self):
-        return f"{self.num} {self.title} {self.released}"
+    def get_sources(self):
+        resp = self._http().get('https://animego.org/anime/series',
+                                params={
+                                    "dubbing": 2,
+                                    "provider": 24,
+                                    "episode": self.num, "id": self.id}).json()['content']
+        return self._extract(resp)
 
-    def get_sources(self) -> List["Source"]:
-        response = (
-            self.HTTP()
-            .get(
-                "https://animego.org/anime/series",
-                params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.data_id},
-            )
-            .json()["content"]
-        )
-
-        chunks = Parsel().xpath('//*[@id="video-players"]/span').getall().sc_parse(response)
-        sources = [Source(chunk) for chunk in chunks]
-        for source in sources:
-            setattr(source, "_dubbers_table", self._dubbers_table)
-        return sources
-
-    async def a_get_sources(self) -> List["Source"]:
-        async with self.HTTP_ASYNC() as client:
-            response = await client.get(
-                "https://animego.org/anime/series",
-                params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.data_id},
-            ).json()["content"]
-            chunks = Parsel().xpath('//*[@id="video-players"]/span').getall().sc_parse(response)
-            sources = [Source(chunk) for chunk in chunks]
-            for source in sources:
-                setattr(source, "_dubbers_table", self._dubbers_table)
-            return sources
+    async def a_get_sources(self):
+        resp = (await self._a_http().get('https://animego.org/anime/series',
+                                         params={
+                                             "dubbing": 2,
+                                             "provider": 24,
+                                             "episode": self.num, "id": self.id})).json()['content']
+        return self._extract(resp)
 
 
+@dataclass
 class Source(BaseSource):
-    _dubbers_table: Dict[str, str]
-    _url: Sc[str, Parsel().xpath("//span/@data-player").get()]
-    _data_provider: Sc[str, Parsel().xpath("//span/@data-provider").get()]
-    _data_provide_dubbing: Sc[str, Parsel().xpath("//span/@data-provide-dubbing").get()]
-    name: Sc[str, Parsel().xpath("//span/span/text()").get()]
-
-    url = sc_param(lambda self: f"https:{self._url}")
-    dub = sc_param(lambda self: self._dubbers_table.get(self._data_provide_dubbing))
-
-    def __str__(self):
-        return f"{urlsplit(self.url).netloc} {self.name} ({self.dub})"
+    pass
 
 
-if __name__ == "__main__":
-    import logging
+if __name__ == '__main__':
+    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())
+    print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
 
-    logger = logging.getLogger("scrape_schema")
-    logger.setLevel(logging.DEBUG)
-    ex = Extractor()
-    # res = ex.ongoing()
-    res = ex.search("lain")
-    an = res[0].get_anime()
-    eps = an.get_episodes()
-    sources = eps[0].get_sources()
-    print()
-    # ongs = ex.ongoing()
-    # an2 = ongs[0].get_anime()
-    # print()
-    # episodes = an.get_episodes()
-    # sss = episodes[0].get_sources()
-    # vids = sss[0].get_videos()
-    # print(*vids)

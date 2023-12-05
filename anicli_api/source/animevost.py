@@ -1,10 +1,11 @@
 import re
+from dataclasses import dataclass
 from typing import Dict, List, Union
 
 import chompjs
 
-from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, MainSchema
-from anicli_api.player.base import Video
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
+from anicli_api.player.base import Video  # direct make this object
 
 
 class VostAPI:
@@ -82,30 +83,31 @@ class Extractor(BaseExtractor):
 
     def search(self, query: str) -> List["Search"]:
         # search entrypoint
-        return [Search.from_kwargs(**(self.__extract_meta_data(kw))) for kw in VostAPI().search(query)["data"]]
+        return [Search(**(self.__extract_meta_data(kw))) for kw in VostAPI().search(query)["data"]]
 
     async def a_search(self, query: str) -> List["Search"]:
         # async search entrypoint
-        return [Search.from_kwargs(**kw) for kw in (await VostAPI().a_search(query))["data"]]
+        return [Search(**kw) for kw in (await VostAPI().a_search(query))["data"]]
 
     def ongoing(self) -> List["Ongoing"]:
         # ongoing entrypoint
-        return [Ongoing.from_kwargs(**(self.__extract_meta_data(kw))) for kw in VostAPI().last()["data"]]
+        return [Ongoing(**(self.__extract_meta_data(kw))) for kw in VostAPI().last()["data"]]
 
     async def a_ongoing(self) -> List["Ongoing"]:
         # async ongoing entrypoint
-        return [Ongoing.from_kwargs(**kw) for kw in (await VostAPI().a_last())["data"]]
+        return [Ongoing(**kw) for kw in (await VostAPI().a_last())["data"]]
 
 
-class _SearchOrOngoing(MainSchema):
+@dataclass
+class _SearchOrOngoing:
     # TODO add convert camel case to snake case
     title: str
     thumbnail: str
     url: str
     # anime meta
-    _alt_titles: list[str]
+    _alt_titles: List[str]
     _description: str
-    _genres: list[str]
+    _genres: List[str]
     _episodes_available: int
     _episodes_total: int
     _aired: str  # TODO convert to date
@@ -120,9 +122,10 @@ class _SearchOrOngoing(MainSchema):
         # if response contains one episode - return dict else list[dict]
         if isinstance(playlist, dict):
             playlist = [playlist]
-        return Anime.from_kwargs(
+        return Anime(
             title=self.title,
             alt_titles=self._alt_titles,
+            thumbnail=self.thumbnail,
             description=self._description,
             genres=self._genres,
             episodes_available=self._episodes_available,
@@ -135,7 +138,7 @@ class _SearchOrOngoing(MainSchema):
         playlist = await VostAPI().a_playlist(self._id)
         if isinstance(playlist, dict):
             playlist = [playlist]
-        return Anime.from_kwargs(
+        return Anime(
             title=self.title,
             alt_titles=self._alt_titles,
             description=self._description,
@@ -147,37 +150,40 @@ class _SearchOrOngoing(MainSchema):
         )
 
 
+@dataclass
 class Search(_SearchOrOngoing, BaseSearch):
     pass
 
 
+@dataclass
 class Ongoing(_SearchOrOngoing, BaseOngoing):
     pass
 
 
+@dataclass
 class Anime(BaseAnime):
     title: str
-    alt_title: str
+    alt_titles: str
     thumbnail: str
     description: str
-    genres: list[str]
+    genres: List[str]
     episodes_available: int
     episodes_total: int
     aired: int
     # playlist
-    _playlist: list[dict]
+    _playlist: List[dict]
 
     def __str__(self):
-        return self.title
+        return f"{self.title} ({', '.join(self.alt_titles)})"
 
     async def a_get_episodes(self) -> List["Episode"]:
         return self.get_episodes()
 
     def get_episodes(self) -> List["Episode"]:
         return [
-            Episode.from_kwargs(
-                name=kw["name"],
-                num=i,
+            Episode(
+                title=kw["name"],
+                num=str(i),
                 # video meta
                 _hd=kw["hd"],
                 _std=kw["std"],
@@ -186,10 +192,8 @@ class Anime(BaseAnime):
         ]
 
 
+@dataclass
 class Episode(BaseEpisode):
-    name: str
-    num: int
-
     # video meta
     _hd: str
     _std: str
@@ -198,21 +202,21 @@ class Episode(BaseEpisode):
         return self.get_sources()
 
     def get_sources(self) -> List["Source"]:
-        return [Source.from_kwargs(hd=self._hd, std=self._std)]
+        return [Source(title="Animevost",
+                       url="https://api.animevost.org",
+                       hd=self._hd,
+                       std=self._std)]
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
+@dataclass
 class Source(BaseSource):
     hd: str
     std: str
 
-    def __str__(self):
-        return "Animevost"
-
     def get_videos(self) -> List[Video]:
-        # TODO move to player dir
         return [
             Video(type="mp4", quality=480, url=self.std),
             Video(type="mp4", quality=720, url=self.hd),
@@ -223,8 +227,5 @@ class Source(BaseSource):
 
 
 if __name__ == "__main__":
-    ex = Extractor()
-    res = ex.ongoing()
-    print(res[0].get_anime().get_episodes()[0].get_sources()[0].get_videos())
-    res = ex.search("lai")
-    print(res[0].get_anime().get_episodes()[0].get_sources()[0].get_videos())
+    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())
+    print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
