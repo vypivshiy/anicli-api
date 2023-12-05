@@ -1,34 +1,17 @@
+from urllib.parse import urlsplit
 import warnings
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional
+from abc import abstractmethod
+from dataclasses import dataclass
+from typing import List, TYPE_CHECKING, Type
 
-from scrape_schema import BaseSchema, Callback
-
-from anicli_api._http import HTTPAsync, HTTPSync
+from anicli_api._http import HTTPSync, HTTPAsync
 from anicli_api.player import ALL_DECODERS
 
 if TYPE_CHECKING:
     from anicli_api.player.base import Video
 
 
-class MainSchema(BaseSchema):
-    HTTP = HTTPSync
-    HTTP_ASYNC = HTTPAsync
-
-    @classmethod
-    def from_kwargs(cls, **kwargs):
-        """ignore fields parse and set attrs directly"""
-        cls_ = cls("")
-        for k, v in kwargs.items():
-            setattr(cls_, k, v)
-
-            # patch magic methods for correct dict() method output
-            cls_.__schema_annotations__[k] = type(v)
-            cls_.__schema_fields__[k] = Callback(lambda: v)
-        return cls_
-
-
-class BaseExtractor(ABC):
+class BaseExtractor:
     HTTP = HTTPSync
     HTTP_ASYNC = HTTPAsync
     BASE_URL: str = NotImplemented
@@ -50,10 +33,21 @@ class BaseExtractor(ABC):
         pass
 
 
-class BaseSearch(MainSchema):
-    url: str = NotImplemented
-    title: str = NotImplemented
-    thumbnail: str = NotImplemented
+class _HttpExtension:
+    @property
+    def _http(self) -> Type[HTTPSync]:
+        return HTTPSync
+
+    @property
+    def _a_http(self) -> Type[HTTPAsync]:
+        return HTTPAsync
+
+
+@dataclass
+class BaseSearch(_HttpExtension):
+    title: str
+    thumbnail: str
+    url: str
 
     @abstractmethod
     def get_anime(self):
@@ -63,11 +57,15 @@ class BaseSearch(MainSchema):
     async def a_get_anime(self):
         pass
 
+    def __str__(self):
+        return self.title
 
-class BaseOngoing(BaseSearch):
-    url: str = NotImplemented
-    title: str = NotImplemented
-    thumbnail: str = NotImplemented
+
+@dataclass
+class BaseOngoing(_HttpExtension):
+    title: str
+    thumbnail: str
+    url: str
 
     @abstractmethod
     def get_anime(self):
@@ -77,16 +75,15 @@ class BaseOngoing(BaseSearch):
     async def a_get_anime(self):
         pass
 
+    def __str__(self):
+        return self.title
 
-class BaseAnime(MainSchema):
-    title: str = NotImplemented
-    alt_titles: List[str] = NotImplemented
-    thumbnail: str = NotImplemented
-    description: Optional[str] = NotImplemented
-    genres: List[str] = NotImplemented
-    episodes_available: Optional[int] = NotImplemented
-    episodes_total: Optional[int] = NotImplemented
-    aired: Optional[str] = NotImplemented
+
+@dataclass
+class BaseAnime(_HttpExtension):
+    title: str
+    thumbnail: str
+    description: str
 
     @abstractmethod
     def get_episodes(self):
@@ -96,10 +93,16 @@ class BaseAnime(MainSchema):
     async def a_get_episodes(self):
         pass
 
+    def __str__(self):
+        if len(self.title + self.description) > 80:
+            return f"{self.title} {self.description[:(80-len(self.title)-3)]}..."
+        return f"{self.title} {self.description}"
 
-class BaseEpisode(MainSchema):
-    title: str = NotImplemented
-    num: str = NotImplemented
+
+@dataclass
+class BaseEpisode(_HttpExtension):
+    title: str
+    num: str
 
     @abstractmethod
     def get_sources(self):
@@ -109,31 +112,33 @@ class BaseEpisode(MainSchema):
     async def a_get_sources(self):
         pass
 
+    def __str__(self):
+        return f"{self.num} {self.title}"
 
-class BaseSource(MainSchema):
-    ALL_VIDEO_EXTRACTORS = ALL_DECODERS
-    url: str = NotImplemented
-    name: str = NotImplemented
 
-    def _pre_validate_url_attr(self) -> None:
-        if self.url is NotImplemented:
-            raise AttributeError(f"{self.__class__.__name__} missing url attribute.")
+@dataclass
+class BaseSource(_HttpExtension):
+    title: str
+    url: str
+
+    @property
+    def _all_video_extractors(self):
+        return ALL_DECODERS
 
     def get_videos(self) -> List["Video"]:
-        self._pre_validate_url_attr()
-        for extractor in self.ALL_VIDEO_EXTRACTORS:
+        for extractor in self._all_video_extractors:
             if self.url == extractor():
                 return extractor().parse(self.url)
-        warnings.warn(f"Failed extractor videos from {self.url}", stacklevel=4)
+        warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
     async def a_get_videos(self) -> List["Video"]:
-        self._pre_validate_url_attr()
-        for extractor in self.ALL_VIDEO_EXTRACTORS:
+        for extractor in self._all_video_extractors:
             if self.url == extractor():
                 return await extractor().a_parse(self.url)
         warnings.warn(
-            f"Failed extractor videos from {self.url}. " f"Maybe needed video extractor not implemented?",
-            stacklevel=4,
-        )
+            f"Failed extractor videos from {self.url}")
         return []
+
+    def __str__(self):
+        return f"{urlsplit(self.url).netloc} ({self.title})"
