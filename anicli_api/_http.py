@@ -85,7 +85,8 @@ def check_ddos_protect_hook(resp: Response):
         or resp.status_code == 403
     ):
         logger.error("Ooops, %s have ddos protect :(", resp.url)
-        raise ConnectionError(f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return 403 code.")
+        msg = f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return 403 code."
+        raise ConnectionError(msg)
 
 
 class HTTPSync(HttpxSingleton, BaseHTTPSync):
