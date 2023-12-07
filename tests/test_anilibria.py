@@ -12,17 +12,18 @@ def extractor():
 
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
 def test_search(extractor):
-    result = extractor.search("chainsaw")
-    assert result[0].title == 'Человек-бензопила'
+    # extractor.search("луна лайка и носферату")[0].get_anime().get_episodes()[0].get_sources()[0].get_videos()
+    result = extractor.search("луна лайка и носферату")
+    assert result[0].title == 'Луна, Лайка и Носферату'
     anime = result[0].get_anime()
     episodes = anime.get_episodes()
     assert len(episodes) == 12
+    assert episodes[0].title == "Episode 1"
     sources = episodes[0].get_sources()
     assert len(sources) == 1
     videos = sources[0].get_videos()
+    assert sources[0].title == "Anilibria"
     assert len(videos) == 3
-    # videos = episodes[0].get_sources()
-    # assert len(videos) == 1
 
 
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
