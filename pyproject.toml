@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "anicli_api"
-version = "0.4.11"
-description = "Anime extractor api implementation"
-authors = ["Georgiy aka Vypivshiy"]
+version = "0.5.0"
+description = "Anime extractors api implementation"
+authors = ["vypivshiy"]
 license = "MIT"
 readme = "README.MD"
 packages = [{include = "anicli_api"}]
@@ -35,9 +35,9 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-httpx = {extras = ["http2"], version = "^0.24.0"}
-scrape-schema = {version = "^0.6.0"}
+httpx = {extras = ["http2"], version = "^0.25.2"}
 chompjs = "^1.2.2"
+parsel = "^1.8.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -59,8 +59,17 @@ build-backend = "poetry.core.masonry.api"
 [tool.mypy]
 python_version = 3.8
 pretty = true
+explicit_package_bases = true  # anicli_api.player issue
 ignore_missing_imports = true
-exclude = ["env", ".env", "venv", "__pycache__", "examples", "__template__.py"]
+exclude = [
+    "env",
+    ".env",
+    "venv",
+    "__pycache__",
+    "examples",
+    "__template__.py",
+    "^anicli_api/source/parsers/[a-z]+_parser.py$"  # auto generated files
+]
 files=["anicli_api/*"]
 
 
@@ -87,7 +96,9 @@ exclude = [
   "examples",
   "venv",
   "__init__.py",
-    "tests"
+  "__template__.py",  # templates
+  "tests",
+  "anicli_api/source/parsers/*"  # auto generated modules
 ]
 
 [tool.black]
