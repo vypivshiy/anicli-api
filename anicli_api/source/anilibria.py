@@ -194,7 +194,7 @@ class Source(BaseSource):
     _hd: str
     _sd: str
 
-    def get_videos(self) -> List["Video"]:
+    def get_videos(self, **_) -> List["Video"]:
         if self._fhd:
             return [
                 Video(type="m3u8", quality=480, url=self._sd),
@@ -206,7 +206,7 @@ class Source(BaseSource):
             Video(type="m3u8", quality=720, url=self._hd),
         ]
 
-    async def a_get_videos(self) -> List["Video"]:
+    async def a_get_videos(self, **_) -> List["Video"]:
         return self.get_videos()
 
 
