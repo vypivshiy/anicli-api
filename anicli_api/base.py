@@ -4,7 +4,12 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Type
 from urllib.parse import urlsplit
 
-from anicli_api._http import HTTPAsync, HTTPSync
+from anicli_api._http import (  # noqa: F401
+    HTTPAsync,
+    HTTPRetryConnectAsyncTransport,
+    HTTPRetryConnectSyncTransport,
+    HTTPSync,
+)
 from anicli_api.player import ALL_DECODERS
 
 if TYPE_CHECKING:
@@ -125,17 +130,17 @@ class BaseSource(_HttpExtension):
     def _all_video_extractors(self):
         return ALL_DECODERS
 
-    def get_videos(self) -> List["Video"]:
+    def get_videos(self, **httpx_kwargs) -> List["Video"]:
         for extractor in self._all_video_extractors:
             if self.url == extractor():
-                return extractor().parse(self.url)
+                return extractor(**httpx_kwargs).parse(self.url)
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
-    async def a_get_videos(self) -> List["Video"]:
+    async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
         for extractor in self._all_video_extractors:
             if self.url == extractor():
-                return await extractor().a_parse(self.url)
+                return await extractor(**httpx_kwargs).a_parse(self.url)
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
