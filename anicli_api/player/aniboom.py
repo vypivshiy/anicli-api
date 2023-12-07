@@ -16,7 +16,7 @@ class Aniboom(BaseVideoExtractor):
     DEFAULT_HTTP_CONFIG = {"headers": {"referer": "https://animego.org/"}}
     VIDEO_HEADERS = {
         "Referer": "https://aniboom.one/",
-        "Accept-Language": "ru-RU",
+        "Accept-Language": "ru-RU",  # INCREASE DOWNLOAD SPEED with this static value lol
         "Origin": "https://aniboom.one",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
@@ -34,10 +34,10 @@ class Aniboom(BaseVideoExtractor):
             return self._extract(response)
 
     def _extract(self, response: str) -> List[Video]:
-        # if pre unescape response - parsel selector uncorrect get data-parameters attr
+        # if pre unescape response - parsel selector incorrect get data-parameters attr
         sel = Selector(response)
         jsn = sel.xpath('//*[@id="video"]/@data-parameters')
-        # TODO create m3u8, dash URL parsers
+        # TODO create m3u8, dash URL parsers in another qualities
         videos: List[Video] = []
         if dash := jsn.jmespath("dash"):
             videos.append(

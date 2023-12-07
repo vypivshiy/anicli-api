@@ -19,7 +19,8 @@ class AnimeJoy(BaseVideoExtractor):
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         return self._extract(url)
 
-    def _extract(self, response: str) -> List[Video]:
+    @staticmethod
+    def _extract(response: str) -> List[Video]:
         url_1080, url_360 = re.findall(r"](https?://(?:www\.)?.*?\.mp4)", response)
         return [
             Video(type="mp4", quality=1080, url=url_1080),

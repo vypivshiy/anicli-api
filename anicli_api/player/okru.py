@@ -42,10 +42,10 @@ class OkRu(BaseVideoExtractor):
             videos: List[Video] = [
                 Video(
                     type="mp4",
-                    quality=self._QUALITIES_TABLE.get(result["name"], 0),
+                    quality=self._QUALITIES_TABLE.get(result["name"], 0),  # type: ignore
                     url=result["url"],
                 )
                 for result in results
             ]
             return videos
-        raise Exception("Failed extract video")
+        return []

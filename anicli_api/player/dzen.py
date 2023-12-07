@@ -25,7 +25,8 @@ class Dzen(BaseVideoExtractor):
             response = (await client.get(url)).text
             return self._extract(response)
 
-    def _extract(self, response) -> List[Video]:
+    @staticmethod
+    def _extract(response: str) -> List[Video]:
         sel = Selector(response)
         js_script = sel.xpath("//body/script/text()").get()  # type: ignore
         jsn = chompjs.parse_js_object(js_script)
@@ -38,3 +39,9 @@ class Dzen(BaseVideoExtractor):
             Video(type="mpd", quality=1080, url=url_mpd),
             Video(type="m3u8", quality=1080, url=url_m3u8),
         ]
+
+
+if __name__ == '__main__':
+    vids = Dzen().parse("https://dzen.ru/embed/vh1fMeui3d3Y?from_block=partner&from=zen&mute=1&autoplay=0&tv=0-3-types4")
+    print(vids[0].url)
+    print(vids[-1].url)

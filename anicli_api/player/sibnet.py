@@ -26,5 +26,8 @@ class SibNet(BaseVideoExtractor):
         if path := re.search(r'"(?P<url>/v/.*?\.mp4)"', response):
             url = f"https://video.sibnet.ru{path[1]}"
             return [Video(type="mp4", quality=480, url=url, headers={"Referer": url})]
-        else:
-            raise IndexError("Failed parse sibnet")
+        return []
+
+
+if __name__ == '__main__':
+    print(SibNet().parse()[0].url)

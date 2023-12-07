@@ -24,6 +24,6 @@ class SovietRomanticaPlayer(BaseVideoExtractor):
         #    response = await client.get(url)
         return self._extract(url)
 
-    def _extract(self, response) -> List[Video]:
-        # any extract logic
+    @staticmethod
+    def _extract(response) -> List[Video]:
         return [Video(type="m3u8", quality=1080, url=response)]
