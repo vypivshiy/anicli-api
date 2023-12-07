@@ -202,10 +202,7 @@ class Episode(BaseEpisode):
         return self.get_sources()
 
     def get_sources(self) -> List["Source"]:
-        return [Source(title="Animevost",
-                       url="https://api.animevost.org",
-                       hd=self._hd,
-                       std=self._std)]
+        return [Source(title="Animevost", url="https://api.animevost.org", hd=self._hd, std=self._std)]
 
     def __str__(self):
         return self.title
@@ -227,5 +224,5 @@ class Source(BaseSource):
 
 
 if __name__ == "__main__":
-    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())
+    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
     print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())

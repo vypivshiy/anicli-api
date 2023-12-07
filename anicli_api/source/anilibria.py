@@ -79,9 +79,7 @@ class Extractor(BaseExtractor):
         return [Search(**self.__extract_meta_data(kw)) for kw in self.API.search_titles(search=query)]
 
     async def a_search(self, query: str) -> List["Search"]:
-        return [
-            Search(**self.__extract_meta_data(kw)) for kw in (await self.API.a_search_titles(search=query))
-        ]
+        return [Search(**self.__extract_meta_data(kw)) for kw in (await self.API.a_search_titles(search=query))]
 
     def ongoing(self) -> List["Ongoing"]:
         return [Ongoing(**self.__extract_meta_data(kw)) for kw in self.API.get_updates()]
@@ -111,16 +109,16 @@ class _SearchOrOngoing:
 
     def get_anime(self) -> "Anime":
         return Anime(
-                title=self.title,
-                alt_title=self._alt_titles,
-                description=self._description,
-                thumbnail=self.thumbnail,
-                genres=self._genres,
-                episodes_available=self._episodes_available,
-                episodes_total=self._episodes_total,
-                aired=self._aired,
-                _episodes_and_videos=self._episodes_and_videos,
-                _host=self._host,
+            title=self.title,
+            alt_title=self._alt_titles,
+            description=self._description,
+            thumbnail=self.thumbnail,
+            genres=self._genres,
+            episodes_available=self._episodes_available,
+            episodes_total=self._episodes_total,
+            aired=self._aired,
+            _episodes_and_videos=self._episodes_and_videos,
+            _host=self._host,
         )
 
     def __str__(self):
@@ -182,8 +180,7 @@ class Episode(BaseEpisode):
         return self.title
 
     def get_sources(self) -> List["Source"]:
-        return [Source(title="Anilibria", url="https://api.anilibria.tv", _fhd=self._fhd,
-                       _hd=self._hd, _sd=self._sd)]
+        return [Source(title="Anilibria", url="https://api.anilibria.tv", _fhd=self._fhd, _hd=self._hd, _sd=self._sd)]
 
     async def a_get_sources(self) -> List["Source"]:
         return self.get_sources()
@@ -214,5 +211,5 @@ class Source(BaseSource):
 
 
 if __name__ == "__main__":
-    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())
+    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
     print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())

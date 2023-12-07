@@ -16,7 +16,7 @@ def extractor():
 def test_search(extractor):
     result = extractor.search("эксперименты лэйн")
     assert result[0].title == "Эксперименты Лэйн [13 из 13]"
-    sleep(.3)  # rate limit requests for trying avoid cloudflare error
+    sleep(0.3)  # rate limit requests for trying avoid cloudflare error
     anime = result[0].get_anime()
     assert anime.alt_title == "Serial Experiments Lain"
     episodes = anime.get_episodes()

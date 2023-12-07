@@ -41,7 +41,9 @@ class Dzen(BaseVideoExtractor):
         ]
 
 
-if __name__ == '__main__':
-    vids = Dzen().parse("https://dzen.ru/embed/vh1fMeui3d3Y?from_block=partner&from=zen&mute=1&autoplay=0&tv=0-3-types4")
+if __name__ == "__main__":
+    vids = Dzen().parse(
+        "https://dzen.ru/embed/vh1fMeui3d3Y?from_block=partner&from=zen&mute=1&autoplay=0&tv=0-3-types4"
+    )
     print(vids[0].url)
     print(vids[-1].url)

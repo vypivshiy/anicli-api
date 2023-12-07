@@ -3,9 +3,10 @@ from typing import Dict, List
 
 from parsel import Selector
 
-from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
-from anicli_api.source.parsers.animejoy_parser import AnimeView, OngoingView, SearchView, PlayerView
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
+from anicli_api.source.parsers.animejoy_parser import AnimeView, OngoingView
 from anicli_api.source.parsers.animejoy_parser import PlayerUrlsView as PlayerUrlsViewOld
+from anicli_api.source.parsers.animejoy_parser import PlayerView, SearchView
 
 
 # schema patches
@@ -13,7 +14,9 @@ class PlayerUrlsView(PlayerUrlsViewOld):
     @staticmethod
     def _parse_url(part: Selector) -> str:
         val_0 = part.attrib["data-file"]
-        return f"https:{val_0}" if val_0.startswith('//') else val_0
+        return f"https:{val_0}" if val_0.startswith("//") else val_0
+
+
 # end patches
 
 
@@ -22,6 +25,7 @@ class Extractor(BaseExtractor):
     WARNING:
         Sometimes this source drop cloudflare protect exceptions
     """
+
     BASE_URL = "https://animejoy.ru"
 
     @staticmethod
@@ -35,22 +39,13 @@ class Extractor(BaseExtractor):
         return [Ongoing(**d) for d in data]
 
     def search(self, query: str):
-        resp = self.HTTP().post("https://animejoy.ru",
-                                data={
-                                    "story": query,
-                                    "do": "search",
-                                    "subaction": "search"
-                                })
+        resp = self.HTTP().post("https://animejoy.ru", data={"story": query, "do": "search", "subaction": "search"})
         return self._extract_search(resp.text)
 
     async def a_search(self, query: str):
         resp = await self.HTTP_ASYNC().post(
-            "https://animejoy.ru",
-            data={
-                "story": query,
-                "do": "search",
-                "subaction": "search"
-            })
+            "https://animejoy.ru", data={"story": query, "do": "search", "subaction": "search"}
+        )
         return self._extract_search(resp.text)
 
     def ongoing(self):
@@ -78,7 +73,7 @@ class Search(BaseSearch):
     async def a_get_anime(self):
         resp = await self._a_http().get(self.url)
         return self._extract(resp.text)
-    
+
     def __str__(self):
         return f"{self.title} ({self.alt_title})"
 
@@ -92,59 +87,60 @@ class Ongoing(Search, BaseOngoing):
 class Anime(BaseAnime):
     alt_title: str
     news_id: str  # for send extra requests
-    
+
     @staticmethod
     def _extract(resp: str) -> List["Episode"]:
         player_urls_data = PlayerUrlsView(resp).parse().view()
         player_view_data = PlayerView(resp).parse().view()
         # players map names
-        players = {d['id']: d['name'] for d in player_view_data}
+        players = {d["id"]: d["name"] for d in player_view_data}
         ctx_videos = {}
         for item in player_urls_data:
-            player_id = item['id']
+            player_id = item["id"]
             player_name = players.get(player_id, "???")
-            player_url = item['url']
+            player_url = item["url"]
 
             if not ctx_videos.get(player_id):
-                ctx_videos[player_id] = {'player_id': player_id, "player_name": player_name, "urls": []}
-            ctx_videos[player_id]['urls'].append(player_url)
-        max_episodes_count = len(max((d['urls'] for d in ctx_videos.values()), key=len))
+                ctx_videos[player_id] = {"player_id": player_id, "player_name": player_name, "urls": []}
+            ctx_videos[player_id]["urls"].append(player_url)
+        max_episodes_count = len(max((d["urls"] for d in ctx_videos.values()), key=len))
 
         episodes = {}  # type: ignore
-        for i in range(max_episodes_count+1):
+        for i in range(max_episodes_count + 1):
             # enumerate from 1
             if i == 0:
                 continue
 
             for player_id, video in ctx_videos.items():
                 if not episodes.get(str(i)):
-                    episodes[str(i)] = {"title": f"episode {i}",
-                                        "num": str(i),
-                                        "players": {}  # player_id: {url, title}
-                                        }
+                    episodes[str(i)] = {
+                        "title": f"episode {i}",
+                        "num": str(i),
+                        "players": {},  # player_id: {url, title}
+                    }
 
-                if not episodes[str(i)]['players'].get(player_id):
-                    episodes[str(i)]['players'][player_id] = {}
+                if not episodes[str(i)]["players"].get(player_id):
+                    episodes[str(i)]["players"][player_id] = {}
 
-                if len(video['urls']) >= max_episodes_count:
-                    episodes[str(i)]['players'][player_id]['url'] = video['urls'][i-1]
-                    episodes[str(i)]['players'][player_id]['title'] = video['player_name']
+                if len(video["urls"]) >= max_episodes_count:
+                    episodes[str(i)]["players"][player_id]["url"] = video["urls"][i - 1]
+                    episodes[str(i)]["players"][player_id]["title"] = video["player_name"]
         return [Episode(**d) for d in episodes.values()]
 
     def get_episodes(self):
         resp = self._http().get(
-            'https://animejoy.ru/engine/ajax/playlists.php',
-            params={'news_id': self.news_id, 'xfield': "playlist"},
+            "https://animejoy.ru/engine/ajax/playlists.php",
+            params={"news_id": self.news_id, "xfield": "playlist"},
         )
-        return self._extract(resp.json()['response'])
+        return self._extract(resp.json()["response"])
 
     async def a_get_episodes(self):
         resp = await self._a_http().get(
-            'https://animejoy.ru/engine/ajax/playlists.php',
-            params={'news_id': self.news_id, 'xfield': "playlist"},
+            "https://animejoy.ru/engine/ajax/playlists.php",
+            params={"news_id": self.news_id, "xfield": "playlist"},
         )
-        return self._extract(resp.json()['response'])
-    
+        return self._extract(resp.json()["response"])
+
     def __str__(self):
         title = f"{self.title} ({self.alt_title})"
         len_title = len(title)
@@ -167,6 +163,6 @@ class Source(BaseSource):
     pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
-    print(Extractor().search('lain')[0].get_anime().get_episodes()[0].get_sources())
+    print(Extractor().search("lain")[0].get_anime().get_episodes()[0].get_sources())

@@ -17,12 +17,12 @@ class Kodik(BaseVideoExtractor):
     def _decode(url_encoded: str) -> str:
         # After 30.03.23 `kodik` provider change reversed base64 string to Caesar cipher + base64.
         # This code simular original js player code for decode url.
-        # 
+        #
         # this code replaces all alphabetical characters in a base64 encoded string
         # with characters that are shifted 13 places in the alphabetical order,
         # wrapping around to the beginning or end of the alphabet as necessary.
         # This is a basic form of a type of substitution cipher.
-        
+
         def char_wrapper(e):
             return chr(
                 (ord(e.group(0)) + 13 - (65 if e.group(0) <= "Z" else 97)) % 26 + (65 if e.group(0) <= "Z" else 97)
@@ -33,7 +33,7 @@ class Kodik(BaseVideoExtractor):
             base64_url += "=="
         decoded_url = b64decode(base64_url).decode()
         return decoded_url if decoded_url.startswith("https") else f"https:{b64decode(base64_url).decode()}"
-    
+
     @staticmethod
     def _parse_api_payload(response: str) -> Dict:
         # parse payload for next send request to kodik API
@@ -46,7 +46,7 @@ class Kodik(BaseVideoExtractor):
             "hash": re.search(r"videoInfo.hash = '(.*?)';", response)[1],
             "id": re.search(r"videoInfo.id = '(.*?)';", response)[1],
             "bad_user": True,
-            "info": {}
+            "info": {},
         }
 
     @kodik_validator
@@ -102,9 +102,7 @@ class Kodik(BaseVideoExtractor):
         elif response_api.get("480"):
             return [
                 Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"])),
-                Video(type="m3u8", quality=480, url=self._decode(response_api["480"][0]["src"]))
+                Video(type="m3u8", quality=480, url=self._decode(response_api["480"][0]["src"])),
             ]
         # OMG :O
-        return [
-            Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"]))
-        ]
+        return [Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"]))]

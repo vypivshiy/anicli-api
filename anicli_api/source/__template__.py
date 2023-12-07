@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, List
 
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
-from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
 # from anicli_api.source.schemas
 
 # schema patches
@@ -40,7 +40,6 @@ class Extractor(BaseExtractor):
 
 @dataclass
 class Search(BaseSearch):
-
     @staticmethod
     def _extract(resp: str) -> "Anime":
         pass
@@ -56,7 +55,6 @@ class Search(BaseSearch):
 
 @dataclass
 class Ongoing(BaseOngoing):
-
     @staticmethod
     def _extract(resp: str) -> "Anime":
         pass
@@ -72,32 +70,30 @@ class Ongoing(BaseOngoing):
 
 @dataclass
 class Anime(BaseAnime):
-
     @staticmethod
     def _extract(resp: str) -> List["Episode"]:
         pass
 
     def get_episodes(self):
-        resp = self._http().get(f'')
+        resp = self._http().get(f"")
         return self._extract(resp.text)
 
     async def a_get_episodes(self):
-        resp = await self._a_http().get(f'')
+        resp = await self._a_http().get(f"")
         return self._extract(resp.text)
 
 
 @dataclass
 class Episode(BaseEpisode):
-
     def _extract(self, resp: str) -> List["Source"]:
         pass
 
     def get_sources(self):
-        resp = self._http().get('')
+        resp = self._http().get("")
         return self._extract(resp.text)
 
     async def a_get_sources(self):
-        resp = await self._a_http().get('')
+        resp = await self._a_http().get("")
         return self._extract(resp.text)
 
 
@@ -106,5 +102,5 @@ class Source(BaseSource):
     pass
 
 
-if __name__ == '__main__':
-    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())
+if __name__ == "__main__":
+    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())

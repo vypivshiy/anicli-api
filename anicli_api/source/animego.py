@@ -1,13 +1,13 @@
-from cgitb import text
 from dataclasses import dataclass
 from typing import Dict
 
 from parsel import Selector
 
-from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
-from anicli_api.source.parsers.animego_parser import SourceView, EpisodeView, SearchView, DubbersView
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.source.parsers.animego_parser import AnimeView as AnimeViewOld
+from anicli_api.source.parsers.animego_parser import DubbersView, EpisodeView
 from anicli_api.source.parsers.animego_parser import OngoingView as OngoingViewOld
+from anicli_api.source.parsers.animego_parser import SearchView, SourceView
 
 
 # patches
@@ -23,7 +23,7 @@ class OngoingView(OngoingViewOld):
     @staticmethod
     def _parse_dub(part: Selector) -> str:
         val_0 = part.css(".text-gray-dark-6 ::text").get()
-        return val_0.replace(')', '').replace('(', '')  # type: ignore
+        return val_0.replace(")", "").replace("(", "")  # type: ignore
 
 
 class Extractor(BaseExtractor):
@@ -43,7 +43,7 @@ class Extractor(BaseExtractor):
         for ong in ongs:
             key = hash(ong.url + ong.episode)
             if sorted_ongs.get(key):
-                sorted_ongs[key].dub += f', {ong.dub}'
+                sorted_ongs[key].dub += f", {ong.dub}"
             else:
                 sorted_ongs[key] = ong
         return list(sorted_ongs.values())
@@ -67,7 +67,6 @@ class Extractor(BaseExtractor):
 
 @dataclass
 class Search(BaseSearch):
-
     @staticmethod
     def _extract(resp: str):
         data = AnimeView(resp).parse().view()[0]
@@ -113,16 +112,16 @@ class Anime(BaseAnime):
     def _extract(resp: str):
         episodes_data = EpisodeView(resp).parse().view()
         dubbers_data = DubbersView(resp).parse().view()
-        dubbers = {d['id']: d['name'] for d in dubbers_data}
+        dubbers = {d["id"]: d["name"] for d in dubbers_data}
         return [Episode(**d, dubbers=dubbers) for d in episodes_data]
 
     def get_episodes(self):
-        resp = self._http().get(f'https://animego.org/anime/{self.id}/player?_allow=true').json()['content']
+        resp = self._http().get(f"https://animego.org/anime/{self.id}/player?_allow=true").json()["content"]
         return self._extract(resp)
 
     async def a_get_episodes(self):
-        resp = await self._a_http().get(f'https://animego.org/anime/{self.id}/player?_allow=true')
-        return self._extract(resp.json()['content'])
+        resp = await self._a_http().get(f"https://animego.org/anime/{self.id}/player?_allow=true")
+        return self._extract(resp.json()["content"])
 
 
 @dataclass
@@ -132,24 +131,29 @@ class Episode(BaseEpisode):
 
     def _extract(self, resp: str):
         data = SourceView(resp).parse().view()
-        data_source = [{"title": f'{self.dubbers.get(d["data_provide_dubbing"], "???").strip()}',
-                        "url": d['url']} for d in data]
+        data_source = [
+            {"title": f'{self.dubbers.get(d["data_provide_dubbing"], "???").strip()}', "url": d["url"]} for d in data
+        ]
         return [Source(**d) for d in data_source]
 
     def get_sources(self):
-        resp = self._http().get('https://animego.org/anime/series',
-                                params={
-                                    "dubbing": 2,
-                                    "provider": 24,
-                                    "episode": self.num, "id": self.id}).json()['content']
+        resp = (
+            self._http()
+            .get(
+                "https://animego.org/anime/series",
+                params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
+            )
+            .json()["content"]
+        )
         return self._extract(resp)
 
     async def a_get_sources(self):
-        resp = (await self._a_http().get('https://animego.org/anime/series',
-                                         params={
-                                             "dubbing": 2,
-                                             "provider": 24,
-                                             "episode": self.num, "id": self.id})).json()['content']
+        resp = (
+            await self._a_http().get(
+                "https://animego.org/anime/series",
+                params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
+            )
+        ).json()["content"]
         return self._extract(resp)
 
 
@@ -158,7 +162,6 @@ class Source(BaseSource):
     pass
 
 
-if __name__ == '__main__':
-    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())
+if __name__ == "__main__":
+    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
     print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
-

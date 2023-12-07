@@ -1,14 +1,13 @@
 import re
 import warnings
-from cgitb import text
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from parsel import Selector
 
-from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
-from anicli_api.source.parsers.sovetromantica_parser import OngoingView, SearchView, EpisodeView
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.source.parsers.sovetromantica_parser import AnimeView as AnimeViewOld
+from anicli_api.source.parsers.sovetromantica_parser import EpisodeView, OngoingView, SearchView
 
 
 # patches
@@ -19,6 +18,7 @@ class AnimeView(AnimeViewOld):
         if match := re.search(r"<meta property=\".*\" content=\"(https://.*?\.m3u8)\"", val):
             return match[1]
         return ""
+
 
 # end patches
 
@@ -61,8 +61,8 @@ class Search(BaseSearch):
     def _extract(resp: str) -> "Anime":
         data = AnimeView(resp).parse().view()[0]
         if not data.get("description"):
-            data['description'] = ""
-        if not data.get('video'):
+            data["description"] = ""
+        if not data.get("video"):
             data["video"] = None
         episodes = EpisodeView(resp).parse().view()
         return Anime(**data, episodes=episodes)
@@ -93,7 +93,7 @@ class Anime(BaseAnime):
         if not self.video:
             warnings.warn("Not available videos")
             return []
-        return [Episode(num=str(i), url=d['url'], title=d['title']) for i, d in enumerate(self.episodes, 1)]
+        return [Episode(num=str(i), url=d["url"], title=d["title"]) for i, d in enumerate(self.episodes, 1)]
 
     async def a_get_episodes(self):
         return self.get_episodes()
@@ -106,10 +106,7 @@ class Episode(BaseEpisode):
     def _extract(self, resp: str) -> List["Source"]:
         # video link contains in anime page
         data = AnimeView(resp).parse().view()[0]
-        return [
-            Source(title="Sovetromantica",
-                   url=data['video'])
-        ]
+        return [Source(title="Sovetromantica", url=data["video"])]
 
     def get_sources(self):
         resp = self._http().get(self.url)
@@ -125,5 +122,5 @@ class Source(BaseSource):
     pass
 
 
-if __name__ == '__main__':
-    print(Extractor().search('lai')[0].get_anime().get_episodes()[0].get_sources())
+if __name__ == "__main__":
+    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())

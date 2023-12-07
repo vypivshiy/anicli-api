@@ -29,5 +29,5 @@ class SibNet(BaseVideoExtractor):
         return []
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(SibNet().parse()[0].url)

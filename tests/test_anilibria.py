@@ -14,7 +14,7 @@ def extractor():
 def test_search(extractor):
     # extractor.search("луна лайка и носферату")[0].get_anime().get_episodes()[0].get_sources()[0].get_videos()
     result = extractor.search("луна лайка и носферату")
-    assert result[0].title == 'Луна, Лайка и Носферату'
+    assert result[0].title == "Луна, Лайка и Носферату"
     anime = result[0].get_anime()
     episodes = anime.get_episodes()
     assert len(episodes) == 12

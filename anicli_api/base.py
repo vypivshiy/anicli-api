@@ -1,10 +1,10 @@
-from urllib.parse import urlsplit
 import warnings
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import List, TYPE_CHECKING, Type
+from typing import TYPE_CHECKING, List, Type
+from urllib.parse import urlsplit
 
-from anicli_api._http import HTTPSync, HTTPAsync
+from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.player import ALL_DECODERS
 
 if TYPE_CHECKING:
@@ -136,8 +136,7 @@ class BaseSource(_HttpExtension):
         for extractor in self._all_video_extractors:
             if self.url == extractor():
                 return await extractor().a_parse(self.url)
-        warnings.warn(
-            f"Failed extractor videos from {self.url}")
+        warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
     def __str__(self):

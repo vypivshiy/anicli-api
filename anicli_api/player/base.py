@@ -2,7 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Union
 from urllib.parse import urlparse
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
@@ -31,14 +31,15 @@ def url_validator(pattern: Union[str, re.Pattern]):
 class Video:
     """Video container contains direct link and information like type, quality
 
-        - type - video format type (mp4, m3u8 or mpd)
+    - type - video format type (mp4, m3u8 or mpd)
 
-        - quality - video quality [144, 240, 360, 480, 720, 1080]
+    - quality - video quality [144, 240, 360, 480, 720, 1080]
 
-        - url - direct video link
+    - url - direct video link
 
-        - headers - required UserAgent values for play or download this video. If not needed, default dict is empty
-        """
+    - headers - required UserAgent values for play or download this video. If not needed, default dict is empty
+    """
+
     type: Literal["mp4", "m3u8", "mpd", "audio", "webm"]
     quality: Literal[0, 144, 240, 360, 480, 720, 1080]
     url: str
@@ -98,7 +99,6 @@ class ABCVideoExtractor(ABC):
 
 
 class BaseVideoExtractor(ABCVideoExtractor, ABC):
-
     @classmethod
     def _compare_url(cls, url: str) -> bool:
         """Provide __eq__ method

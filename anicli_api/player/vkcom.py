@@ -32,9 +32,7 @@ class VkCom(BaseVideoExtractor):
         jsn = chompjs.parse_js_object(player_params)["params"][0]
         urls_keys = jmespath.search("keys(@)[?starts_with(@, 'url')]", jsn)
         videos: List[Video] = [
-            Video(type="mp4",
-                  url=jsn[url_key],
-                  quality=int(url_key.lstrip("url")))  # type: ignore
+            Video(type="mp4", url=jsn[url_key], quality=int(url_key.lstrip("url")))  # type: ignore
             for url_key in urls_keys
         ]
         return videos
