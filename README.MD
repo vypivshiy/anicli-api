@@ -207,8 +207,9 @@ videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTra
 
 # Примечания
 - `anicli_api/source/parsers` - автоматически сгенерированные парсеры с помощью 
-[scrape-schema-codegen](https://github.com/vypivshiy/selector_schema_codegen). 
-Так как это прототип и имеет свои ограничения, то при модификациях этих модулей 
+[scrape-schema-codegen](https://github.com/vypivshiy/selector_schema_codegen) и файлов-конфигурации [libanime](https://github.com/libanime/libanime_schema). 
+
+- Так как это прототип и имеет свои ограничения, то при модификациях этих модулей 
 используйте наследование, чтобы не потерять изменения при обновлениях.
 
 Пример из модуля [animego](anicli_api/source/animego.py):
