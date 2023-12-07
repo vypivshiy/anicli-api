@@ -9,6 +9,7 @@ from anicli_api._http import (  # noqa: F401
     HTTPRetryConnectAsyncTransport,
     HTTPRetryConnectSyncTransport,
     HTTPSync,
+    DDOSServerDetectError
 )
 from anicli_api.player import ALL_DECODERS
 

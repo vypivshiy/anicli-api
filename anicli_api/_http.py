@@ -44,6 +44,7 @@ __all__ = (
     "HTTPAsync",
     "HTTPRetryConnectSyncTransport",
     "HTTPRetryConnectAsyncTransport",
+    "DDOSServerDetectError"
 )
 
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
