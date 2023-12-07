@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from parsel import Selector
 
@@ -94,6 +94,8 @@ class Anime(BaseAnime):
         player_view_data = PlayerView(resp).parse().view()
         # players map names
         players = {d["id"]: d["name"] for d in player_view_data}
+
+        ctx_videos: Dict[str, Dict[str, Union[str, List[str]]]]
         ctx_videos = {}
         for item in player_urls_data:
             player_id = item["id"]
@@ -102,7 +104,8 @@ class Anime(BaseAnime):
 
             if not ctx_videos.get(player_id):
                 ctx_videos[player_id] = {"player_id": player_id, "player_name": player_name, "urls": []}
-            ctx_videos[player_id]["urls"].append(player_url)
+            # TODO typing by TypedDict or refactoring
+            ctx_videos[player_id]["urls"].append(player_url)  # type: ignore[union-attr]
         max_episodes_count = len(max((d["urls"] for d in ctx_videos.values()), key=len))
 
         episodes = {}  # type: ignore
@@ -119,13 +122,13 @@ class Anime(BaseAnime):
                         "players": {},  # player_id: {url, title}
                     }
 
-                if not episodes[str(i)]["players"].get(player_id):
-                    episodes[str(i)]["players"][player_id] = {}
+                if not episodes[str(i)]["players"].get(player_id):  # type: ignore[attr-defined]
+                    episodes[str(i)]["players"][player_id] = {}  # type: ignore[index]
 
                 if len(video["urls"]) >= max_episodes_count:
-                    episodes[str(i)]["players"][player_id]["url"] = video["urls"][i - 1]
-                    episodes[str(i)]["players"][player_id]["title"] = video["player_name"]
-        return [Episode(**d) for d in episodes.values()]
+                    episodes[str(i)]["players"][player_id]["url"] = video["urls"][i - 1]  # type: ignore[index]
+                    episodes[str(i)]["players"][player_id]["title"] = video["player_name"]  # type: ignore[index]
+        return [Episode(**d) for d in episodes.values()]  # type: ignore[arg-type]
 
     def get_episodes(self):
         resp = self._http().get(

@@ -139,6 +139,7 @@ class _SearchOrOngoing:
         if isinstance(playlist, dict):
             playlist = [playlist]
         return Anime(
+            thumbnail=self.thumbnail,
             title=self.title,
             alt_titles=self._alt_titles,
             description=self._description,
@@ -163,13 +164,13 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 @dataclass
 class Anime(BaseAnime):
     title: str
-    alt_titles: str
+    alt_titles: List[str]
     thumbnail: str
     description: str
     genres: List[str]
     episodes_available: int
     episodes_total: int
-    aired: int
+    aired: str  # int?
     # playlist
     _playlist: List[dict]
 

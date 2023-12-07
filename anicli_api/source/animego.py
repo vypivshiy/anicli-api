@@ -39,7 +39,7 @@ class Extractor(BaseExtractor):
         data = OngoingView(resp).parse().view()
         ongs = [Ongoing(**d) for d in data]
         # remove duplicates and accumulate by episode and dubber keys
-        sorted_ongs = {}
+        sorted_ongs: Dict[int, "Ongoing"] = {}
         for ong in ongs:
             key = hash(ong.url + ong.episode)
             if sorted_ongs.get(key):

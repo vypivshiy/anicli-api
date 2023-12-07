@@ -38,13 +38,13 @@ class Kodik(BaseVideoExtractor):
     def _parse_api_payload(response: str) -> Dict:
         # parse payload for next send request to kodik API
         return {
-            "domain": re.search(r'var domain = "(.*?)";', response)[1],
-            "d_sign": re.search(r'var d_sign = "(.*?)";', response)[1],
-            "pd": re.search(r'var pd = "(.*?)";', response)[1],
-            "ref": re.search(r'var ref = "(.*?)";', response)[1],
-            "type": re.search(r"videoInfo.type = '(.*?)';", response)[1],
-            "hash": re.search(r"videoInfo.hash = '(.*?)';", response)[1],
-            "id": re.search(r"videoInfo.id = '(.*?)';", response)[1],
+            "domain": re.search(r'var domain = "(.*?)";', response)[1],  # type: ignore[index]
+            "d_sign": re.search(r'var d_sign = "(.*?)";', response)[1],  # type: ignore[index]
+            "pd": re.search(r'var pd = "(.*?)";', response)[1],  # type: ignore[index]
+            "ref": re.search(r'var ref = "(.*?)";', response)[1],  # type: ignore[index]
+            "type": re.search(r"videoInfo.type = '(.*?)';", response)[1],  # type: ignore[index]
+            "hash": re.search(r"videoInfo.hash = '(.*?)';", response)[1],  # type: ignore[index]
+            "id": re.search(r"videoInfo.id = '(.*?)';", response)[1],  # type: ignore[index]
             "bad_user": True,
             "info": {},
         }

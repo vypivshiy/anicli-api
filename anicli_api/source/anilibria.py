@@ -138,7 +138,7 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 @dataclass
 class Anime(BaseAnime):
     title: str
-    alt_title: str
+    alt_title: List[str]
     thumbnail: str
     description: str
     genres: List[str]
