@@ -20,7 +20,8 @@ anicli_api
 │     ├── ...  ready-made модули
 │     ...
 ├── source - модули парсеров с источников
-│     ├── __template__.py
+│     ├── parsers/... автоматически сгенерированные парсеры html страниц
+│     ├── __template__.py - шаблон для экстрактора
 │     ├─ ... ready-made парсеры
 │     ...
 └── tools - прочие модули
@@ -48,12 +49,50 @@ anicli_api
     Video(type, quality, url, extra_headers)
 ```
 
+# source description
+- name - имя модуля
+- type - тип источника получения данных. **NO** - неофициальное (парсинг ВЕБ страниц), **YES** - официальное (rest-api)
+- note - примечание от автора
+- dubbers - тип озвучек. many - от различных авторов. subtitles - только субтитры. author - своя
+
+| name           | url                        | official api | dubbers           | note                                                                    |
+|----------------|----------------------------|--------------|-------------------|-------------------------------------------------------------------------|
+| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает IP отличных от СНГ                |
+| animania       | https://animania.online    | NO           | many              | источник kodik, не работает IP отличных от СНГ                          |
+| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare** (может периодически не работать), много источников |
+| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                              |
+| anilibria      | https://anilibria.tv       | YES          | author            |                                                                         |
+| animevost      | https://animevost.org      | YES          | author            |                                                                         |
+
+
+# players description
+
+Требует дополнения и дополнительных тестов
+
+- name - имя плеера
+- max quality - максимальное разрешение выдаваемое источником. Это может быть 0 (аудио, без видео), 144, 240, 360, 480, 720, 1080
+- note - примечания
+
+| name           | max quality                               | note                                                           |
+|----------------|-------------------------------------------|----------------------------------------------------------------|
+| kodik          | 720 (на старых тайтлах - 480)             | **работает только на IP СНГ**                                  |
+| aniboom        | 1080                                      | **работает только на IP СНГ**                                  |
+| sibnet         | 480                                       |                                                                |
+| animejoy       | 1080                                      | только актуальные ongoing, потом видео удаляются с их серверов |
+| csst           | 1080                                      |                                                                |
+| dzen           | 1080                                      |                                                                |
+| mailru         |                                           |                                                                |
+| okru           |                                           |                                                                |
+| sovetromantica | 1080                                      |                                                                |
+| vkcom          | 1080 (какого качества автор зальет видео) | CDN сервера в РФ, в других странах загружается медленнее       |
+
+
 # Quickstart example
-Демонстрация простого prompt-line приложения.
+
 ```python
-from anicli_api.source.animejoy import Extractor # или любой другой источник
+from anicli_api.source.animego import Extractor # или любой другой источник
 
-
+# simple prompt-line app
 if __name__ == '__main__':
     ex = Extractor()
     while True:
@@ -72,27 +111,30 @@ if __name__ == '__main__':
         video = videos[int(input("video > "))]
         print(video.type, video.quality, video.url, video.headers)
 ```
-С asyncio аналогично, но методы получения объектов имеют префикс `a_` 
-## Структура объектов
 
-### История реализации структуры проекта
+С asyncio аналогично, но **все** методы получения объектов имеют префикс `a_`:
 
-Это была сложная проблема проекта, которая была решена с помощью реализации дополнительной
-библиотеки [scrape-schema](https://github.com/vypivshiy/scrape-schema) - dataclass-like 
-(также схожая с ORM) подходом написания парсеров. Ну... насколько получилось решить проблему, 
-ведь идет работа с html документами и сырым текстом, а не с готовыми структурами вида json
+```python
+import asyncio
+from anicli_api.source.animego import Extractor # или любой другой источник
 
-Изначально планировалось все реализовывать на регулярных выражениях (как в yt-dlp), но
-выбрал css и xpath селекторы по следующим причинам:
-- CSS и XPath селекторы проще сопровождать: просто открыть браузер, зайти в инструменты разработчика,
-скопировать селектор из вкладки `Elements` и вставить в поиск. Опционально проверить с помощью [тестера 1](http://xpather.com/)
-или [тестера 2](https://try.jsoup.org/)
-- Просты в написании. Нужен только chromium-based браузер, плагин [selectorGadget](https://chrome.google.com/webstore/detail/selectorgadget/mhjhnkcfbdhnjickkkdbjoemdmbfginb)
-и потом сгенерированный селектор идёт в код
-- Чуть меньше кода писать, удобнее читать. Ну, почти... Ведь работаем с сырым html, а не структурами!
-  Также, дополнительно присутствует логирование (в этом проекте выключен по умолчанию) и 
-автоматическое приведение типов
-- Быстрее и удобнее добавлять дополнительные поля по необходимости
+async def main():
+    ex = Extractor()
+    prompt = input("search query > ")
+    # a_ - async prefix.
+    # simular in Ongoing, Anime, Episode, Source, Video objects
+    results = await ex.a_search(prompt) 
+    print(*[f"{i}) {r}" for i, r in enumerate(results)], sep="\n")
+    
+if __name__ == '__main__':
+    asyncio.run(main())
+```
+
+Приведены поля, которые **гарантированно** возвращаются в API, в некоторых источниках
+могут отличаться или хранить поля для использования во внутренних методах 
+(например, в anilibria и animevost)
+
+## Структуры объектов
 
 ### SearchResult
 - url: str - URL на тайтл
@@ -105,15 +147,9 @@ if __name__ == '__main__':
 - thumbnail: str - изображение
 
 ### Anime
-В некоторых источниках поля могут возвращать None
 - title: str - имя тайтла (на русском)
-- alt_titles: List[str] - альтернативные названия (английский, японский...)
 - thumbnail: str - изображение
 - description: Optional[str] - описание тайтла
-- genres: List[str] - жанры
-- episodes_available: Optional[int] - доступных эпизодов
-- episodes_total: Optional[int] - максимальное число эпизодов
-- aired: Optional[str] - дата выхода (или год)
 
 ### Episode
 - title: str - имя эпизода
@@ -121,19 +157,37 @@ if __name__ == '__main__':
 
 ### Source
 - url: str - ссылка на источник
-- name: str - даббер или имя источника
+- title: str - даббер или имя источника
 
 ### Video
 
-Объект `Video` (полученный из `Source.get_video` или `Source.a_get_video`) имеет следующую структуру:
+Объект `Video`, полученный из `Source.get_video` (или `Source.a_get_video`) 
+имеет следующую структуру:
 
-* type - тип видео
-* quality - разрешение видео
+* type - тип видео (m3u8, mp4, mpd, audio)
+* quality - разрешение видео (0, 144, 240, 360, 480, 720, 1080)
 * url - прямая ссылка на видео
-* headers - заголовки требуемые для воспроизведения видео. 
+* headers - заголовки требуемые для получения видео. 
 Если возвращает пустой словарь - заголовки не нужны
 
 # Примечания
+- `anicli_api/source/parsers` - автоматически сгенерированные парсеры с помощью 
+[scrape-schema-codegen](https://github.com/vypivshiy/selector_schema_codegen). 
+Так как это прототип и имеет свои ограничения, то при модификациях этих модулей 
+используйте наследование, чтобы не потерять изменения при обновлениях.
+
+Пример из модуля [animego](anicli_api/source/animego.py):
+
+```python
+from anicli_api.source.parsers.animego_parser import AnimeView as AnimeViewOld
+
+class AnimeView(AnimeViewOld):
+    @staticmethod
+    def _parse_description(part) -> str:
+        # remove whitespaces patch
+        val_0 = part.css(".description ::text").getall()
+        return " ".join(line.strip() for line in val_0)
+```
 
 - Проект разработан преимущественно на личное, некоммерческое использование с client-side 
 стороны. 
@@ -144,5 +198,5 @@ if __name__ == '__main__':
 что предоставляется пользователю в Интернете. 
 Весь контент, доступный в рамках проекта, размещается на внешних неаффилированных источниках.
 
-**Этот проект не включает инструменты кеширования и сохранения всех полученных данных, 
-только готовые реализации парсеров**
+- **Этот проект не включает инструменты кеширования и сохранения всех полученных данных, 
+только готовые реализации парсеров и программные интерфейсы**
