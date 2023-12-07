@@ -6,8 +6,8 @@ from parsel import Selector
 
 from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
 
-from anicli_api.source.schemas.animania import DubbersView, AnimeView, OngoingView, SearchView
-from anicli_api.source.schemas.animania import VideoView as VideoViewOld
+from anicli_api.source.parsers.animania_parser import DubbersView, AnimeView, OngoingView, SearchView
+from anicli_api.source.parsers.animania_parser import VideoView as VideoViewOld
 
 
 # patches

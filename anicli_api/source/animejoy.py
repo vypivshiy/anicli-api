@@ -4,8 +4,8 @@ from typing import Dict, List
 from parsel import Selector
 
 from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
-from anicli_api.source.schemas.animejoy import AnimeView, OngoingView, SearchView, PlayerView
-from anicli_api.source.schemas.animejoy import PlayerUrlsView as PlayerUrlsViewOld
+from anicli_api.source.parsers.animejoy_parser import AnimeView, OngoingView, SearchView, PlayerView
+from anicli_api.source.parsers.animejoy_parser import PlayerUrlsView as PlayerUrlsViewOld
 
 
 # schema patches

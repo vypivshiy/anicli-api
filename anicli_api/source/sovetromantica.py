@@ -7,8 +7,8 @@ from typing import Dict, List, Optional
 from parsel import Selector
 
 from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
-from anicli_api.source.schemas.sovetromantica import OngoingView, SearchView, EpisodeView
-from anicli_api.source.schemas.sovetromantica import AnimeView as AnimeViewOld
+from anicli_api.source.parsers.sovetromantica_parser import OngoingView, SearchView, EpisodeView
+from anicli_api.source.parsers.sovetromantica_parser import AnimeView as AnimeViewOld
 
 
 # patches

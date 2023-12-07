@@ -5,9 +5,9 @@ from typing import Dict
 from parsel import Selector
 
 from anicli_api.base import BaseExtractor, BaseOngoing, BaseSearch, BaseSource, BaseAnime, BaseEpisode
-from anicli_api.source.schemas.animego import SourceView, EpisodeView, SearchView, DubbersView
-from anicli_api.source.schemas.animego import AnimeView as AnimeViewOld
-from anicli_api.source.schemas.animego import OngoingView as OngoingViewOld
+from anicli_api.source.parsers.animego_parser import SourceView, EpisodeView, SearchView, DubbersView
+from anicli_api.source.parsers.animego_parser import AnimeView as AnimeViewOld
+from anicli_api.source.parsers.animego_parser import OngoingView as OngoingViewOld
 
 
 # patches
