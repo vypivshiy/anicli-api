@@ -24,18 +24,28 @@ class BaseExtractor:
 
     @abstractmethod
     def search(self, query: str):
+        """search anime by string query
+
+        :param query: string search query
+        """
         pass
 
     @abstractmethod
     async def a_search(self, query: str):
+        """search anime by string query in async mode
+
+        :param query: string search query
+        """
         pass
 
     @abstractmethod
     def ongoing(self):
+        """get ongoings"""
         pass
 
     @abstractmethod
     async def a_ongoing(self):
+        """get ongoings in async mode"""
         pass
 
 
@@ -57,10 +67,12 @@ class BaseSearch(_HttpExtension):
 
     @abstractmethod
     def get_anime(self):
+        """get anime"""
         pass
 
     @abstractmethod
     async def a_get_anime(self):
+        """get anime in async mode"""
         pass
 
     def __str__(self):
@@ -75,10 +87,12 @@ class BaseOngoing(_HttpExtension):
 
     @abstractmethod
     def get_anime(self):
+        """get anime"""
         pass
 
     @abstractmethod
     async def a_get_anime(self):
+        """get anime in async mode"""
         pass
 
     def __str__(self):
@@ -93,10 +107,12 @@ class BaseAnime(_HttpExtension):
 
     @abstractmethod
     def get_episodes(self):
+        """get episodes"""
         pass
 
     @abstractmethod
     async def a_get_episodes(self):
+        """get episodes in async mode"""
         pass
 
     def __str__(self):
@@ -112,10 +128,12 @@ class BaseEpisode(_HttpExtension):
 
     @abstractmethod
     def get_sources(self):
+        """get raw source player information"""
         pass
 
     @abstractmethod
     async def a_get_sources(self):
+        """get raw source player information in async mode"""
         pass
 
     def __str__(self):
@@ -132,6 +150,10 @@ class BaseSource(_HttpExtension):
         return ALL_DECODERS
 
     def get_videos(self, **httpx_kwargs) -> List["Video"]:
+        """get direct video information for direct play
+
+        :param httpx_kwargs: httpx.Client configuration
+        """
         for extractor in self._all_video_extractors:
             if self.url == extractor():
                 return extractor(**httpx_kwargs).parse(self.url)
@@ -139,6 +161,10 @@ class BaseSource(_HttpExtension):
         return []
 
     async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
+        """get direct video information for direct play in async mode
+
+        :param httpx_kwargs: httpx.AsyncClient configuration
+        """
         for extractor in self._all_video_extractors:
             if self.url == extractor():
                 return await extractor(**httpx_kwargs).a_parse(self.url)
