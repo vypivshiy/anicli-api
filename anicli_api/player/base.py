@@ -75,8 +75,9 @@ class ABCVideoExtractor(ABC):
         """
         :type httpx_kwargs: httpx.Client and httpx.AsyncClient configuration
         """
-        self.http = BaseHTTPSync(**self.DEFAULT_HTTP_CONFIG, **httpx_kwargs)
-        self.a_http = BaseHTTPAsync(**self.DEFAULT_HTTP_CONFIG, **httpx_kwargs)
+        default_kwargs = {k: v for k, v in self.DEFAULT_HTTP_CONFIG.items() if not httpx_kwargs.get(k)}
+        self.http = BaseHTTPSync(**default_kwargs, **httpx_kwargs)
+        self.a_http = BaseHTTPAsync(**default_kwargs, **httpx_kwargs)
 
     @abstractmethod
     def parse(self, url: str, **kwargs) -> List[Video]:
