@@ -19,40 +19,25 @@ anicli_api
 │     ├── __template__.py - шаблон модуля PlayerExtractor
 │     ├── ...  ready-made модули
 │     ...
-├── source - модули парсеров с источников
-│     ├── parsers/... автоматически сгенерированные парсеры html страниц
-│     ├── __template__.py - шаблон для экстрактора
-│     ├─ ... ready-made парсеры
-│     ...
-└── tools - прочие модули
+└── source - модули парсеров с источников
+      ├── parsers/... автоматически сгенерированные парсеры html страниц
+      ├── __template__.py - шаблон для экстрактора
+      ├─ ... ready-made парсеры
+      ...
+
 
 ```
-Модули имеют следующий алгоритм пошагового получения объектов:
 
-```shell
-# Extractor works schema:
-    [Extractor]  # результат поиска
-        | search(<query>)/ongoing()  -> List[Search | Ongoing]  
-        V                           
-  [Search | Ongoing]     # информация о тайтле      
-         | get_anime()  -> AnimeInfo  
-         V                          
-     [Anime]       # доступные эпизоды                
-        | get_episodes()  -> List[Episode]  
-        V                           
-    [Episode]  # доступ к доступным видео (озвучки + хост)    
-        | get_sources()  -> List[Video]   
-        V                           
-    [Source]  # прямые ссылки на видео, минимально необходимые заголовки, минимальная метаинформация
-        | get_videos()  -> Video
-        V
-    Video(type, quality, url, extra_headers)
-```
+Схематичный принцип работы парсеров:
+
+![](high-level-schema.png)
 
 # source description
 - name - имя модуля
-- type - тип источника получения данных. **NO** - неофициальное (парсинг ВЕБ страниц), **YES** - официальное (rest-api)
-- note - примечание от автора
+- type - тип источника получения данных. 
+  - **NO** - неофициальный (парсинг html страниц) 
+  - **YES** - официальный (rest-api)
+- note - примечания
 - dubbers - тип озвучек. many - от различных авторов. subtitles - только субтитры. author - своя
 
 | name           | url                        | official api | dubbers           | note                                                                    |
@@ -90,26 +75,30 @@ anicli_api
 # Quickstart example
 
 ```python
-from anicli_api.source.animego import Extractor # или любой другой источник
+from anicli_api.source.animego import Extractor  # can usage any source
 
-# simple prompt-line app
-if __name__ == '__main__':
+if __name__ == "__main__":
     ex = Extractor()
+    print("PRESS CTRL + C for exit app")
     while True:
-        print("PRESS CTRL + C for exit")
         results = ex.search(input("search query > "))
+        if not results:
+            print("Not founded, try again")
+            continue
+        
         print(*[f"{i}) {r}" for i, r in enumerate(results)], sep="\n")
         anime = results[int(input("anime > "))].get_anime()
         episodes = anime.get_episodes()
         print(*[f"{i}) {ep}" for i, ep in enumerate(episodes)], sep="\n")
         episode = episodes[int(input("episode > "))]
         sources = episode.get_sources()
-        print(*[f"{i}) {source}" for i, source in enumerate(sources)])
+        print(*[f"{i}) {source}" for i, source in enumerate(sources)], sep="\n")
         source = sources[int(input("source > "))]
         videos = source.get_videos()
-        print(*videos, sep="\n")
+        print(*[f"{i} {video}" for i, video in enumerate(videos)], sep="\n")
         video = videos[int(input("video > "))]
         print(video.type, video.quality, video.url, video.headers)
+
 ```
 
 С asyncio аналогично, но **все** методы получения объектов имеют префикс `a_`:
@@ -130,13 +119,59 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
-Приведены поля, которые **гарантированно** возвращаются в API, в некоторых источниках
-могут отличаться или хранить поля для использования во внутренних методах 
-(например, в anilibria и animevost)
+## http path
+
+### source
+
+Если по какой-то либо причине вас не устраивают настройки по умолчанию - то вы можете задать
+конфигурацию http клиентов экстракторов
+
+```python
+from anicli_api.base import HTTPSync
+
+from httpx import HTTPTransport
+
+client = HTTPSync()
+print(client._transport)  # anicli_api._http.HTTPRetryConnectSyncTransport
+print(client.headers) # {'user-agent': 'Mozilla/5.0 (Linux; Android 6.0...', ...}
+
+client_2 = HTTPSync(transport=HTTPTransport(), # default transport
+                    headers={"user-agent": "My Cool useragent"}
+                    )  
+
+print(client_2._transport)  # httpx.HTTPTransport
+print(client_2.headers)  # {'user-agent': 'My Cool useragent', ...}
+assert client_2 == client  # Passed
+```
+### player
+
+В player для модификации httpx клиентов (Client, AsyncioClient) необходимо передать kwargs аргументы:
+
+```python
+from anicli_api.source.animego import Extractor
+
+
+sources = (
+    Extractor()
+    .search("lain")[0]
+    .get_anime()
+    .get_episodes()[0]
+    .get_sources()
+)
+
+videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTransport
+                               headers={"User-Agent": "i'm crushing :("})
+```
 
 ## Структуры объектов
 
-### SearchResult
+Приведены поля, которые **гарантированно** возвращаются в API, в некоторых источниках
+могут присутствовать дополнительные поля или атрибуты для использования во внутренних методах 
+
+Например, в `anilibria` и `animevost` почти идентичны ответам API. 
+В `animego.Anime` есть несериализованный `raw_json` для извлечения дополнительных данных.
+
+### Search
 - url: str - URL на тайтл
 - title: str - имя найденного тайтла
 - thumbnail: str - изображение

@@ -1,0 +1,73 @@
+@startuml
+scale 2
+
+class Extractor {
+  + search(query: String): List[Search] - search anime by query
+  + ongoing(): List[Ongoing] - get ongoings
+
+  + a_search(query: String): List[Search] - search anime by query asyncio
+  + a_ongoing(): List[Ongoing] - get ongoings asyncio
+
+}
+
+class Search {
+  - title: String - anime title name
+  - url: String - url to anime page
+  - thumbnail: String - anime thumbnail
+
+  + get_anime(): Anime - get anime
+  + a_get_anime(): Anime - get anime asyncio
+}
+
+class Ongoing {
+  - title: String - anime title name
+  - url: String - url to anime page
+  - thumbnail: String - anime image
+
+  + get_anime(): Anime get anime title
+  + a_get_anime(): Anime  get anime asyncio
+}
+
+class Anime {
+  - title: String  - anime title name
+  - thumbnail: String - anime title image
+  - description: String - anime description
+
+  + get_episodes(): List[Episode] - get anime episodes
+  + a_get_episodes(): Anime  - get anime episodes asyncio
+}
+
+class Episode {
+  - title: String - episode name
+  - num: String - episode number
+
+  + get_sources(): List[Source] - get raw player source
+  + a_get_sources(): List[Source] - get raw player source asyncio
+}
+
+class Source {
+  - title: String - dubbers name (or subtitles?)
+  - url: String - raw url to player
+
+  + get_videos(**httpx_kwargs): List[Video] - get list of videos (direct url, minimal meta info)
+  + a_get_videos(**httpx_kwargs): List[Video] - get list of videos (direct url, minimal meta info) asyncio
+}
+
+class Video {
+  - type: String - video type: m3u8, mpd, mp4, audio
+  - quality: String - video quality: 0, 144, 240, 360, 480, 720, 1080
+  - url: String - direct video url
+  - headers: String - required headers for play video
+
+  + Video(type: String, quality: String, url: String, headers: String)
+}
+
+
+Extractor --|> Search
+Extractor --|> Ongoing
+Search --|> Anime
+Ongoing --|> Anime
+Anime --|> Episode
+Episode --|> Source
+Source --|> Video
+@enduml
