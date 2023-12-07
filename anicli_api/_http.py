@@ -15,7 +15,6 @@ from httpx import (
     AsyncClient,
     AsyncHTTPTransport,
     Client,
-    ConnectError,
     HTTPTransport,
     NetworkError,
     Request,
@@ -38,8 +37,6 @@ HEADERS: Dict[str, str] = {
 }
 
 # DDoS protection check by "Server" key header
-DDOS_SERVICES = ("cloudflare", "ddos-guard")
-
 __all__ = (
     "BaseHTTPSync",
     "BaseHTTPAsync",
@@ -48,6 +45,28 @@ __all__ = (
     "HTTPRetryConnectSyncTransport",
     "HTTPRetryConnectAsyncTransport",
 )
+
+DDOS_SERVICES = ("cloudflare", "ddos-guard")
+
+
+def have_ddos_protect(response: Response) -> bool:
+    """detect ddos protect for next cases:
+
+    - Server header AND Connection = close (this project usage keep-alive sessions)
+
+    - status_code = 403
+    """
+    return (
+        response.headers.get("Server") in DDOS_SERVICES
+        and response.headers.get("Connection", None) == "close"
+        or response.status_code == 403
+    )
+
+
+class DDOSServerDetectError(NetworkError):
+    """raise this exception if detect cloudflare or ddos-guard protect"""
+
+    pass
 
 
 class HTTPRetryConnectSyncTransport(HTTPTransport):
@@ -61,9 +80,16 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
         delay = self.RETRY_CONNECT_DELAY
         for i in range(self.ATTEMPTS_CONNECT):
             try:
-                return super().handle_request(request)
+                resp = super().handle_request(request)
+                if have_ddos_protect(resp):
+                    raise DDOSServerDetectError(f"'{resp.headers.get('Server')}' detected")
+
+                return resp
+
             except (NetworkError, TimeoutException) as exc:
-                msg = f"[{i+1}] {exc.__class__.__name__}, {request.method} {request.url} try retry connect"
+                exc_name = exc.__class__.__name__
+                exc_msg = getattr(exc, "message", exc.args[0])
+                msg = f"[{i + 1}] {exc_name}: {exc_msg}, {request.method} {request.url} try again"  # type: ignore
                 sleep(delay)
                 logger.warning(msg)
                 delay += (self.DELAY_INCREASE_STEP * i + 1) / 2
@@ -84,11 +110,16 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
         delay = self.RETRY_CONNECT_DELAY
         for i in range(self.ATTEMPTS_CONNECT):
             try:
-                return await super().handle_async_request(request)
+                resp = await super().handle_async_request(request)
+                if have_ddos_protect(resp):
+                    raise DDOSServerDetectError(f"'{resp.headers.get('Server')}' detected")
+
+                return resp
+
             except (NetworkError, TimeoutException) as exc:
                 await asyncio.sleep(delay)
                 delay += (self.DELAY_INCREASE_STEP * i + 1) / 2
-                msg = f"[{i+1}] {exc.__class__.__name__}, {request.method} {request.url} try retry connect"
+                msg = f"[{i + 1}] {exc.__class__.__name__}, {request.method} {request.url} try retry connect"
                 logger.warning(msg)
         return await super().handle_async_request(request)
 
@@ -139,21 +170,16 @@ class BaseHTTPAsync(AsyncClient):
 
 
 def check_ddos_protect_hook(resp: Response):
-    """
-    Simple ddos protect check hook.
+    """Simple ddos protect check hook.
 
     If response return 403 code or server headers contains *cloudflare* or *ddos-guard* strings and
     **Connection = close,** throw ConnectionError traceback
     """
     logger.debug("%s check DDOS protect :\nstatus [%s] %s", resp.url, resp.status_code, resp.headers)
-    if (
-        resp.headers.get("Server") in DDOS_SERVICES
-        and resp.headers.get("Connection", None) == "close"
-        or resp.status_code == 403
-    ):
-        logger.error("Ooops, %s have ddos protect :(", resp.url)
-        msg = f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return 403 code."
-        raise ConnectError(msg)
+    if have_ddos_protect(resp):
+        logger.warning("Ooops, %s have ddos protect :(", resp.url)
+        msg = f"{resp.url} have '{resp.headers.get('Server', 'unknown')}' and return {resp.status_code} code."
+        raise DDOSServerDetectError(msg)
 
 
 class HTTPSync(HttpxSingleton, BaseHTTPSync):
@@ -163,7 +189,7 @@ class HTTPSync(HttpxSingleton, BaseHTTPSync):
     Used in extractors and can configure at any point in the program"""
 
     def __init__(self, **kwargs):
-        if not self.IS_CLIENT_INSTANCE_INIT:  # dirty hack for update arguments
+        if not self.IS_CLIENT_INSTANCE_INIT:  # dirty hack for config singleton class
             super().__init__(**kwargs)
             self.event_hooks.update({"response": [check_ddos_protect_hook]})
             self._client_instance_init = True
@@ -177,7 +203,7 @@ class HTTPAsync(HttpxSingleton, BaseHTTPAsync):
     """
 
     def __init__(self, **kwargs):
-        if not self.IS_ASYNC_CLIENT_INSTANCE_INIT:  # dirty hack for update arguments
+        if not self.IS_ASYNC_CLIENT_INSTANCE_INIT:  # dirty hack for config singleton class
             super().__init__(**kwargs)
             self.event_hooks.update({"response": [check_ddos_protect_hook]})
             self._async_client_instance_init = True
