@@ -97,35 +97,35 @@ class Kodik(BaseVideoExtractor):
             return [
                 Video(type="m3u8",
                       quality=360,
-                      url=self._decode(response_api["360"][0]["src"]).rstrip(':hls:manifest.m3u8')
+                      url=self._decode(response_api["360"][0]["src"])
                       ),
                 Video(type="m3u8",
                       quality=480,
-                      url=self._decode(response_api["480"][0]["src"]).rstrip(':hls:manifest.m3u8')
+                      url=self._decode(response_api["480"][0]["src"])
                       ),
                 Video(type="m3u8",
                       quality=720,
                       # this key return 480p link
                       url=self._decode(
                           response_api["720"][0]["src"]
-                      ).replace('/480.mp4:hls:manifest.m3u8', '/720.mp4')
+                      ).replace('/480.mp4:', '/720.mp4:')
                       ),
             ]
         elif response_api.get("480"):
             return [
                 Video(type="m3u8",
                       quality=360,
-                      url=self._decode(response_api["360"][0]["src"]).rstrip(':hls:manifest.m3u8')
+                      url=self._decode(response_api["360"][0]["src"])
                       ),
                 Video(type="m3u8",
                       quality=480,
-                      url=self._decode(response_api["480"][0]["src"]).rstrip(':hls:manifest.m3u8')
+                      url=self._decode(response_api["480"][0]["src"])
                       ),
             ]
         # OMG :O
         return [
             Video(type="m3u8",
                   quality=360,
-                  url=self._decode(response_api["360"][0]["src"]).rstrip(':hls:manifest.m3u8')
+                  url=self._decode(response_api["360"][0]["src"])
                   )
         ]
