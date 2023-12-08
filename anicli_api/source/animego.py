@@ -1,6 +1,9 @@
+import re
 from dataclasses import dataclass
 from typing import Dict
+import logging
 
+from httpx import Response
 from parsel import Selector
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
@@ -11,6 +14,9 @@ from anicli_api.source.parsers.animego_parser import SearchView, SourceView
 
 
 # patches
+_logger = logging.getLogger('anicli-api')  # type: ignore
+
+
 class AnimeView(AnimeViewOld):
     @staticmethod
     def _parse_description(part: Selector) -> str:
@@ -72,13 +78,27 @@ class Search(BaseSearch):
         data = AnimeView(resp).parse().view()[0]
         return Anime(**data)
 
+    @staticmethod
+    def _is_valid_page(resp: Response):
+        # sometimes maybe return 404 error eg:
+        # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
+        # need research this information,
+        # I don't know why valid link (from page!) returns 404
+        if resp.is_success:
+            return True
+
+        title = re.search(r"<title>(.*?)</title>", resp.text)[1]  # type: ignore
+        _logger.warning("%s returns status code [%s] title='%s' content-length=%s",
+                        resp.url, resp.status_code, title, len(resp.content))
+        return False
+
     def get_anime(self):
         resp = self._http().get(self.url)
-        return self._extract(resp.text)
+        return self._extract(resp.text) if self._is_valid_page(resp) else None
 
     async def a_get_anime(self):
         resp = await self._a_http().get(self.url)
-        return self._extract(resp.text)
+        return self._extract(resp.text) if self._is_valid_page(resp) else None
 
 
 @dataclass
@@ -91,13 +111,27 @@ class Ongoing(BaseOngoing):
         data = AnimeView(resp).parse().view()[0]
         return Anime(**data)
 
+    @staticmethod
+    def _is_valid_page(resp: Response):
+        # sometimes maybe return 404 error eg:
+        # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
+        # need research this information,
+        # I don't know why valid link (from page!) returns 404
+        if resp.is_success:
+            return True
+
+        title = re.search(r"<title>(.*?)</title>", resp.text)[1]  # type: ignore
+        _logger.warning("%s returns status code [%s] title='%s' content-length=%s",
+                        resp.url, resp.status_code, title, len(resp.content))
+        return False
+
     def get_anime(self):
         resp = self._http().get(self.url)
-        return self._extract(resp.text)
+        return self._extract(resp.text) if self._is_valid_page(resp) else None
 
     async def a_get_anime(self):
         resp = await self._a_http().get(self.url)
-        return self._extract(resp.text)
+        return self._extract(resp.text) if self._is_valid_page(resp) else None
 
     def __str__(self):
         return f"{self.title} {self.episode} ({self.dub})"
