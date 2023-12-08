@@ -118,6 +118,14 @@ async def main():
 if __name__ == '__main__':
     asyncio.run(main())
 ```
+## logging
+
+Настройка логгера идет через `anicli-api`
+
+```python
+import logging
+logger = logging.getLogger('anicli-api')
+```
 
 ## http path
 
