@@ -21,11 +21,12 @@ class AnimeView(AnimeViewOld):
     def _parse_description(self, part: Selector) -> str:
         # remove whitespaces patch
         val_0 = part.css(".description ::text").getall()
-        return " ".join(line.strip() for line in val_0) if val_0 else ""
+        return " ".join(line.strip() for line in val_0)  # return "" if val_0 is empty
 
 
 class OngoingView(OngoingViewOld):
     def _parse_dub(self, part: Selector) -> str:
+        # remove brackets patch
         val_0 = part.css(".text-gray-dark-6 ::text").get()
         return val_0.replace(")", "").replace("(", "")  # type: ignore
 
@@ -195,5 +196,7 @@ class Source(BaseSource):
 
 
 if __name__ == "__main__":
-    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
-    print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
+    s = Search(title="", thumbnail="", url="https://animego.org/anime/ya-vyzhivu-s-pomoschyu-zeliy-2442")
+    print(s.get_anime())
+    # print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
+    # print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
