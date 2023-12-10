@@ -25,8 +25,8 @@ class __BaseViewModel:
         self.__raw__ = document
         self.__selector__ = Selector(document)
         self._cached_result: list[dict[str, Any]] = []
-        self._aliases = {}
-        self._view_keys = []
+        self._aliases: dict[str, str] = {}
+        self._view_keys: list[str] = []
 
     def _pre_validate(self, doc):
         pass
@@ -46,7 +46,8 @@ class __BaseViewModel:
         def map_fields(result):
             view_dict = {}
             for k in self._view_keys:
-                if v := result.get(k):
+                v = result.get(k)
+                if v != None:
                     k = self._aliases.get(k, k)
                     view_dict[k] = v
             return view_dict
