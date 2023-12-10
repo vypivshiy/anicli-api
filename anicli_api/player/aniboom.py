@@ -15,11 +15,10 @@ class Aniboom(BaseVideoExtractor):
     URL_RULE = _URL_EQ
     DEFAULT_HTTP_CONFIG = {"headers": {"referer": "https://animego.org/"}}
     VIDEO_HEADERS = {
+        # KEYS SHOULD BE STARTED IN Title case, else hls/mpd return 403 error
         "Referer": "https://aniboom.one/",
         "Accept-Language": "ru-RU",  # INCREASE DOWNLOAD SPEED with this static value lol
         "Origin": "https://aniboom.one",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
     }
 
     @player_validator
@@ -58,3 +57,8 @@ class Aniboom(BaseVideoExtractor):
                 )
             )
         return videos
+
+
+if __name__ == '__main__':
+    Aniboom().parse("https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30")
+    # b'#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="group_A1",NAME="audio_1",DEFAULT=YES,URI="media_1.m3u8"\n#EXT-X-STREAM-INF:BANDWIDTH=593867,RESOLUTION=640x360,CODECS="avc1.640028,mp4a.40.2",AUDIO="group_A1"\nmedia_0.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=943867,RESOLUTION=854x480,CODECS="avc1.640028,mp4a.40.2",AUDIO="group_A1"\nmedia_2.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=1593867,RESOLUTION=1280x720,CODECS="avc1.640028,mp4a.40.2",AUDIO="group_A1"\nmedia_4.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2882867,RESOLUTION=1920x1080,CODECS="avc1.640028,mp4a.40.2",AUDIO="group_A1"\nmedia_6.m3u8\n'
