@@ -12,8 +12,7 @@ from anicli_api.source.parsers.sovetromantica_parser import EpisodeView, Ongoing
 
 # patches
 class AnimeView(AnimeViewOld):
-    @staticmethod
-    def _parse_video(part: Selector) -> str:
+    def _parse_video(self, part: Selector) -> str:
         val = part.get()
         if match := re.search(r"<meta property=\".*\" content=\"(https://.*?\.m3u8)\"", val):
             return match[1]

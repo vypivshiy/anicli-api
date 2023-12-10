@@ -11,8 +11,7 @@ from anicli_api.source.parsers.animejoy_parser import PlayerView, SearchView
 
 # schema patches
 class PlayerUrlsView(PlayerUrlsViewOld):
-    @staticmethod
-    def _parse_url(part: Selector) -> str:
+    def _parse_url(self, part: Selector) -> str:
         val_0 = part.attrib["data-file"]
         return f"https:{val_0}" if val_0.startswith("//") else val_0
 

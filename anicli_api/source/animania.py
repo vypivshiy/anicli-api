@@ -11,8 +11,7 @@ from anicli_api.source.parsers.animania_parser import VideoView as VideoViewOld
 
 # patches
 class VideoView(VideoViewOld):
-    @staticmethod
-    def _parse_urls(part: Selector) -> List[str]:
+    def _parse_urls(self, part: Selector) -> List[str]:
         # add href prefix
         val_0 = part.get()
         val_1 = re.findall(r"'(//.*?)'", val_0)

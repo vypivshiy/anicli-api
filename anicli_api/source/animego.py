@@ -18,16 +18,14 @@ _logger = logging.getLogger('anicli-api')  # type: ignore
 
 
 class AnimeView(AnimeViewOld):
-    @staticmethod
-    def _parse_description(part: Selector) -> str:
+    def _parse_description(self, part: Selector) -> str:
         # remove whitespaces patch
         val_0 = part.css(".description ::text").getall()
-        return " ".join(line.strip() for line in val_0)
+        return " ".join(line.strip() for line in val_0) if val_0 else ""
 
 
 class OngoingView(OngoingViewOld):
-    @staticmethod
-    def _parse_dub(part: Selector) -> str:
+    def _parse_dub(self, part: Selector) -> str:
         val_0 = part.css(".text-gray-dark-6 ::text").get()
         return val_0.replace(")", "").replace("(", "")  # type: ignore
 
