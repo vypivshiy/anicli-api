@@ -74,8 +74,8 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
     """Handle attempts connects with delay"""
 
     ATTEMPTS_CONNECT = 5
-    RETRY_CONNECT_DELAY = 0.7
-    DELAY_INCREASE_STEP = 0.2  # RETRY_CONNECT_DELAY + (DELAY_INCREASE_STEP * attempt) / 2
+    RETRY_CONNECT_DELAY = 0.8
+    DELAY_INCREASE_STEP = 0.3  # linear increase connect delay
 
     def handle_request(self, request: Request) -> Response:
         delay = self.RETRY_CONNECT_DELAY
@@ -93,7 +93,7 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 msg = f"[{i + 1}] {exc_name}: {exc_msg}, {request.method} {request.url} try again"  # type: ignore
                 sleep(delay)
                 logger.warning(msg)
-                delay += (self.DELAY_INCREASE_STEP * i + 1) / 2
+                delay += self.DELAY_INCREASE_STEP 
         return super().handle_request(request)
 
 
@@ -101,8 +101,8 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
     """Handle attempts connects with delay"""
 
     ATTEMPTS_CONNECT = 5
-    RETRY_CONNECT_DELAY = 0.7
-    DELAY_INCREASE_STEP = 0.2  # RETRY_CONNECT_DELAY + (DELAY_INCREASE_STEP * attempt) / 2
+    RETRY_CONNECT_DELAY = 0.8
+    DELAY_INCREASE_STEP = 0.3  # linear increase connect delay
 
     async def handle_async_request(
         self,
@@ -119,7 +119,7 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
 
             except (NetworkError, TimeoutException) as exc:
                 await asyncio.sleep(delay)
-                delay += (self.DELAY_INCREASE_STEP * i + 1) / 2
+                delay += self.DELAY_INCREASE_STEP 
                 msg = f"[{i + 1}] {exc.__class__.__name__}, {request.method} {request.url} try retry connect"
                 logger.warning(msg)
         return await super().handle_async_request(request)
