@@ -4,7 +4,7 @@ __all__ = ["logger"]
 
 
 handler = logging.StreamHandler()
-_formatter = logging.Formatter(fmt="%(log_color)s %(asctime)s [%(levelname)-8s] %(name)s: %(message)s'")
+_formatter = logging.Formatter(fmt="%(asctime)s [%(levelname)-8s] %(name)s: %(message)s")
 
 logger = logging.getLogger("anicli-api")  # type: ignore
 logger.addHandler(handler)
