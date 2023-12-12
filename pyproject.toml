@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anicli_api"
-version = "0.5.5"
+version = "0.5.6"
 description = "Anime extractors api implementation"
 authors = ["vypivshiy"]
 license = "MIT"
