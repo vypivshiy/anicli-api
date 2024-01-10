@@ -82,7 +82,7 @@ class OngoingView(__BaseViewModel):
 
     def _pre_validate(self, part: Selector):
         val_0 = part.css("title")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         assert re.search(r"Аниме / SovetRomantica", val_1)
 
     def _part_document(self, part: Selector):
@@ -104,7 +104,7 @@ class OngoingView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".anime--block__name > span + span")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_alt_title(self, part: Selector) -> str:
@@ -113,7 +113,7 @@ class OngoingView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".anime--block__name > span")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_url(self, part: Selector) -> str:
@@ -164,7 +164,7 @@ class SearchView(__BaseViewModel):
 
     def _pre_validate(self, part: Selector):
         val_0 = part.css("title")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         assert re.search(r"\w+ / SovetRomantica", val_1)
 
     def _part_document(self, part: Selector):
@@ -186,7 +186,7 @@ class SearchView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".anime--block__name > span + span")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_alt_title(self, part: Selector) -> str:
@@ -195,7 +195,7 @@ class SearchView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".anime--block__name > span")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_url(self, part: Selector) -> str:
@@ -246,7 +246,7 @@ class AnimeView(__BaseViewModel):
 
     def _pre_validate(self, part: Selector):
         val_0 = part.css("title")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         assert re.search(r"/ SovetRomantica", val_1)
 
     def _part_document(self, part: Selector):
@@ -269,7 +269,7 @@ class AnimeView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".anime-name .block--container")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_description(self, part: Selector) -> str:
@@ -278,7 +278,7 @@ class AnimeView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".block--full .anime-description")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_video(self, part: Selector) -> str:
@@ -333,7 +333,7 @@ class EpisodeView(__BaseViewModel):
 
     def _pre_validate(self, part: Selector):
         val_0 = part.css("title")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         assert re.search(r"/ SovetRomantica", val_1)
 
     def _part_document(self, part: Selector):

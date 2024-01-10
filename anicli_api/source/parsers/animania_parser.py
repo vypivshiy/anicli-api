@@ -91,7 +91,7 @@ class OngoingView(__BaseViewModel):
         # text
         #
         val_0 = part.css("h5")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_thumbnail(self, part: Selector) -> str:
@@ -230,7 +230,7 @@ class AnimeView(__BaseViewModel):
         # text
         #
         val_0 = part.css("h1")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_thumbnail(self, part: Selector) -> str:
@@ -250,7 +250,7 @@ class AnimeView(__BaseViewModel):
         # text
         #
         val_0 = part.css("#fdesc")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _start_parse(self):
@@ -307,7 +307,7 @@ class DubbersView(__BaseViewModel):
         # script signature:
         # text
         #
-        val_0 = part.xpath("./text()").get()
+        val_0 = part.css("::text").get()
         return val_0
 
     def _start_parse(self):
@@ -367,7 +367,7 @@ class VideoView(__BaseViewModel):
         # text
         #
         val_0 = part.css("span")
-        val_1 = val_0.xpath("./text()").getall()
+        val_1 = val_0.css("::text").getall()
         return val_1
 
     def _parse_urls(self, part: Selector) -> list[str]:

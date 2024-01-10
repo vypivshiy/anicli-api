@@ -89,7 +89,7 @@ class OngoingView(__BaseViewModel):
 
     def _pre_validate(self, part: Selector):
         val_0 = part.css("title")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         assert re.search(r"Смотреть Аниме онлайн", val_1)
 
     def _part_document(self, part: Selector):
@@ -115,7 +115,7 @@ class OngoingView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".last-update-title")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_thumbnail(self, part: Selector) -> str:
@@ -138,7 +138,7 @@ class OngoingView(__BaseViewModel):
         # re "(\d+)\s"
         #
         val_0 = part.css(".text-truncate")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         val_2 = re.search(r"(\d+)\s", val_1)[1]
         return val_2
 
@@ -148,7 +148,7 @@ class OngoingView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".text-gray-dark-6")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _start_parse(self):
@@ -263,7 +263,7 @@ class AnimeView(__BaseViewModel):
 
     def _pre_validate(self, part: Selector):
         val_0 = part.css("title")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         assert re.search(r".* смотреть онлайн .*", val_1)
 
     def _part_document(self, part: Selector):
@@ -275,7 +275,7 @@ class AnimeView(__BaseViewModel):
         # text
         #
         val_0 = part.css(".anime-title h1")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _parse_description(self, part: Selector) -> str:
@@ -285,7 +285,7 @@ class AnimeView(__BaseViewModel):
         # join " "
         #
         val_0 = part.css(".description")
-        val_1 = val_0.xpath("./text()").getall()
+        val_1 = val_0.css("::text").getall()
         val_2 = " ".join(val_1)
         return val_2
 
@@ -316,7 +316,7 @@ class AnimeView(__BaseViewModel):
         # text
         #
         val_0 = part.css("script[type='application/ld+json']")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         return val_1
 
     def _start_parse(self):
@@ -380,7 +380,7 @@ class DubbersView(__BaseViewModel):
         # strip " "
         #
         val_0 = part.css("span")
-        val_1 = val_0.xpath("./text()").get()
+        val_1 = val_0.css("::text").get()
         val_2 = val_1.strip("\n")
         val_3 = val_2.strip(" ")
         return val_3
@@ -504,7 +504,7 @@ class SourceView(__BaseViewModel):
         # script signature:
         # text
         #
-        val_0 = part.xpath("./text()").get()
+        val_0 = part.css("::text").get()
         return val_0
 
     def _parse_url(self, part: Selector) -> str:
