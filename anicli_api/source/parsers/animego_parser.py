@@ -264,7 +264,7 @@ class AnimeView(__BaseViewModel):
     def _pre_validate(self, part: Selector):
         val_0 = part.css("title")
         val_1 = val_0.css("::text").get()
-        assert re.search(r".* смотреть онлайн .*", val_1)
+        assert re.search(r".*?\s(—\s\w+:?)", val_1)
 
     def _part_document(self, part: Selector):
         return [part]
