@@ -79,10 +79,10 @@ class Search(BaseSearch):
 
     @staticmethod
     def _is_valid_page(resp: Response):
-        # sometimes maybe return 404 error eg:
+        # RKN blocks issues eg:
         # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
-        # need research this information,
-        # I don't know why valid link (from page!) returns 404
+        # https://animego.org/anime/vtorzhenie-gigantov-2-17
+        # but API requests still works.
         if resp.is_success:
             return True
 
@@ -91,13 +91,27 @@ class Search(BaseSearch):
                         resp.url, resp.status_code, title, len(resp.content))
         return False
 
+    def _create_anime(self):
+        # skip extract metadata, and manual create object (API requests still works)
+        return Anime(
+            title=self.title,
+            thumbnail=self.thumbnail,
+            description="",
+            id=self.url.split('-')[-1],
+            raw_json=""
+        )
+
     def get_anime(self):
         resp = self._http().get(self.url)
-        return self._extract(resp.text) if self._is_valid_page(resp) else None
+        if self._is_valid_page(resp):
+            return self._extract(resp.text)
+        return self._create_anime()
 
     async def a_get_anime(self):
         resp = await self._a_http().get(self.url)
-        return self._extract(resp.text) if self._is_valid_page(resp) else None
+        if self._is_valid_page(resp):
+            return self._extract(resp.text)
+        return self._create_anime()
 
 
 @dataclass
@@ -112,10 +126,10 @@ class Ongoing(BaseOngoing):
 
     @staticmethod
     def _is_valid_page(resp: Response):
-        # sometimes maybe return 404 error eg:
+        # RKN blocks issues eg:
         # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
-        # need research this information,
-        # I don't know why valid link (from page!) returns 404
+        # https://animego.org/anime/vtorzhenie-gigantov-2-17
+        # but API requests still works.
         if resp.is_success:
             return True
 
@@ -124,13 +138,27 @@ class Ongoing(BaseOngoing):
                         resp.url, resp.status_code, title, len(resp.content))
         return False
 
+    def _create_anime(self):
+        # skip extract metadata, and manual create object (API requests still works)
+        return Anime(
+            title=self.title,
+            thumbnail=self.thumbnail,
+            description="",
+            id=self.url.split('-')[-1],
+            raw_json=""
+        )
+
     def get_anime(self):
         resp = self._http().get(self.url)
-        return self._extract(resp.text) if self._is_valid_page(resp) else None
+        if self._is_valid_page(resp):
+            return self._extract(resp.text)
+        return self._create_anime()
 
     async def a_get_anime(self):
         resp = await self._a_http().get(self.url)
-        return self._extract(resp.text) if self._is_valid_page(resp) else None
+        if self._is_valid_page(resp):
+            return self._extract(resp.text)
+        return self._create_anime()
 
     def __str__(self):
         return f"{self.title} {self.episode} ({self.dub})"
@@ -196,7 +224,8 @@ class Source(BaseSource):
 
 
 if __name__ == "__main__":
-    s = Search(title="", thumbnail="", url="https://animego.org/anime/ya-vyzhivu-s-pomoschyu-zeliy-2442")
+    # s = Search(title="", thumbnail="", url="https://animego.org/anime/ya-vyzhivu-s-pomoschyu-zeliy-2442")
+    s = Search(title="", thumbnail="", url="https://animego.org/anime/stanovyas-volshebnicey-2487")
     print(s.get_anime())
     # print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
     # print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
