@@ -3,7 +3,7 @@
 Программный интерфейс набора парсеров аниме с различных источников.
 
 Присутствует поддержка sync и async методов с помощью `httpx` библиотеки
-Парсеры работают на REST-API (если у источника есть доступ), parsel и обёртки scrape-schema
+Парсеры работают на REST-API (если у источника есть доступ), parsel, chompjs, jmespath, regex
 
 # install
 `pip install anicli-api`
@@ -214,6 +214,7 @@ videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTra
 Если возвращает пустой словарь - заголовки не нужны
 
 # Примечания
+
 - `anicli_api/source/parsers` - автоматически сгенерированные парсеры с помощью 
 [scrape-schema-codegen](https://github.com/vypivshiy/selector_schema_codegen) и файлов-конфигурации [libanime](https://github.com/libanime/libanime_schema). 
 
