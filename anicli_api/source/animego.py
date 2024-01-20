@@ -8,9 +8,8 @@ from parsel import Selector
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.source.parsers.animego_parser import AnimeView as AnimeViewOld
-from anicli_api.source.parsers.animego_parser import DubbersView, EpisodeView
+from anicli_api.source.parsers.animego_parser import DubbersView, EpisodeView, SearchView, SourceView
 from anicli_api.source.parsers.animego_parser import OngoingView as OngoingViewOld
-from anicli_api.source.parsers.animego_parser import SearchView, SourceView
 
 
 # patches
@@ -81,8 +80,7 @@ class Search(BaseSearch):
     def _is_valid_page(resp: Response):
         # RKN blocks issues eg:
         # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
-        # https://animego.org/anime/vtorzhenie-gigantov-2-17
-        # but API requests still works.
+        # but API requests MAYBE still works.
         if resp.is_success:
             return True
 
@@ -92,7 +90,7 @@ class Search(BaseSearch):
         return False
 
     def _create_anime(self):
-        # skip extract metadata, and manual create object (API requests still works)
+        # skip extract metadata and manual create object (API requests maybe still works)
         return Anime(
             title=self.title,
             thumbnail=self.thumbnail,
@@ -128,8 +126,7 @@ class Ongoing(BaseOngoing):
     def _is_valid_page(resp: Response):
         # RKN blocks issues eg:
         # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
-        # https://animego.org/anime/vtorzhenie-gigantov-2-17
-        # but API requests still works.
+        # but API requests MAYBE still works.
         if resp.is_success:
             return True
 
@@ -175,14 +172,27 @@ class Anime(BaseAnime):
         dubbers_data = DubbersView(resp).parse().view()
         dubbers = {d["id"]: d["name"] for d in dubbers_data}
         return [Episode(**d, dubbers=dubbers) for d in episodes_data]
-
+    
+    @staticmethod
+    def _episodes_is_available(response: str):
+        sel = Selector(response)
+        # RKN issue: maybe title not available in your country
+        # eg:
+        # https://animego.org/anime/vtorzhenie-gigantov-2-17
+        # this title API request don't work in RU ip
+        if sel.css("div.player-blocked").get():
+            _logger.error("API not available in your country. Element: %s", sel.css('div.h5').get())
+            return False
+        return True
+    
     def get_episodes(self):
         resp = self._http().get(f"https://animego.org/anime/{self.id}/player?_allow=true").json()["content"]
-        return self._extract(resp)
+        return self._extract(resp) if self._episodes_is_available(resp) else []
 
     async def a_get_episodes(self):
         resp = await self._a_http().get(f"https://animego.org/anime/{self.id}/player?_allow=true")
-        return self._extract(resp.json()["content"])
+        resp = resp.json()["content"]
+        return self._extract(resp) if self._episodes_is_available(resp) else []
 
 
 @dataclass
@@ -221,11 +231,3 @@ class Episode(BaseEpisode):
 @dataclass
 class Source(BaseSource):
     pass
-
-
-if __name__ == "__main__":
-    # s = Search(title="", thumbnail="", url="https://animego.org/anime/ya-vyzhivu-s-pomoschyu-zeliy-2442")
-    s = Search(title="", thumbnail="", url="https://animego.org/anime/stanovyas-volshebnicey-2487")
-    print(s.get_anime())
-    # print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
-    # print(Extractor().ongoing()[0].get_anime().get_episodes()[0].get_sources())
