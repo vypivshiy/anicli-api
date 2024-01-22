@@ -44,7 +44,7 @@ __all__ = (
     "HTTPAsync",
     "HTTPRetryConnectSyncTransport",
     "HTTPRetryConnectAsyncTransport",
-    "DDOSServerDetectError"
+    "DDOSServerDetectError",
 )
 
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
@@ -96,7 +96,7 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 logger.warning(msg)
                 if isinstance(exc, DDOSServerDetectError) and i == self.ATTEMPTS_CONNECT - 1:
                     raise exc
-                delay += self.DELAY_INCREASE_STEP 
+                delay += self.DELAY_INCREASE_STEP
         return super().handle_request(request)
 
 

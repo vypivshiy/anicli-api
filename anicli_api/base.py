@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, List, Type
 from urllib.parse import urlsplit
 
 from anicli_api._http import (  # noqa: F401
+    DDOSServerDetectError,
     HTTPAsync,
     HTTPRetryConnectAsyncTransport,
     HTTPRetryConnectSyncTransport,
     HTTPSync,
-    DDOSServerDetectError
 )
 from anicli_api.player import ALL_DECODERS
 
