@@ -15,13 +15,8 @@ class Kodik(BaseVideoExtractor):
 
     @staticmethod
     def _decode(url_encoded: str) -> str:
-        # After 30.03.23 `kodik` provider change reversed base64 string to Caesar cipher + base64.
+        # After 30.03.23 `kodik` provider change reversed base64 string to Caesar cipher (shifted 13 places) + base64.
         # This code simular original js player code for decode url.
-        #
-        # this code replaces all alphabetical characters in a base64 encoded string
-        # with characters that are shifted 13 places in the alphabetical order,
-        # wrapping around to the beginning or end of the alphabet as necessary.
-        # This is a basic form of a type of substitution cipher.
 
         def char_wrapper(e):
             return chr(
@@ -36,7 +31,6 @@ class Kodik(BaseVideoExtractor):
 
     @staticmethod
     def _parse_api_payload(response: str) -> Dict:
-        # parse payload for next send request to kodik API
         return {
             "domain": re.search(r'var domain = "(.*?)";', response)[1],  # type: ignore[index]
             "d_sign": re.search(r'var d_sign = "(.*?)";', response)[1],  # type: ignore[index]
@@ -49,83 +43,73 @@ class Kodik(BaseVideoExtractor):
             "info": {},
         }
 
+    @staticmethod
+    def _get_netloc(url: str) -> str:
+        return urlsplit(url).netloc
+
+    @staticmethod
+    def _create_url_api(netloc: str, suffix: str = "vdu") -> str:
+        return f"https://{netloc}/{suffix}"
+
+    @staticmethod
+    def _create_api_headers(*, url: str, netloc: str) -> Dict[str, str]:
+        return {
+            "origin": f"https://{netloc}",
+            "referer": url,
+            "accept": "application/json, text/javascript, */*; q=0.01",
+        }
+
     @kodik_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
         response = self.http.get(url).text
-        payload = self._parse_api_payload(response)
-        # convert to API url. its maybe kodik, anivod or any kodik provider entrypoints
-        url_api = f"https://{urlsplit(url).netloc}/gvi"
-        referer = url_api.replace("/gvi", "")
 
-        response_api = self.http.post(
-            url_api,
-            data=payload,
-            headers={
-                "origin": "https://kodik.info",
-                "referer": referer,
-                "accept": "application/json, text/javascript, */*; q=0.01",
-            },
-        ).json()["links"]
-        return self._extract(response_api)
+        # 22.01.24 kodik breaking changes:
+        # 1. change API entrypoint: /gvi to /vdu
+        # 2. referer - url param (older - kodik netloc)
+        payload = self._parse_api_payload(response)
+        # extract netloc. Its maybe kodik, anivod or any kodik providers
+        netloc = self._get_netloc(url)
+        url_api = self._create_url_api(netloc)
+        headers = self._create_api_headers(url=url, netloc=netloc)
+
+        response_api = self.http.post(url_api, data=payload, headers=headers)
+        return self._extract(response_api.json()["links"])
 
     @kodik_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
             response = (await client.get(url)).text
-            payload = self._parse_api_payload(response)
-            url_api = f"https://{urlsplit(url).netloc}/gvi"
-            # convert to API url. its maybe kodik, anivod or any kodik provider entrypoints
-            referer = url_api.replace("/gvi", "")
 
-            response_api = (
-                await client.post(
-                    url_api,
-                    data=payload,
-                    headers={
-                        "origin": "https://kodik.info",
-                        "referer": referer,
-                        "accept": "application/json, text/javascript, */*; q=0.01",
-                    },
-                ).json()
-            )["links"]
+            # 22.01.24 kodik breaking changes:
+            # 1. change API entrypoint: /gvi to /vdu
+            # 2. referer - url param (older - kodik netloc)
+            payload = self._parse_api_payload(response)
+            # extract netloc. Its maybe kodik, anivod or any kodik providers
+            netloc = self._get_netloc(url)
+            url_api = self._create_url_api(netloc)
+            headers = self._create_api_headers(url=url, netloc=netloc)
+
+            response_api = (await client.post(url_api, data=payload, headers=headers).json())["links"]
             return self._extract(response_api)
 
     def _extract(self, response_api: Dict) -> List[Video]:
         # maybe not returns 720 key for VERY old anime titles
-        # early 'One peace!' series or 'Evangelion' series, for example
+        # eg: early 'One peace!', 'Evangelion' series
         if response_api.get("720"):
             return [
-                Video(type="m3u8",
-                      quality=360,
-                      url=self._decode(response_api["360"][0]["src"])
-                      ),
-                Video(type="m3u8",
-                      quality=480,
-                      url=self._decode(response_api["480"][0]["src"])
-                      ),
-                Video(type="m3u8",
-                      quality=720,
-                      # this key return 480p link
-                      url=self._decode(
-                          response_api["720"][0]["src"]
-                      ).replace('/480.mp4:', '/720.mp4:')
-                      ),
+                Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"])),
+                Video(type="m3u8", quality=480, url=self._decode(response_api["480"][0]["src"])),
+                Video(
+                    type="m3u8",
+                    quality=720,
+                    # this key return 480p link
+                    url=self._decode(response_api["720"][0]["src"]).replace("/480.mp4:", "/720.mp4:"),
+                ),
             ]
         elif response_api.get("480"):
             return [
-                Video(type="m3u8",
-                      quality=360,
-                      url=self._decode(response_api["360"][0]["src"])
-                      ),
-                Video(type="m3u8",
-                      quality=480,
-                      url=self._decode(response_api["480"][0]["src"])
-                      ),
+                Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"])),
+                Video(type="m3u8", quality=480, url=self._decode(response_api["480"][0]["src"])),
             ]
         # OMG :O
-        return [
-            Video(type="m3u8",
-                  quality=360,
-                  url=self._decode(response_api["360"][0]["src"])
-                  )
-        ]
+        return [Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"]))]
