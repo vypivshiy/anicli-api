@@ -1,7 +1,10 @@
 import re
+import warnings
 from base64 import b64decode
 from typing import Dict, List
 from urllib.parse import urlsplit
+
+from httpx import Response
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -48,26 +51,49 @@ class Kodik(BaseVideoExtractor):
         return urlsplit(url).netloc
 
     @staticmethod
-    def _create_url_api(netloc: str, suffix: str = "vdu") -> str:
+    def _create_url_api(netloc: str, suffix: str = "tru") -> str:
+        # 22.01.24 kodik breaking changes:
+        # 1. change API entrypoint: /gvi to /vdu
+        # 05.02.24 /vdu to /tru
+
         return f"https://{netloc}/{suffix}"
 
     @staticmethod
     def _create_api_headers(*, url: str, netloc: str) -> Dict[str, str]:
+        # 2. referer - url param (older - kodik netloc)
         return {
             "origin": f"https://{netloc}",
             "referer": url,
             "accept": "application/json, text/javascript, */*; q=0.01",
         }
 
+    @staticmethod
+    def _is_not_founded_video(response: Response) -> bool:
+        """return true is video is deleted"""
+        # video is deleted
+        # eg:
+        # Вайолет Эвергарден: День, когда ты поймешь, что я люблю тебя, обязательно наступит
+        # Violet Evergarden: Kitto "Ai" wo Shiru Hi ga Kuru no Darou:
+        # https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p?translations=false&min_age=16
+        if bool(re.search(r'<div class="message">Видео не найдено</div>', response.text)):
+            msg = (f"Error! Video not found. Is kodik issue, not api-wrapper. Response[{response.status_code}] "
+                   f"len={len(response.content)}")
+            warnings.warn(msg,
+                          category=RuntimeWarning,
+                          stacklevel=0)
+            return True
+        return False
+
     @kodik_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
-        response = self.http.get(url).text
+        response = self.http.get(url)
+        # kodik issue
+        if self._is_not_founded_video(response):
+            return []
+        response = response.text
 
-        # 22.01.24 kodik breaking changes:
-        # 1. change API entrypoint: /gvi to /vdu
-        # 2. referer - url param (older - kodik netloc)
         payload = self._parse_api_payload(response)
-        # extract netloc. Its maybe kodik, anivod or any kodik providers
+        # extract netloc. Its maybe kodik, anivod or any providers
         netloc = self._get_netloc(url)
         url_api = self._create_url_api(netloc)
         headers = self._create_api_headers(url=url, netloc=netloc)
@@ -78,13 +104,14 @@ class Kodik(BaseVideoExtractor):
     @kodik_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
-            response = (await client.get(url)).text
+            response = (await client.get(url))
+            # kodik issue
+            if self._is_not_founded_video(response):
+                return []
+            response = response.text
 
-            # 22.01.24 kodik breaking changes:
-            # 1. change API entrypoint: /gvi to /vdu
-            # 2. referer - url param (older - kodik netloc)
             payload = self._parse_api_payload(response)
-            # extract netloc. Its maybe kodik, anivod or any kodik providers
+            # extract netloc. Its maybe kodik, anivod or any providers
             netloc = self._get_netloc(url)
             url_api = self._create_url_api(netloc)
             headers = self._create_api_headers(url=url, netloc=netloc)
