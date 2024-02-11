@@ -27,7 +27,8 @@ from anicli_api._logger import logger
 HEADERS: Dict[str, str] = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
-    "x-requested-with": "XMLHttpRequest",  # XMLHttpRequest required
+    # Often, XMLHttpRequest header required
+    "x-requested-with": "XMLHttpRequest",
     "Sec-Ch-Ua": '"Not.A/Brand";v="8", "Chromium";v="114"',
     "Sec-Ch-Ua-Mobile": "?1",
     "Sec-Ch-Ua-Platform": '"Android"',
@@ -36,7 +37,7 @@ HEADERS: Dict[str, str] = {
     "Sec-Fetch-Site": "same-origin",
 }
 
-# DDoS protection check by "Server" key header
+
 __all__ = (
     "BaseHTTPSync",
     "BaseHTTPAsync",
@@ -47,6 +48,7 @@ __all__ = (
     "DDOSServerDetectError",
 )
 
+# DDoS protection check by "Server" key header
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
 
 

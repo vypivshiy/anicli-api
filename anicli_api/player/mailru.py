@@ -6,9 +6,7 @@ from httpx import Response
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["MailRu"]
-# url validator pattern
 _URL_EQ = re.compile(r"https?://(www\.)?my\.mail\.ru/video/embed")
-# url validate decorator
 player_validator = url_validator(_URL_EQ)
 
 
