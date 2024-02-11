@@ -18,8 +18,22 @@ class Kodik(BaseVideoExtractor):
 
     @staticmethod
     def _decode(url_encoded: str) -> str:
-        # After 30.03.23 `kodik` provider change reversed base64 string to Caesar cipher (shifted 13 places) + base64.
-        # This code simular original js player code for decode url.
+        # After 30.03.23 this provider change reversed base64 string to Caesar cipher (shifted 13 places) + base64.
+        # original js code signature:
+        # function (e) {
+        #   var t;
+        #   e.src = (
+        #     t = e.src,
+        #     atob(
+        #       t.replace(
+        #         /[a-zA-Z]/g,
+        #         function (e) {
+        #           return String.fromCharCode((e <= 'Z' ? 90 : 122) >= (e = e.charCodeAt(0) + 13) ? e : e - 26)
+        #         }
+        #       )
+        #     )
+        #   )
+        # }
 
         def char_wrapper(e):
             return chr(
@@ -39,28 +53,25 @@ class Kodik(BaseVideoExtractor):
             "d_sign": re.search(r'var d_sign = "(.*?)";', response)[1],  # type: ignore[index]
             "pd": re.search(r'var pd = "(.*?)";', response)[1],  # type: ignore[index]
             "ref": re.search(r'var ref = "(.*?)";', response)[1],  # type: ignore[index]
-            "type": re.search(r"videoInfo.type = '(.*?)';", response)[1],  # type: ignore[index]
-            "hash": re.search(r"videoInfo.hash = '(.*?)';", response)[1],  # type: ignore[index]
-            "id": re.search(r"videoInfo.id = '(.*?)';", response)[1],  # type: ignore[index]
+            "type": re.search(r"videoInfo\.type = '(.*?)';", response)[1],  # type: ignore[index]
+            "hash": re.search(r"videoInfo\.hash = '(.*?)';", response)[1],  # type: ignore[index]
+            "id": re.search(r"videoInfo\.id = '(.*?)';", response)[1],  # type: ignore[index]
             "bad_user": True,
             "info": {},
         }
 
     @staticmethod
     def _get_netloc(url: str) -> str:
+        # extract netloc. Its maybe kodik, anivod or other providers
         return urlsplit(url).netloc
 
     @staticmethod
     def _create_url_api(netloc: str, path: str = "tru") -> str:
-        # 22.01.24 kodik breaking changes:
-        # 1. change API entrypoint: /gvi to /vdu
-        # 05.02.24 /vdu to /tru and... /tru to /tri
-
+        # after 22.01.24 this provider add dynamically change API path
         return f"https://{netloc}/{path}"
 
     @staticmethod
     def _create_api_headers(*, url: str, netloc: str) -> Dict[str, str]:
-        # 2. referer - url param (older - kodik netloc)
         return {
             "origin": f"https://{netloc}",
             "referer": url,
@@ -70,11 +81,11 @@ class Kodik(BaseVideoExtractor):
     @staticmethod
     def _is_not_founded_video(response: Response) -> bool:
         """return true is video is deleted"""
-        # video is deleted
         # eg:
+        # https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p
         # Вайолет Эвергарден: День, когда ты поймешь, что я люблю тебя, обязательно наступит
-        # Violet Evergarden: Kitto "Ai" wo Shiru Hi ga Kuru no Darou:
-        # https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p?translations=false&min_age=16
+        # Violet Evergarden: Kitto "Ai" wo Shiru Hi ga Kuru no Darou
+
         if bool(re.search(r'<div class="message">Видео не найдено</div>', response.text)):
             msg = (f"Error! Video not found. Is kodik issue, not api-wrapper. Response[{response.status_code}] "
                    f"len={len(response.content)}")
@@ -86,18 +97,20 @@ class Kodik(BaseVideoExtractor):
 
     @staticmethod
     def _get_min_js_player_url(response: str, netloc: str) -> str:
-        # get js player link for extract valid kodik api path
+        # get js player file for extract valid kodik api path
         min_player_path = re.search(  # type: ignore
             r'<script\s*type="text/javascript"\s*src="(/assets/js/app\.player_single.*?)">',
             response)[1]
         return f"https://{netloc}{min_player_path}"
 
     @staticmethod
-    def _parse_kodik_api_path(player_response: str) -> str:
-        # extract base64 encoded path from js code:
-        # eg original signature:
+    def _extract_api_path(player_response: str) -> str:
+        # extract base64 encoded path from js code
+        # original js api path signature:
         # ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !1, dataType: 'json',data: e, ...
-        path = re.search(r'\$.ajax\([^>]+,url:\s*atob\("([\w=]+)"\)',  # type: ignore
+        #                                   PATH --------------------------
+        #                                                                 v
+        path = re.search(r'\$\.ajax\([^>]+,url:\s*atob\((:?"|\')([\w=]+)(:?"|\')\)',  # type: ignore
                          player_response)[1]
         if not path.endswith("=="):
             path += "=="
@@ -108,18 +121,16 @@ class Kodik(BaseVideoExtractor):
     @kodik_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
         response = self.http.get(url)
-        # kodik issue
         if self._is_not_founded_video(response):
             return []
         response = response.text
 
         payload = self._parse_api_payload(response)
-        # extract netloc. Its maybe kodik, anivod or any providers
         netloc = self._get_netloc(url)
 
         url_player_js = self._get_min_js_player_url(response, netloc)
         response_player = self.http.get(url_player_js)
-        api_path = self._parse_kodik_api_path(response_player.text)
+        api_path = self._extract_api_path(response_player.text)
 
         url_api = self._create_url_api(netloc, path=api_path)
         headers = self._create_api_headers(url=url, netloc=netloc)
@@ -131,19 +142,15 @@ class Kodik(BaseVideoExtractor):
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
             response = (await client.get(url))
-            # kodik issue
             if self._is_not_founded_video(response):
                 return []
             response = response.text
-
             payload = self._parse_api_payload(response)
-
-            # extract netloc. Its maybe kodik, anivod or any providers
             netloc = self._get_netloc(url)
 
             url_player_js = self._get_min_js_player_url(response, netloc)
             response_player = await client.get(url_player_js)
-            api_path = self._parse_kodik_api_path(response_player.text)
+            api_path = self._extract_api_path(response_player.text)
 
             url_api = self._create_url_api(netloc, path=api_path)
             headers = self._create_api_headers(url=url, netloc=netloc)
@@ -152,7 +159,7 @@ class Kodik(BaseVideoExtractor):
             return self._extract(response_api)
 
     def _extract(self, response_api: Dict) -> List[Video]:
-        # maybe not returns 720 key for VERY old anime titles
+        # maybe not exists '720' key for VERY old anime titles
         # eg: early 'One peace!', 'Evangelion' series
         if response_api.get("720"):
             return [
@@ -172,7 +179,3 @@ class Kodik(BaseVideoExtractor):
             ]
         # OMG :O
         return [Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"]))]
-
-
-if __name__ == '__main__':
-    print(*Kodik().parse("https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p"))
