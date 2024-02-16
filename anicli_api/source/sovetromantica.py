@@ -1,89 +1,85 @@
-import re
 import warnings
-from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union, TYPE_CHECKING
 
-from parsel import Selector
+from attrs import define
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.sovetromantica_parser import AnimeView as AnimeViewOld
+from anicli_api.source.parsers.sovetromantica_parser import AnimeView
 from anicli_api.source.parsers.sovetromantica_parser import EpisodeView, OngoingView, SearchView
 
-
-# patches
-class AnimeView(AnimeViewOld):
-    def _parse_video(self, part: Selector) -> str:
-        val = part.get()
-        if match := re.search(r"<meta property=\".*\" content=\"(https://.*?\.m3u8)\"", val):
-            return match[1]
-        return ""
-
-
-# end patches
+if TYPE_CHECKING:
+    from httpx import Client, AsyncClient
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://sovetromantica.com/"
 
-    @staticmethod
-    def _extract_search(resp: str) -> List["Search"]:
+    def _extract_search(self, resp: str) -> List["Search"]:
         data = SearchView(resp).parse().view()
-        return [Search(**d) for d in data]
+        return [Search(**d, **self._kwargs_http) for d in data]
 
-    @staticmethod
-    def _extract_ongoing(resp: str) -> List["Ongoing"]:
+    def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
         data = OngoingView(resp).parse().view()
-        return [Ongoing(**d) for d in data]
+        return [Ongoing(**d, **self._kwargs_http) for d in data]
 
     def search(self, query: str):
-        resp = self.HTTP().get(f"https://sovetromantica.com/anime?query={query}")
+        resp = self.http.get(f"https://sovetromantica.com/anime?query={query}")
         return self._extract_search(resp.text)
 
     async def a_search(self, query: str):
-        resp = await self.HTTP_ASYNC().get(f"https://sovetromantica.com/anime?query={query}")
+        resp = await self.http_async.get(f"https://sovetromantica.com/anime?query={query}")
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.HTTP().get("https://sovetromantica.com/anime")
+        resp = self.http.get("https://sovetromantica.com/anime")
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.HTTP_ASYNC().get("https://sovetromantica.com/anime")
+        resp = await self.http_async.get("https://sovetromantica.com/anime")
         return self._extract_ongoing(resp.text)
 
 
-@dataclass
-class Search(BaseSearch):
-    alt_title: str
+# without @attrs.define decorator to avoid
+# TypeError: multiple bases have instance lay-out conflict error
+# (__slots__ magic method and attrs hooks issue)
+class _SearchOrOngoing:
 
-    @staticmethod
-    def _extract(resp: str) -> "Anime":
-        data = AnimeView(resp).parse().view()[0]
-        if not data.get("description"):
-            data["description"] = ""
-        if not data.get("video"):
-            data["video"] = None
+    title: str
+    http: "Client"
+    http_async: "AsyncClient"
+    url: str
+    alt_title: str
+    _kwargs_http: Dict[str, Union["Client", "AsyncClient"]]
+
+    def _extract(self, resp: str) -> "Anime":
+        data = AnimeView(resp).parse().view()
         episodes = EpisodeView(resp).parse().view()
-        return Anime(**data, episodes=episodes)
+
+        return Anime(**data, episodes=episodes, **self._kwargs_http)
 
     def get_anime(self):
-        resp = self._http().get(self.url)
+        resp = self.http.get(self.url)
         return self._extract(resp.text)
 
     async def a_get_anime(self):
-        resp = await self._a_http().get(self.url)
+        resp = await self.http_async.get(self.url)
         return self._extract(resp.text)
 
     def __str__(self):
         return f"{self.title} ({self.alt_title})"
 
 
-@dataclass
-class Ongoing(Search, BaseOngoing):
-    pass
+@define(kw_only=True)
+class Search(_SearchOrOngoing, BaseSearch):
+    alt_title: str
 
 
-@dataclass
+@define(kw_only=True)
+class Ongoing(_SearchOrOngoing, BaseOngoing):
+    alt_title: str
+
+
+@define(kw_only=True)
 class Anime(BaseAnime):
     video: Optional[str]  # STUB ATTRIBUTE
     episodes: List[Dict[str, str]]
@@ -92,34 +88,37 @@ class Anime(BaseAnime):
         if not self.video:
             warnings.warn("Not available videos")
             return []
-        return [Episode(num=str(i), url=d["url"], title=d["title"]) for i, d in enumerate(self.episodes, 1)]
+
+        return [Episode(num=str(i), url=d["url"], title=d["title"], **self._kwargs_http)
+                for i, d in enumerate(self.episodes, 1)]
 
     async def a_get_episodes(self):
         return self.get_episodes()
 
 
-@dataclass
+@define(kw_only=True)
 class Episode(BaseEpisode):
     url: str
 
     def _extract(self, resp: str) -> List["Source"]:
         # video link contains in anime page
-        data = AnimeView(resp).parse().view()[0]
-        return [Source(title="Sovetromantica", url=data["video"])]
+        data = AnimeView(resp).parse().view()
+        return [Source(title="Sovetromantica", url=data["video"], **self._kwargs_http)]
 
     def get_sources(self):
-        resp = self._http().get(self.url)
+        resp = self.http.get(self.url)
         return self._extract(resp.text)
 
     async def a_get_sources(self):
-        resp = await self._a_http().get(self.url)
+        resp = await self.http_async.get(self.url)
         return self._extract(resp.text)
 
 
-@dataclass
+@define(kw_only=True)
 class Source(BaseSource):
     pass
 
 
-if __name__ == "__main__":
-    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
+if __name__ == '__main__':
+    from anicli_api.tools import cli
+    cli(Extractor())
