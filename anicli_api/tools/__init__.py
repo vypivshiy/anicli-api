@@ -1,0 +1,1 @@
+from anicli_api.tools.dummy_cli import cli
