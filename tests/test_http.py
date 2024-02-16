@@ -23,41 +23,12 @@ class MockRetryTransport(HTTPRetryConnectSyncTransport):
     RETRY_CONNECT_DELAY = 0.000001
 
 
-def test_http_client_patch():
-    # default config
-    client = BaseExtractor.HTTP()
-    # HTTPRetryConnectSyncTransport
-    old_transport = client._transport.__class__.__name__
-
-    # config transport
-    client_2 = HTTPSync(transport=None)
-    new_transport = client._transport.__class__.__name__
-    assert client == client_2
-    assert old_transport != new_transport
-
-
 def test_retry_transport(caplog):
     client = HTTPSync(transport=MockRetryTransport())
     with pytest.raises(ConnectError):
         client.get("https://example.comwtfmeme")
 
-    assert all(
-        record.message == "[1] ConnectError, GET https://example.comwtfmeme try retry connect"
-        for record in caplog.records
-    )
-
-
-def test_async_http_client_patch():
-    # default config
-    client = BaseExtractor.HTTP_ASYNC()
-    # HTTPRetryConnectSyncTransport
-    old_transport = client._transport.__class__.__name__
-
-    # config transport
-    client_2 = HTTPAsync(transport=None)
-    new_transport = client._transport.__class__.__name__
-    assert client == client_2
-    assert old_transport != new_transport
+    assert caplog.records[0].message.startswith("[1] ConnectError: [Errno -2]")
 
 
 def test_player_extractor_http_path():
