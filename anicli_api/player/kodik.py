@@ -107,10 +107,11 @@ class Kodik(BaseVideoExtractor):
     def _extract_api_path(player_response: str) -> str:
         # extract base64 encoded path from js code
         # original js api path signature:
+        # ... $.ajax({type:"POST",url:atob("L2Z0b3I="),cache:! ...
         # ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !1, dataType: 'json',data: e, ...
         #                                   PATH --------------------------
         #                                                                 v
-        path = re.search(r'\$\.ajax\([^>]+,url:\s*atob\((:?"|\')([\w=]+)(:?"|\')\)',  # type: ignore
+        path = re.search(r'\$\.ajax\([^>]+,url:\s*atob\((?:"|\')([\w=]+)(?:"|\')\)',  # type: ignore
                          player_response)[1]
         if not path.endswith("=="):
             path += "=="
