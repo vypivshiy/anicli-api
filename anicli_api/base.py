@@ -71,10 +71,18 @@ class _HttpExtension:
     def http(self):
         return self._http
 
+    @http.setter
+    def http(self, http_client: "Client"):
+        self._http = http_client
+
     @property
     def http_async(self):
         return self._http_async
 
+    @http_async.setter
+    def http_async(self, http_async_client: "AsyncClient"):
+        self._http_async = http_async_client
+        
     @property
     def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
         """shortcut for pass http arguments in kwargs style"""
