@@ -1,8 +1,9 @@
 import warnings
 from abc import abstractmethod
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Type
+from typing import TYPE_CHECKING, List, Dict, Union
 from urllib.parse import urlsplit
+
+from attrs import define, field
 
 from anicli_api._http import (  # noqa: F401
     DDOSServerDetectError,
@@ -15,12 +16,23 @@ from anicli_api.player import ALL_DECODERS
 
 if TYPE_CHECKING:
     from anicli_api.player.base import Video
+    from httpx import Client, AsyncClient
 
 
 class BaseExtractor:
-    HTTP = HTTPSync
-    HTTP_ASYNC = HTTPAsync
     BASE_URL: str = NotImplemented
+
+    def __init__(self,
+                 http_client: "Client" = HTTPSync(),
+                 http_async_client: "AsyncClient" = HTTPAsync()
+                 ):
+        self.http = http_client
+        self.http_async = http_async_client
+
+    @property
+    def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
+        """shortcut for pass http arguments in kwargs style"""
+        return {"http": self.http, "http_async": self.http_async}
 
     @abstractmethod
     def search(self, query: str):
@@ -49,17 +61,27 @@ class BaseExtractor:
         pass
 
 
+@define(kw_only=True)
 class _HttpExtension:
-    @property
-    def _http(self) -> Type[HTTPSync]:
-        return HTTPSync
+    """this dataclass provide pre-configured http clients"""
+    _http: "Client" = field(default=HTTPSync(), repr=False, kw_only=True, hash=False)
+    _http_async: "AsyncClient" = field(default=HTTPAsync(), repr=False, kw_only=True, hash=False)
 
     @property
-    def _a_http(self) -> Type[HTTPAsync]:
-        return HTTPAsync
+    def http(self):
+        return self._http
+
+    @property
+    def http_async(self):
+        return self._http_async
+
+    @property
+    def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
+        """shortcut for pass http arguments in kwargs style"""
+        return {"http": self.http, "http_async": self.http_async}
 
 
-@dataclass
+@define(kw_only=True)
 class BaseSearch(_HttpExtension):
     title: str
     thumbnail: str
@@ -79,7 +101,7 @@ class BaseSearch(_HttpExtension):
         return self.title
 
 
-@dataclass
+@define(kw_only=True)
 class BaseOngoing(_HttpExtension):
     title: str
     thumbnail: str
@@ -99,7 +121,7 @@ class BaseOngoing(_HttpExtension):
         return self.title
 
 
-@dataclass
+@define(kw_only=True)
 class BaseAnime(_HttpExtension):
     title: str
     thumbnail: str
@@ -117,11 +139,11 @@ class BaseAnime(_HttpExtension):
 
     def __str__(self):
         if len(self.title + self.description) > 80:
-            return f"{self.title} {self.description[:(80-len(self.title)-3)]}..."
+            return f"{self.title} {self.description[:(80 - len(self.title) - 3)]}..."
         return f"{self.title} {self.description}"
 
 
-@dataclass
+@define(kw_only=True)
 class BaseEpisode(_HttpExtension):
     title: str
     num: str
@@ -140,7 +162,7 @@ class BaseEpisode(_HttpExtension):
         return f"{self.num} {self.title}"
 
 
-@dataclass
+@define(kw_only=True)
 class BaseSource(_HttpExtension):
     title: str
     url: str

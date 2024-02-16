@@ -25,7 +25,7 @@ from httpx import (
 from anicli_api._logger import logger
 
 HEADERS: Dict[str, str] = {
-    "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) "
+    "User-Agent": "Mozilla/5.0 (Linux; Android 10.0; Nexus 5 Build/MRA58N) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
     # Often, XMLHttpRequest header required
     "x-requested-with": "XMLHttpRequest",
@@ -136,36 +136,20 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
         return await super().handle_async_request(request)
 
 
-class HttpxSingleton:
-    _client_instance = None
-    IS_CLIENT_INSTANCE_INIT = False
-
-    _async_client_instance = None
-    IS_ASYNC_CLIENT_INSTANCE_INIT = False
-
-    def __new__(cls, *args, **kwargs):
-        if issubclass(cls, HTTPSync):
-            if not cls._client_instance:
-                cls._client_instance = super().__new__(cls)
-            return cls._client_instance
-
-        elif issubclass(cls, HTTPAsync):
-            if not cls._async_client_instance:
-                cls._async_client_instance = super().__new__(cls)
-            return cls._async_client_instance
-
-
 class BaseHTTPSync(Client):
     """httpx.Client class with configured user agent and enabled redirects"""
 
     def __init__(self, **kwargs):
         http2 = kwargs.pop("http2", True)
         transport = kwargs.pop("transport", HTTPRetryConnectSyncTransport())
+        headers = kwargs.pop("headers", HEADERS.copy())
+        follow_redirects = kwargs.pop("follow_redirects", True)
 
-        super().__init__(http2=http2, transport=transport, **kwargs)
-        self.headers.update(HEADERS.copy())
-        self.headers.update(kwargs.pop("headers", {}))
-        self.follow_redirects = kwargs.pop("follow_redirects", True)
+        super().__init__(http2=http2,
+                         transport=transport,
+                         headers=headers,
+                         follow_redirects=follow_redirects,
+                         **kwargs)
 
 
 class BaseHTTPAsync(AsyncClient):
@@ -173,34 +157,16 @@ class BaseHTTPAsync(AsyncClient):
 
     def __init__(self, **kwargs):
         http2 = kwargs.pop("http2", True)
-        transport = kwargs.pop("transport", HTTPRetryConnectAsyncTransport())
+        transport = kwargs.pop("transport", HTTPRetryConnectSyncTransport())
+        headers = kwargs.pop("headers", HEADERS.copy())
+        follow_redirects = kwargs.pop("follow_redirects", True)
 
-        super().__init__(http2=http2, transport=transport, **kwargs)
-        self._headers.update(HEADERS.copy())
-        self._headers.update(kwargs.pop("headers", {}))
-        self.follow_redirects = kwargs.pop("follow_redirects", True)
-
-
-class HTTPSync(HttpxSingleton, BaseHTTPSync):
-    """
-    Base singleton **sync** HTTP class with recommended config.
-
-    Used in extractors and can configure at any point in the program"""
-
-    def __init__(self, **kwargs):
-        if not self.IS_CLIENT_INSTANCE_INIT:  # dirty hack for config singleton class
-            super().__init__(**kwargs)
-            self._client_instance_init = True
+        super().__init__(http2=http2,
+                         transport=transport,
+                         headers=headers,
+                         follow_redirects=follow_redirects,
+                         **kwargs)
 
 
-class HTTPAsync(HttpxSingleton, BaseHTTPAsync):
-    """
-    Base singleton **async** HTTP class with recommended config
-
-    Used in extractors and can configure at any point in the program
-    """
-
-    def __init__(self, **kwargs):
-        if not self.IS_ASYNC_CLIENT_INSTANCE_INIT:  # dirty hack for config singleton class
-            super().__init__(**kwargs)
-            self._async_client_instance_init = True
+HTTPSync = BaseHTTPSync
+HTTPAsync = BaseHTTPAsync
