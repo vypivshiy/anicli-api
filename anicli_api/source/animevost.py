@@ -1,28 +1,36 @@
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Dict, List, Union, TYPE_CHECKING
 
+from attrs import define
 import chompjs
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video  # direct make this object
+from anicli_api._http import HTTPSync, HTTPAsync
+
+if TYPE_CHECKING:
+    from httpx import Client, AsyncClient
 
 
 class VostAPI:
     """dummy animevost API implementation"""
 
-    HTTP = BaseExtractor.HTTP
-    HTTP_ASYNC = BaseExtractor.HTTP_ASYNC
     BASE_URL = "https://api.animevost.org/v1/"
 
+    def __init__(self,
+                 http: "Client" = HTTPSync(),
+                 http_async: "AsyncClient" = HTTPAsync()):
+        self.http = http
+        self.http_async = http_async
+
     def api_request(self, method: str, *, api_method: str, **kwargs) -> Union[Dict, List[Dict]]:
-        response = self.HTTP().request(method, self.BASE_URL + api_method, **kwargs)
+        response = self.http.request(method, self.BASE_URL + api_method, **kwargs)
         return response.json()
 
     async def a_api_request(self, method: str, *, api_method: str, **kwargs) -> Union[Dict, List[Dict]]:
-        async with self.HTTP_ASYNC() as session:
-            response = await session.request(method, self.BASE_URL + api_method, **kwargs)
-            return response.json()
+        response = await session.request(method, self.BASE_URL + api_method, **kwargs)
+        return response.json()
 
     @staticmethod
     def _kwargs_pop_params(kwargs, **params) -> dict:
@@ -57,8 +65,19 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://api.animevost.org/v1/"
     API = VostAPI()
 
+    def __init__(self,
+                 http_client: "Client" = HTTPSync(),
+                 http_async_client: "AsyncClient" = HTTPAsync()):
+
+        super().__init__(http_client=http_client, http_async_client=http_async_client)
+        self._api = VostAPI(**self._kwargs_http)
+
+    @property
+    def api(self):
+        return self._api
+
     @classmethod
-    def __extract_meta_data(cls, kw: dict) -> dict:
+    def _extract_meta_data(cls, kw: dict) -> dict:
         """standardize API response for objects"""
         # playlist = cls.API.playlist(kw['id'])
         # get total episodes
@@ -71,34 +90,40 @@ class Extractor(BaseExtractor):
             thumbnail=kw["urlImagePreview"],
             url=cls.BASE_URL,
             # anime meta
-            _alt_titles=[],  # stored to title key
-            _description=kw["description"],
-            _genres=kw["genre"].split(","),
-            _episodes_available=len(chompjs.parse_js_object(kw["series"]).keys()),
-            _episodes_total=total,
-            _aired=kw["year"],  # TODO convert to date
+            alt_titles=[],  # stored to title key
+            description=kw["description"],
+            genres=kw["genre"].split(","),
+            episodes_available=len(chompjs.parse_js_object(kw["series"]).keys()),
+            episodes_total=total,
+            aired=kw["year"],  # TODO convert to date
             # episodes and video meta key. Get from API.playlist method
-            _id=kw["id"],  # extract playlist key
+            id=kw["id"],  # extract playlist key
         )
 
     def search(self, query: str) -> List["Search"]:
         # search entrypoint
-        return [Search(**(self.__extract_meta_data(kw))) for kw in VostAPI().search(query)["data"]]
+        return [Search(**(self._extract_meta_data(kw)),
+                       **self._kwargs_http) for kw in self.api.search(query)["data"]]
 
     async def a_search(self, query: str) -> List["Search"]:
         # async search entrypoint
-        return [Search(**kw) for kw in (await VostAPI().a_search(query))["data"]]
+        return [Search(**self._extract_meta_data(kw),
+                       **self._kwargs_http) for kw in (await self.api.a_search(query))["data"]]
 
     def ongoing(self) -> List["Ongoing"]:
         # ongoing entrypoint
-        return [Ongoing(**(self.__extract_meta_data(kw))) for kw in VostAPI().last()["data"]]
+        return [Ongoing(**self._extract_meta_data(kw),
+                        **self._kwargs_http) for kw in self.api.last()["data"]]
 
     async def a_ongoing(self) -> List["Ongoing"]:
         # async ongoing entrypoint
-        return [Ongoing(**kw) for kw in (await VostAPI().a_last())["data"]]
+        return [Ongoing(**self._extract_meta_data(kw),
+                        **self._kwargs_http) for kw in (await self.api.a_last())["data"]]
 
 
-@dataclass
+# without @attrs.define decorator to avoid
+# TypeError: multiple bases have instance lay-out conflict error
+# (__slots__ magic method and attrs hooks issue)
 class _SearchOrOngoing:
     # TODO add convert camel case to snake case
     title: str
@@ -114,11 +139,19 @@ class _SearchOrOngoing:
     # episodes and video meta key. Get playlist from API.playlist method
     _id: int
 
+    http: "Client"
+    http_async: "AsyncClient"
+    _kwargs_http: Dict[str, Union["Client", "AsyncClient"]]
+
     def __str__(self):
         return self.title
 
+    @property
+    def api(self):
+        return VostAPI(**self._kwargs_http)
+
     def get_anime(self) -> "Anime":
-        playlist = VostAPI().playlist(self._id)
+        playlist = self.api.playlist(self._id)
         # if response contains one episode - return dict else list[dict]
         if isinstance(playlist, dict):
             playlist = [playlist]
@@ -131,13 +164,14 @@ class _SearchOrOngoing:
             episodes_available=self._episodes_available,
             episodes_total=self._episodes_total,
             aired=self._aired,
-            _playlist=playlist,
+            playlist=playlist,
         )
 
     async def a_get_anime(self) -> "Anime":
-        playlist = await VostAPI().a_playlist(self._id)
+        playlist = await self.api.a_playlist(self._id)
         if isinstance(playlist, dict):
             playlist = [playlist]
+
         return Anime(
             thumbnail=self.thumbnail,
             title=self.title,
@@ -147,21 +181,43 @@ class _SearchOrOngoing:
             episodes_available=self._episodes_available,
             episodes_total=self._episodes_total,
             aired=self._aired,
-            _playlist=playlist,
+            playlist=playlist,
         )
 
 
-@dataclass
+@define(kw_only=True)
 class Search(_SearchOrOngoing, BaseSearch):
-    pass
+    title: str
+    thumbnail: str
+    url: str
+    # anime meta
+    _alt_titles: List[str]
+    _description: str
+    _genres: List[str]
+    _episodes_available: int
+    _episodes_total: int
+    _aired: str  # TODO convert to date
+    # episodes and video meta key. Get playlist from API.playlist method
+    _id: int
 
 
-@dataclass
+@define(kw_only=True)
 class Ongoing(_SearchOrOngoing, BaseOngoing):
-    pass
+    title: str
+    thumbnail: str
+    url: str
+    # anime meta
+    _alt_titles: List[str]
+    _description: str
+    _genres: List[str]
+    _episodes_available: int
+    _episodes_total: int
+    _aired: str  # TODO convert to date
+    # episodes and video meta key. Get playlist from API.playlist method
+    _id: int
 
 
-@dataclass
+@define(kw_only=True)
 class Anime(BaseAnime):
     title: str
     alt_titles: List[str]
@@ -186,14 +242,14 @@ class Anime(BaseAnime):
                 title=kw["name"],
                 num=str(i),
                 # video meta
-                _hd=kw["hd"],
-                _std=kw["std"],
+                hd=kw["hd"],
+                std=kw["std"],
             )
             for i, kw in enumerate(self._playlist, 1)
         ]
 
 
-@dataclass
+@define(kw_only=True)
 class Episode(BaseEpisode):
     # video meta
     _hd: str
@@ -209,7 +265,7 @@ class Episode(BaseEpisode):
         return self.title
 
 
-@dataclass
+@define(kw_only=True)
 class Source(BaseSource):
     hd: str
     std: str

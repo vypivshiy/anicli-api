@@ -1,50 +1,33 @@
-import re
-from dataclasses import dataclass
-from typing import Dict
 import logging
+import re
+from typing import Dict, List
 
+from attrs import define
 from httpx import Response
 from parsel import Selector
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.animego_parser import AnimeView as AnimeViewOld
+from anicli_api.source.parsers.animego_parser import AnimeView
 from anicli_api.source.parsers.animego_parser import DubbersView, EpisodeView, SearchView, SourceView
-from anicli_api.source.parsers.animego_parser import OngoingView as OngoingViewOld
+from anicli_api.source.parsers.animego_parser import OngoingView
 
-
-# patches
 _logger = logging.getLogger('anicli-api')  # type: ignore
-
-
-class AnimeView(AnimeViewOld):
-    def _parse_description(self, part: Selector) -> str:
-        # remove whitespaces patch
-        val_0 = part.css(".description ::text").getall()
-        return " ".join(line.strip() for line in val_0)  # return "" if val_0 is empty
-
-
-class OngoingView(OngoingViewOld):
-    def _parse_dub(self, part: Selector) -> str:
-        # remove brackets patch
-        val_0 = part.css(".text-gray-dark-6 ::text").get()
-        return val_0.replace(")", "").replace("(", "")  # type: ignore
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://animego.org"
 
-    @staticmethod
-    def _extract_search(resp: str):
+    def _extract_search(self, resp: str):
         data = SearchView(resp).parse().view()
-        return [Search(**d) for d in data]
+        return [Search(**d,
+                       **self._kwargs_http
+                       ) for d in data]
 
     @staticmethod
-    def _extract_ongoing(resp: str):
-        data = OngoingView(resp).parse().view()
-        ongs = [Ongoing(**d) for d in data]
+    def _remove_ongoings_dups(ongoings: List["Ongoing"]):
         # remove duplicates and accumulate by episode and dubber keys
         sorted_ongs: Dict[int, "Ongoing"] = {}
-        for ong in ongs:
+        for ong in ongoings:
             key = hash(ong.url + ong.episode)
             if sorted_ongs.get(key):
                 sorted_ongs[key].dub += f", {ong.dub}"
@@ -52,29 +35,37 @@ class Extractor(BaseExtractor):
                 sorted_ongs[key] = ong
         return list(sorted_ongs.values())
 
+    def _extract_ongoing(self, resp: str):
+        data = OngoingView(resp).parse().view()
+        ongs = [Ongoing(**d,
+                        **self._kwargs_http
+                        ) for d in data]
+        return self._remove_ongoings_dups(ongs)
+
     def search(self, query: str):
-        resp = self.HTTP().get(f"{self.BASE_URL}/search/anime", params={"q": query})
+        resp = self.http.get(f"{self.BASE_URL}/search/anime", params={"q": query})
         return self._extract_search(resp.text)
 
     async def a_search(self, query: str):
-        resp = await self.HTTP_ASYNC().get(f"{self.BASE_URL}/search/anime", params={"q": query})
+        resp = await self.http_async.get(f"{self.BASE_URL}/search/anime", params={"q": query})
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.HTTP().get(self.BASE_URL)
+        resp = self.http.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.HTTP_ASYNC().get(self.BASE_URL)
+        resp = await self.http_async.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
 
-@dataclass
+@define(kw_only=True)
 class Search(BaseSearch):
-    @staticmethod
-    def _extract(resp: str):
-        data = AnimeView(resp).parse().view()[0]
-        return Anime(**data)
+    def _extract(self, resp: str):
+        data = AnimeView(resp).parse().view()
+        return Anime(**data,
+                     **self._kwargs_http
+                     )
 
     @staticmethod
     def _is_valid_page(resp: Response):
@@ -95,32 +86,34 @@ class Search(BaseSearch):
             title=self.title,
             thumbnail=self.thumbnail,
             description="",
+            # id for API requests contains in url
             id=self.url.split('-')[-1],
-            raw_json=""
+            raw_json="",
+            **self._kwargs_http
         )
 
     def get_anime(self):
-        resp = self._http().get(self.url)
+        resp = self.http.get(self.url)
         if self._is_valid_page(resp):
             return self._extract(resp.text)
         return self._create_anime()
 
     async def a_get_anime(self):
-        resp = await self._a_http().get(self.url)
+        resp = await self.http_async.get(self.url)
         if self._is_valid_page(resp):
             return self._extract(resp.text)
         return self._create_anime()
 
 
-@dataclass
+@define(kw_only=True)
 class Ongoing(BaseOngoing):
     episode: str
     dub: str
 
-    @staticmethod
-    def _extract(resp: str):
-        data = AnimeView(resp).parse().view()[0]
-        return Anime(**data)
+    def _extract(self, resp: str):
+        data = AnimeView(resp).parse().view()
+        return Anime(**data,
+                     **self._kwargs_http)
 
     @staticmethod
     def _is_valid_page(resp: Response):
@@ -142,17 +135,18 @@ class Ongoing(BaseOngoing):
             thumbnail=self.thumbnail,
             description="",
             id=self.url.split('-')[-1],
-            raw_json=""
+            raw_json="",
+            **self._kwargs_http
         )
 
     def get_anime(self):
-        resp = self._http().get(self.url)
+        resp = self.http.get(self.url)
         if self._is_valid_page(resp):
             return self._extract(resp.text)
         return self._create_anime()
 
     async def a_get_anime(self):
-        resp = await self._a_http().get(self.url)
+        resp = await self.http_async.get(self.url)
         if self._is_valid_page(resp):
             return self._extract(resp.text)
         return self._create_anime()
@@ -161,18 +155,17 @@ class Ongoing(BaseOngoing):
         return f"{self.title} {self.episode} ({self.dub})"
 
 
-@dataclass
+@define(kw_only=True)
 class Anime(BaseAnime):
     id: str
     raw_json: str
 
-    @staticmethod
-    def _extract(resp: str):
+    def _extract(self, resp: str):
         episodes_data = EpisodeView(resp).parse().view()
-        dubbers_data = DubbersView(resp).parse().view()
-        dubbers = {d["id"]: d["name"] for d in dubbers_data}
-        return [Episode(**d, dubbers=dubbers) for d in episodes_data]
-    
+
+        dubbers = DubbersView(resp).parse().view()
+        return [Episode(**d, dubbers=dubbers, **self._kwargs_http) for d in episodes_data]
+
     @staticmethod
     def _episodes_is_available(response: str):
         sel = Selector(response)
@@ -184,32 +177,32 @@ class Anime(BaseAnime):
             _logger.error("API not available in your country. Element: %s", sel.css('div.h5').get())
             return False
         return True
-    
+
     def get_episodes(self):
-        resp = self._http().get(f"https://animego.org/anime/{self.id}/player?_allow=true").json()["content"]
+        resp = self.http.get(f"https://animego.org/anime/{self.id}/player?_allow=true").json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
     async def a_get_episodes(self):
-        resp = await self._a_http().get(f"https://animego.org/anime/{self.id}/player?_allow=true")
+        resp = await self.http_async.get(f"https://animego.org/anime/{self.id}/player?_allow=true")
         resp = resp.json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
 
-@dataclass
+@define(kw_only=True)
 class Episode(BaseEpisode):
     dubbers: Dict[str, str]
-    id: str  # episode id
+    id: str  # episode id (for extract videos required)
 
     def _extract(self, resp: str):
         data = SourceView(resp).parse().view()
         data_source = [
             {"title": f'{self.dubbers.get(d["data_provide_dubbing"], "???").strip()}', "url": d["url"]} for d in data
         ]
-        return [Source(**d) for d in data_source]
+        return [Source(**d, **self._kwargs_http) for d in data_source]
 
     def get_sources(self):
         resp = (
-            self._http()
+            self.http
             .get(
                 "https://animego.org/anime/series",
                 params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
@@ -220,7 +213,7 @@ class Episode(BaseEpisode):
 
     async def a_get_sources(self):
         resp = (
-            await self._a_http().get(
+            await self.http_async.get(
                 "https://animego.org/anime/series",
                 params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
             )
@@ -228,6 +221,12 @@ class Episode(BaseEpisode):
         return self._extract(resp)
 
 
-@dataclass
+@define(kw_only=True)
 class Source(BaseSource):
     pass
+
+
+if __name__ == '__main__':
+    from anicli_api.tools import cli
+
+    cli(Extractor())
