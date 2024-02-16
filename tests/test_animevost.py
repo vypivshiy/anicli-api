@@ -2,7 +2,7 @@ import pytest
 
 from anicli_api.source.animevost import Extractor
 
-STATUS = Extractor().HTTP().get(Extractor().BASE_URL + "last").status_code
+STATUS = Extractor().http.get(Extractor().BASE_URL + "last").status_code
 
 
 @pytest.fixture()

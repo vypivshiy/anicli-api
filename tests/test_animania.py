@@ -2,7 +2,7 @@ import pytest
 
 from anicli_api.source.animania import Extractor
 
-STATUS_ANIMANIA = Extractor().HTTP().get(Extractor().BASE_URL).status_code
+STATUS_ANIMANIA = Extractor().http.get(Extractor().BASE_URL).status_code
 
 
 @pytest.fixture()

@@ -2,7 +2,7 @@ import pytest
 
 from anicli_api.source.anilibria import Extractor
 
-STATUS = Extractor().HTTP().get(Extractor().BASE_URL + "getUpdates").status_code
+STATUS = Extractor().http.get(Extractor().BASE_URL + "getUpdates").status_code
 
 
 @pytest.fixture()
