@@ -24,7 +24,7 @@ generate_parser() {
 check_and_clone_repository
 
 # Generate parsers
-generate_parser "libanime_schema/source/animego.yaml" "python.parsel" "anicli_api/source/parsers/animego_parser.py"
-generate_parser "libanime_schema/source/animania.yaml" "python.parsel" "anicli_api/source/parsers/animania_parser.py"
-generate_parser "libanime_schema/source/animejoy.yaml" "python.parsel" "anicli_api/source/parsers/animejoy_parser.py"
-generate_parser "libanime_schema/source/sovetromantica.yaml" "python.parsel" "anicli_api/source/parsers/sovetromantica_parser.py"
+generate_parser "libanime_schema/source/animego.py" "py.parsel" "anicli_api/source/parsers/animego_parser.py"
+generate_parser "libanime_schema/source/animania.py" "py.parsel" "anicli_api/source/parsers/animania_parser.py"
+generate_parser "libanime_schema/source/animejoy.py" "py.parsel" "anicli_api/source/parsers/animejoy_parser.py"
+generate_parser "libanime_schema/source/sovetromantica.py" "py.parsel" "anicli_api/source/parsers/sovetromantica_parser.py"
