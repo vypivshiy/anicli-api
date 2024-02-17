@@ -26,7 +26,8 @@ class Nuum(BaseVideoExtractor):
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
-            response = await client.get(url)
+            video_id = url.split('/')[-1]
+            response = await client.get(f'https://nuum.ru/api/v2/media-containers/{video_id}')
             return self._extract(response)
 
     def _extract(self, response: "Response") -> List[Video]:
@@ -41,10 +42,3 @@ class Nuum(BaseVideoExtractor):
                   quality=1080,
                   url=video_url)
         ]
-
-
-if __name__ == "__main__":
-    # positive
-    print(Nuum().parse('https://nuum.ru/embed/record/1610248')[0].url)
-    # negative
-    Nuum().parse('https://nuum.ru/embed/record/1549072')
