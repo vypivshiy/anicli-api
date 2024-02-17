@@ -2,18 +2,27 @@
 
 Программный интерфейс набора парсеров аниме с различных источников.
 
-Присутствует поддержка sync и async методов с помощью `httpx` библиотеки
-Парсеры работают на REST-API (если у источника есть доступ), parsel, chompjs, jmespath, regex
+Присутствует поддержка sync и async методов с помощью `httpx` библиотеки.
+
+Парсеры работают на REST-API (если у источника есть доступ) или если такой интерфейс
+отсутствует, то с помощью parsel, chompjs, jmespath, regex библиотек. 
+
 
 # install
 `pip install anicli-api`
 
 # Overview
 Структура проекта
+
+- source - наборы модулей для извлечения информации об аниме тайтлов из источников
+- player - наборы модулей для извлечения прямой ссылки на видео
+
+Подробнее про `source` и `player` смотрите ниже.
+
 ```
 anicli_api
 ├── base.py - базовый класс модуля-парсера
-├── _http.py - сконфигурированные классы httpx
+├── _http.py - предварительно сконфигурированные классы httpx.Client и httpx.AsyncClient
 ├── _logger.py - логгер
 ├── player - модули получения ссылок на видео
 │     ├── __template__.py - шаблон модуля PlayerExtractor
@@ -28,51 +37,36 @@ anicli_api
 
 ```
 
-Схематичный принцип работы парсеров:
+Схематичный принцип работы модуля из директории `source`
 
-![](high-level-schema.png)
+префикс `a_` обозначает асинхронный метод
 
-# source description
-- name - имя модуля
-- type - тип источника получения данных. 
-  - **NO** - неофициальный (парсинг html страниц) 
-  - **YES** - официальный (rest-api)
-- note - примечания
-- dubbers - тип озвучек. many - от различных авторов. subtitles - только субтитры. author - своя
+```mermaid
+flowchart TD
+    E[Extractor] -->|"search(<QUERY>)|a_search(<QUERY>)"| S(Search)
+    E -->|"ongoing()|a_ongoing()"| O(Ongoing)
+    
+    O -->|"get_anime()|a_get_anime()"| A[Anime]
+    S -->|"ongoing()|a_ongoing()"| A
+    
+    A -->|"get_episodes()|a_get_episodes()"|Ep[Episode]
+    Ep -->|"get_sources()|get_sources()"|So[Source]
+    So -->|"get_videos()|a_get_videos()"|V[Video]
 
-| name           | url                        | official api | dubbers           | note                                                                    |
-|----------------|----------------------------|--------------|-------------------|-------------------------------------------------------------------------|
-| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает IP отличных от СНГ                |
-| animania       | https://animania.online    | NO           | many              | источник kodik, не работает IP отличных от СНГ                          |
-| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare** (может периодически не работать), много источников |
-| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                              |
-| anilibria      | https://anilibria.tv       | YES          | author            |                                                                         |
-| animevost      | https://animevost.org      | YES          | author            |                                                                         |
+```
+# quickstart
+Для быстрого тестирования присутствует [простой CLI интерфейс](anicli_api/tools/dummy_cli.py).
 
+Все описания источников смотрите ниже.
 
-# players description
+```python
+from anicli_api.source.animego import Extractor
+from anicli_api.tools import cli
 
-Требует дополнения и дополнительных тестов
-
-- name - имя плеера
-- max quality - максимальное разрешение выдаваемое источником. Это может быть 0 (аудио, без видео), 144, 240, 360, 480, 720, 1080
-- note - примечания
-
-| name           | max quality                               | note                                                           |
-|----------------|-------------------------------------------|----------------------------------------------------------------|
-| kodik          | 720 (на старых тайтлах - 480)             | **работает только на IP СНГ**                                  |
-| aniboom        | 1080                                      | **работает только на IP СНГ**                                  |
-| sibnet         | 480                                       |                                                                |
-| animejoy       | 1080                                      | только актуальные ongoing, потом видео удаляются с их серверов |
-| csst           | 1080                                      |                                                                |
-| dzen           | 1080                                      |                                                                |
-| mailru         |                                           |                                                                |
-| okru           |                                           |                                                                |
-| sovetromantica | 1080                                      |                                                                |
-| vkcom          | 1080 (какого качества автор зальет видео) | CDN сервера в РФ, в других странах загружается медленнее       |
-
-
-# Quickstart example
+if __name__ == '__main__':
+    cli(Extractor())
+```
+ручная реализация
 
 ```python
 from anicli_api.source.animego import Extractor  # can usage any source
@@ -98,7 +92,6 @@ if __name__ == "__main__":
         print(*[f"{i} {video}" for i, video in enumerate(videos)], sep="\n")
         video = videos[int(input("video > "))]
         print(video.type, video.quality, video.url, video.headers)
-
 ```
 
 С asyncio аналогично, но **все** методы получения объектов имеют префикс `a_`:
@@ -118,9 +111,50 @@ async def main():
 if __name__ == '__main__':
     asyncio.run(main())
 ```
+
+# source description
+- name - имя модуля
+- type - тип источника получения данных.
+  - **NO** - неофициальный (парсинг html документов и запросы недокументированным API методам) 
+  - **YES** - официальный (rest-api)
+- note - примечания
+- dubbers - тип озвучек. many - от различных авторов. subtitles - только субтитры. author - своя
+
+| name           | url                        | official api | dubbers           | note                                                                                                                |
+|----------------|----------------------------|--------------|-------------------|---------------------------------------------------------------------------------------------------------------------|
+| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                         |
+| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                   |
+| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников |
+| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                          |
+| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                     |
+| animevost      | https://animevost.org      | YES          | author            |                                                                                                                     |
+
+
+# players description
+
+> Требует дополнения и дополнительные тесты
+
+- name - имя плеера
+- max quality - максимальное разрешение выдаваемое источником. Это может быть 0 (аудио, без видео), 144, 240, 360, 480, 720, 1080
+- note - примечания
+
+| name           | max quality                                                  | note                                                        |
+|----------------|--------------------------------------------------------------|-------------------------------------------------------------|
+| kodik          | 720 (на старых тайтлах (ранние One Peace, Evangelion) - 480) | **работает только на IP СНГ**                               |
+| aniboom        | 1080                                                         | **работает только на IP СНГ**                               |
+| sibnet         | 480                                                          |                                                             |
+| animejoy       | 1080                                                         | только актуальные ongoing, потом видео удаляются с серверов |
+| csst           | 1080                                                         |                                                             |
+| dzen           | 1080                                                         |                                                             |
+| mailru         |                                                              |                                                             |
+| okru           |                                                              |                                                             |
+| sovetromantica | 1080                                                         | не на все тайтлы присутствуют видео                         |
+| vkcom          | 1080 (какого качества автор зальет видео)                    | CDN сервера в РФ, в других странах загружается медленнее    |
+| nuum           | 1080                                                         | проект от wasd.tv                                           |
+  
 ## logging
 
-Настройка логгера идет через `anicli-api`
+Настройка логгера идет через ключ `anicli-api`
 
 ```python
 import logging
@@ -132,25 +166,30 @@ logger = logging.getLogger('anicli-api')
 ### source
 
 Если по какой-то либо причине вас не устраивают настройки по умолчанию - то вы можете задать
-конфигурацию http клиентов экстракторов
+конфигурацию http клиентов для экстракторов
 
 ```python
-from anicli_api.base import HTTPSync
+from anicli_api.source.animego import Extractor
+import httpx
+# не обязательно настраивать все клиенты, зависит от режима использования
+# например, если вы будете использовать только asyncio - настраивайте только http_async_client 
+my_client = httpx.Client(headers={"user-agent": "007"}, proxies="http:127.0.0.1:8080")
+my_async_client = httpx.AsyncClient(headers={"user-agent": "007"}, proxies="http:127.0.0.1:8080")
 
-from httpx import HTTPTransport
+# настройки клиентов будут передаваться всем объектам кроме методов Source.get_videos() 
+# и Source.a_get_videos()
 
-client = HTTPSync()
-print(client._transport)  # anicli_api._http.HTTPRetryConnectSyncTransport
-print(client.headers) # {'user-agent': 'Mozilla/5.0 (Linux; Android 6.0...', ...}
+ex = Extractor(http_client=my_client, http_async_client=my_async_client)
 
-client_2 = HTTPSync(transport=HTTPTransport(), # default transport
-                    headers={"user-agent": "My Cool useragent"}
-                    )  
+# изменение http клиента для объекта
+results = ex.search("lain")
+result = results[0]
+result.http = my_client
+result.http_async = my_async_client
+...
 
-print(client_2._transport)  # httpx.HTTPTransport
-print(client_2.headers)  # {'user-agent': 'My Cool useragent', ...}
-assert client_2 == client  # Passed
 ```
+
 ### player
 
 В player для модификации httpx клиентов (Client, AsyncioClient) необходимо передать kwargs аргументы:
@@ -173,11 +212,12 @@ videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTra
 
 ## Структуры объектов
 
-Приведены поля, которые **гарантированно** возвращаются в API, в некоторых источниках
-могут присутствовать дополнительные поля или атрибуты для использования во внутренних методах 
+Приведены поля, которые **гарантированно** возвращаются в API интерфейсе библиотеки, 
+в некоторых источниках могут присутствовать дополнительные поля или атрибуты для 
+использования во внутренних методах.
 
-Например, в `anilibria` и `animevost` почти идентичны ответам API. 
-В `animego.Anime` есть несериализованный `raw_json` для извлечения дополнительных данных.
+Например, в `anilibria` и `animevost` поля почти идентичны ответам API. 
+В `animego.Anime` есть сырой несериализованный `raw_json` для извлечения дополнительных метаданных.
 
 ### Search
 - url: str - URL на тайтл
@@ -214,24 +254,27 @@ videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTra
 Если возвращает пустой словарь - заголовки не нужны
 
 # Примечания
+- Парсеры из директории 
+[anicli_api/source/parsers](anicli_api/source/parsers) автоматически генерируются с помощью 
+[ssc_gen](https://github.com/vypivshiy/selector_schema_codegen), 
+настройки хранятся в [libanime_schema](https://github.com/libanime/libanime_schema)
 
-- `anicli_api/source/parsers` - автоматически сгенерированные парсеры с помощью 
-[scrape-schema-codegen](https://github.com/vypivshiy/selector_schema_codegen) и файлов-конфигурации [libanime](https://github.com/libanime/libanime_schema). 
+- Для модификаций парсеров из директории `anicli_api/source/parsers`
+используйте наследование, чтобы не потерять изменения при перегенерации библиотекой `ssc_gen`.
 
-- Так как это прототип и имеет свои ограничения, то при модификациях этих модулей 
-используйте наследование, чтобы не потерять изменения при обновлениях.
-
-Пример из модуля [animego](anicli_api/source/animego.py):
+Пример из модуля [animejoy](anicli_api/source/animejoy.py):
 
 ```python
-from anicli_api.source.parsers.animego_parser import AnimeView as AnimeViewOld
+from anicli_api.source.parsers.animejoy_parser import PlayerUrlsView as PlayerUrlsViewOld
+from parsel import Selector
 
-class AnimeView(AnimeViewOld):
-    @staticmethod
-    def _parse_description(part) -> str:
-        # remove whitespaces patch
-        val_0 = part.css(".description ::text").getall()
-        return " ".join(line.strip() for line in val_0)
+
+class PlayerUrlsView(PlayerUrlsViewOld):
+    def _parse_url(self, part: Selector) -> str:
+        val_0 = part.attrib["data-file"]
+        # maybe exclude https: prefix
+        return f"https:{val_0}" if val_0.startswith("//") else val_0
+
 ```
 
 - Проект разработан преимущественно на личное, некоммерческое использование с client-side 
