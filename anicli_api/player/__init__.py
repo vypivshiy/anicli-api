@@ -8,6 +8,7 @@ from anicli_api.player.okru import OkRu
 from anicli_api.player.sibnet import SibNet
 from anicli_api.player.sovetromantica import SovietRomanticaPlayer
 from anicli_api.player.vkcom import VkCom
+from anicli_api.player.nuum import Nuum
 
 ALL_DECODERS = (
     Kodik,
@@ -20,4 +21,5 @@ ALL_DECODERS = (
     VkCom,
     Dzen,
     SovietRomanticaPlayer,
+    Nuum
 )
