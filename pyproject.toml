@@ -6,7 +6,7 @@ authors = ["vypivshiy"]
 license = "MIT"
 readme = "README.MD"
 packages = [{include = "anicli_api"}]
-exclude = ["tests/"]
+exclude = ["tests/", 'scripts/', 'libanime_schema/', 'dev/']
 keywords = [
     "anime",
     "api",
@@ -24,6 +24,8 @@ classifiers = [
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Topic :: Software Development :: Quality Assurance",
   "Typing :: Typed"
