@@ -39,11 +39,11 @@ class AnilibriaAPI:
 
     def search_titles(self, *, search: str, limit: int = -1, **kwargs) -> dict:
         params = self._kwargs_pop_params(kwargs, search=search, limit=limit)
-        return self.api_request(api_method="title/search", params=params, **kwargs)
+        return self.api_request(api_method="title/search", params=params, **kwargs)['list']
 
     async def a_search_titles(self, *, search: str, limit: int = -1, **kwargs) -> dict:
         params = self._kwargs_pop_params(kwargs, limit=limit)
-        return await self.a_api_request(api_method="title/search", params=params, **kwargs)
+        return (await self.a_api_request(api_method="title/search", params=params, **kwargs))['list']
 
     def get_updates(self, *, limit: int = -1, **kwargs) -> dict:
         """getUpdates method
@@ -57,7 +57,7 @@ class AnilibriaAPI:
 
     async def a_get_updates(self, *, limit: int = -1, **kwargs) -> dict:
         params = self._kwargs_pop_params(kwargs, limit=limit)
-        return await self.a_api_request(api_method="title/updates", data=params, **kwargs)
+        return (await self.a_api_request(api_method="title/updates", data=params, **kwargs))['list']
 
 
 class Extractor(BaseExtractor):
@@ -75,7 +75,7 @@ class Extractor(BaseExtractor):
         return self._api
 
     @classmethod
-    def __extract_meta_data(cls, kw: dict) -> dict:
+    def _extract_meta_data(cls, kw: dict) -> dict:
         """extract response data for anicli application"""
         return dict(
             **kw,
@@ -86,20 +86,20 @@ class Extractor(BaseExtractor):
         )
 
     def search(self, query: str) -> List["Search"]:
-        return [Search(**self.__extract_meta_data(kw),
+        return [Search(**self._extract_meta_data(kw),
                        **self._kwargs_http) for kw in self.api.search_titles(search=query)
                 ]
 
     async def a_search(self, query: str) -> List["Search"]:
-        return [Search(**self.__extract_meta_data(kw),
+        return [Search(**self._extract_meta_data(kw),
                        **self._kwargs_http) for kw in (await self.api.a_search_titles(search=query))]
 
     def ongoing(self) -> List["Ongoing"]:
-        return [Ongoing(**self.__extract_meta_data(kw),
+        return [Ongoing(**self._extract_meta_data(kw),
                         **self._kwargs_http) for kw in self.api.get_updates()]
 
     async def a_ongoing(self) -> List["Ongoing"]:
-        return [Ongoing(**self.__extract_meta_data(kw),
+        return [Ongoing(**self._extract_meta_data(kw),
                         **self._kwargs_http) for kw in (await self.api.a_get_updates())]
 
 
@@ -214,9 +214,10 @@ class Anime(BaseAnime):
         # TODO validate fhd key
         return [
             Episode(
-                title=f"{num} {item['name']}",
+                title=item['name'] or 'Episode',  # maybe return None
                 num=num,
-                fhd=f"https://{host}{item['hls']['fhd']}",
+                # maybe dont exist 1080p
+                fhd=f"https://{host}{item['hls']['fhd']}" if item['hls'].get('fhd') else None,
                 hd=f"https://{host}{item['hls']['hd']}",
                 sd=f"https://{host}{item['hls']['sd']}",
             )
@@ -235,9 +236,6 @@ class Episode(BaseEpisode):
     _fhd: str
     _hd: str
     _sd: str
-
-    def __str__(self):
-        return self.title
 
     def get_sources(self) -> List["Source"]:
         return [Source(title="Anilibria",
