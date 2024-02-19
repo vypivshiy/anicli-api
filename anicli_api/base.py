@@ -167,7 +167,7 @@ class BaseEpisode(_HttpExtension):
         pass
 
     def __str__(self):
-        return f"{self.num} {self.title}"
+        return f"{self.title} {self.num}"
 
 
 @define(kw_only=True)
