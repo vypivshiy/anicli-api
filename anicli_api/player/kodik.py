@@ -18,7 +18,8 @@ class Kodik(BaseVideoExtractor):
 
     @staticmethod
     def _decode(url_encoded: str) -> str:
-        # After 30.03.23 this provider change reversed base64 string to Caesar cipher (shifted 13 places) + base64.
+        # After 30.03.23 this provider change reversed base64 string to ROT13 + base64
+        # (aka Caesar cipher shifted 13 places)
         # original js code signature:
         # function (e) {
         #   var t;
@@ -156,7 +157,7 @@ class Kodik(BaseVideoExtractor):
             url_api = self._create_url_api(netloc, path=api_path)
             headers = self._create_api_headers(url=url, netloc=netloc)
 
-            response_api = (await client.post(url_api, data=payload, headers=headers).json())["links"]
+            response_api = (await client.post(url_api, data=payload, headers=headers)).json()["links"]
             return self._extract(response_api)
 
     def _extract(self, response_api: Dict) -> List[Video]:
