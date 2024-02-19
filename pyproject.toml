@@ -49,6 +49,7 @@ mypy = "*"
 isort = "*"
 ruff = "*"
 black = "*"
+pytest-asyncio = "^0.23.5"
 
 
 [tool.poetry.group.codegen.dependencies]
