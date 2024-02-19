@@ -157,7 +157,7 @@ class BaseHTTPAsync(AsyncClient):
 
     def __init__(self, **kwargs):
         http2 = kwargs.pop("http2", True)
-        transport = kwargs.pop("transport", HTTPRetryConnectSyncTransport())
+        transport = kwargs.pop("transport", HTTPRetryConnectAsyncTransport())
         headers = kwargs.pop("headers", HEADERS.copy())
         follow_redirects = kwargs.pop("follow_redirects", True)
 
