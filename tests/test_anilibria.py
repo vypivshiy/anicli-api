@@ -18,7 +18,7 @@ def test_search(extractor):
     anime = result[0].get_anime()
     episodes = anime.get_episodes()
     assert len(episodes) == 12
-    assert episodes[0].title == "Episode 1"
+    assert str(episodes[0]) == "Episode 1"
     sources = episodes[0].get_sources()
     assert len(sources) == 1
     videos = sources[0].get_videos()
