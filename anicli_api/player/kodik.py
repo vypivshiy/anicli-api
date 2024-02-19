@@ -1,10 +1,12 @@
+import codecs
 import re
 import warnings
 from base64 import b64decode
 from typing import Dict, List
 from urllib.parse import urlsplit
+
 from httpx import Response
-import codecs
+
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["Kodik"]
