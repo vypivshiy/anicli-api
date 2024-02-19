@@ -3,9 +3,8 @@ import warnings
 from base64 import b64decode
 from typing import Dict, List
 from urllib.parse import urlsplit
-
 from httpx import Response
-
+import codecs
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
 __all__ = ["Kodik"]
@@ -36,12 +35,8 @@ class Kodik(BaseVideoExtractor):
         #   )
         # }
 
-        def char_wrapper(e):
-            return chr(
-                (ord(e.group(0)) + 13 - (65 if e.group(0) <= "Z" else 97)) % 26 + (65 if e.group(0) <= "Z" else 97)
-            )
-
-        base64_url = re.sub(r"[a-zA-Z]", char_wrapper, url_encoded)
+        # https://stackoverflow.com/a/3270252
+        base64_url = codecs.decode(url_encoded, 'rot_13')
         if not base64_url.endswith("=="):
             base64_url += "=="
         decoded_url = b64decode(base64_url).decode()
