@@ -72,13 +72,6 @@ def generate_playlist_from_sources(
         sources: Sequence["BaseSource"],
         names: Optional[Sequence[str]] = None,
         quality: int = 1080) -> str:
-    """
-
-    @param sources:
-    @param names:
-    @param quality:
-    @return:
-    """
     _is_empty_names = False
     if not names:
         names = []
