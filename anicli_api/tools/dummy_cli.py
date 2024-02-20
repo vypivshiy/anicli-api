@@ -28,6 +28,19 @@ def _choice(items: Sequence[T]) -> T:
             return items[int(ch) - 1]
 
 
+def _generate_mpv_cmd(vid: "Video"):
+    def _headers_to_str(headers: dict):
+        result = []
+        for k, v in headers.items():
+            v = v.replace('"', '\\"')
+            result.append(f'"{k}: {v}"')
+        return ','.join(result)
+
+    if vid.headers:
+        return f"mpv {vid.url!r} --http-header-field={_headers_to_str(vid.headers)}"
+    return f"mpv {vid.url!r}"
+
+
 def _search_entry(e: "BaseExtractor", q: str):
     res = e.search(q)
     if not _is_empty(res):
@@ -75,6 +88,8 @@ def _anime_entry(a: "BaseAnime"):
     vid: "Video" = _choice(vids)
     print("QUALITY, HEADERS, URL")
     print(f"[{vid.quality}]", ", ".join([f"{k}={v}" for k, v in vid.headers.items()]) or None, vid.url)
+    print("MPV DEBUG COMMAND:")
+    print(_generate_mpv_cmd(vid))
 
 
 def main(extractor: "BaseExtractor"):
@@ -96,7 +111,7 @@ def main(extractor: "BaseExtractor"):
 
 
 def cli(extractor: "BaseExtractor"):
-    """minimal dummy cli app for interactive manual tests (video player call exclude)
+    """minimal dummy cli app for interactive manual tests
 
     usage:
 
