@@ -38,10 +38,9 @@ class _BaseStructParser:
 
 
 class AnimeView(_BaseStructParser):
-    """
-        Prepare:
+    """send request to anime page
 
-          1. GET to anime page
+        GET https://animania.online/9403-jeksperimenty-ljejn-serial-experiments-lain-1998-smotret-onlajn.html
 
         AnimeView view() item signature:
 
@@ -86,10 +85,9 @@ class AnimeView(_BaseStructParser):
 
 
 class OngoingView(_BaseStructParser):
-    """
-        Prepare:
+    """Send to main page request
 
-          1. GET https://animania.online/
+        GET https://animania.online/
 
         OngoingView view() item signature:
 
@@ -145,11 +143,9 @@ class OngoingView(_BaseStructParser):
 
 
 class VideoView(_BaseStructParser):
-    """
-        Prepare:
+    """send request to anime page
 
-          1. GET to anime page
-
+        GET https://animania.online/9403-jeksperimenty-ljejn-serial-experiments-lain-1998-smotret-onlajn.html
 
         VideoView view() item signature:
 
@@ -211,10 +207,10 @@ class VideoView(_BaseStructParser):
 
 
 class SearchView(_BaseStructParser):
-    """
-        Prepare:
+    """Send search request
 
-          1. GET https://animania.online/index.php?story=<QUERY>&do=search&subaction=search
+        GET https://animania.online/index.php
+        story={QUERY}&do=search&subaction=search
 
         SearchView view() item signature:
 
@@ -270,10 +266,9 @@ class SearchView(_BaseStructParser):
 
 
 class DubbersView(_BaseStructParser):
-    """
-        Prepare:
+    """send to anime page request
 
-          1. GET to anime page
+        GET https://animania.online/9403-jeksperimenty-ljejn-serial-experiments-lain-1998-smotret-onlajn.html
 
         DubbersView view() item signature:
 

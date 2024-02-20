@@ -39,8 +39,7 @@ class _BaseStructParser:
 
 class OngoingView(_BaseStructParser):
     """
-        Prepare:
-          1. GET https://animejoy.ru
+        GET https://animejoy.ru
 
         OngoingView view() item signature:
 
@@ -112,12 +111,8 @@ class OngoingView(_BaseStructParser):
 
 class SearchView(_BaseStructParser):
     """
-        Prepare:
-
-          1. POST https://animejoy.ru/
-
-          2. payload:
-            story: <QUERY>, do: search, subaction: search
+        POST https://animejoy.ru/
+        story=<QUERY>&do=search&subaction=search
 
         SearchView view() item signature:
 
@@ -189,8 +184,7 @@ class SearchView(_BaseStructParser):
 
 class AnimeView(_BaseStructParser):
     """
-        Prepare:
-          1. GET anime page
+        GET https://animejoy.ru/tv-serialy/2654-van-pis-1001-.html
 
         AnimeView view() item signature:
 
@@ -266,9 +260,11 @@ class PlayerView(_BaseStructParser):
     """Represent player name and player id
 
         Prepare:
-          1. get news_id from Anime
+          1. get news_id from Anime class
 
-          2. GET https://animejoy.ru/engine/ajax/playlists.php?news_id={Anime.news_id}&xfield=playlist
+          2.
+            GET https://animejoy.ru/engine/ajax/playlists.php
+            news_id={Anime.news_id}&xfield=playlist
 
           3. get json, get HTML by "response" key
 
@@ -320,9 +316,14 @@ class PlayerUrlsView(_BaseStructParser):
     """Represent player url and player id
 
         Prepare:
-          1. get news_id from Anime
-          2. GET https://animejoy.ru/engine/ajax/playlists.php?news_id={Anime.news_id}&xfield=playlist
+          1. get news_id from Anime class
+
+          2.
+          GET https://animejoy.ru/engine/ajax/playlists.php
+          news_id={Anime.news_id}&xfield=playlist
+
           3. get json, get HTML by "response" key
+
           4. OPTIONAL: Unescape document
 
         PlayerUrlsView view() item signature:
@@ -362,15 +363,11 @@ class PlayerUrlsView(_BaseStructParser):
         return self._cached_result
 
     def _parse_player_id(self, doc: Selector):
-        """player id"""
-
         var_0 = doc
         var_1 = var_0.attrib["data-id"]
         return var_1
 
     def _parse_url(self, doc: Selector):
-        """player url"""
-
         var_0 = doc
         var_1 = var_0.attrib["data-file"]
         return var_1

@@ -40,8 +40,7 @@ class _BaseStructParser:
 class OngoingView(_BaseStructParser):
     """Get all available ongoings from main page
 
-        Prepare:
-          1. GET https://animego.org
+        GET https://animego.org
 
         OngoingView view() item signature:
 
@@ -130,8 +129,9 @@ class OngoingView(_BaseStructParser):
 class SearchView(_BaseStructParser):
     """Get all search results by query
 
-        Prepare:
-          1. GET to https://animego.org/search/anime?q={QUERY}
+        GET https://animego.org/search/anime
+        q={QUERY}
+
         SearchView view() item signature:
 
     {
@@ -187,8 +187,8 @@ class SearchView(_BaseStructParser):
 class AnimeView(_BaseStructParser):
     """Anime page information
 
-        Prepare:
-          1. GET to anime page EG: https://animego.org/anime/eksperimenty-leyn-1114
+        GET https://animego.org/anime/eksperimenty-leyn-1114
+
         AnimeView view() item signature:
 
     {
@@ -267,6 +267,7 @@ class DubbersView(_BaseStructParser):
           2. GET 'https://animego.org/anime/{Anime.id}/player?_allow=true'
           3. extract html from json by ['content'] key
           4. OPTIONAL: unescape HTML
+
         DubbersView view() item signature:
 
     {
@@ -383,10 +384,15 @@ class SourceView(_BaseStructParser):
 
         Prepare:
           1. get num and id from Episode
-          2. GET https://animego.org/anime/series with  params
-            {"dubbing": 2, "provider": 24, "episode": Episode.num, "id": Episode.id}
-          2. extract html from json by ["content"] key
-          3. OPTIONAL: unescape
+
+          2.
+
+          GET https://animego.org/anime/series
+          dubbing=2&provider=24&episode={Episode.num}id={Episode.id}
+
+          3. extract html from json by ["content"] key
+
+          4. OPTIONAL: unescape document
 
         SourceView view() item signature:
 

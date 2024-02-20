@@ -39,8 +39,7 @@ class _BaseStructParser:
 
 class OngoingView(_BaseStructParser):
     """
-        Prepare:
-         1. GET https://sovetromantica.com/anime
+        GET https://sovetromantica.com/anime
 
         OngoingView view() item signature:
 
@@ -114,9 +113,9 @@ class OngoingView(_BaseStructParser):
 class SearchView(_BaseStructParser):
     """Get all search results by query
 
-        Prepare:
+        GET https://sovetromantica.com/anime
+        query=<QUERY>
 
-          1. GET https://sovetromantica.com/anime?query=<QUERY>
         SearchView view() item signature:
 
     {
@@ -187,9 +186,8 @@ class SearchView(_BaseStructParser):
 class AnimeView(_BaseStructParser):
     """Anime page information
 
-        Prepare:
+        GET https://sovetromantica.com/anime/1459-sousou-no-frieren
 
-          1. GET to anime URL page
         AnimeView view() item signature:
 
     {
@@ -268,9 +266,8 @@ class EpisodeView(_BaseStructParser):
 
         target page maybe does not contain video!
 
-        Prepare:
+        GET https://sovetromantica.com/anime/1459-sousou-no-frieren
 
-          1. GET https://sovetromantica.com/anime?query=<QUERY>
 
         EpisodeView view() item signature:
 
