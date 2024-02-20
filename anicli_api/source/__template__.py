@@ -1,13 +1,10 @@
-from dataclasses import dataclass
 from typing import Dict, List
 
+from attrs import define
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
-# from anicli_api.source.schemas
 
-# schema patches
-
-# end patches
+# from anicli_api.parsers.schemas
 
 
 class Extractor(BaseExtractor):
@@ -22,85 +19,91 @@ class Extractor(BaseExtractor):
         pass
 
     def search(self, query: str):
-        resp = self.HTTP().get(f"")
+        resp = self.http.get(f"")
         return self._extract_search(resp.text)
 
     async def a_search(self, query: str):
-        resp = await self.HTTP_ASYNC().get(f"")
+        resp = await self.http_async.get(f"")
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.HTTP().get(self.BASE_URL)
+        resp = self.http.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.HTTP_ASYNC().get(self.BASE_URL)
+        resp = await self.http_async.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
 
-@dataclass
+@define(kw_only=True)
 class Search(BaseSearch):
+    counts: str
+
     @staticmethod
     def _extract(resp: str) -> "Anime":
         pass
 
     def get_anime(self):
-        resp = self._http().get(self.url)
+        resp = self.http.get(self.url)
         return self._extract(resp.text)
 
     async def a_get_anime(self):
-        resp = await self._a_http().get(self.url)
+        resp = await self.http_async.get(self.url)
         return self._extract(resp.text)
 
 
-@dataclass
+@define(kw_only=True)
 class Ongoing(BaseOngoing):
+    counts: str
+
     @staticmethod
     def _extract(resp: str) -> "Anime":
         pass
 
     def get_anime(self):
-        resp = self._http().get(self.url)
+        resp = self.http.get(self.url)
         return self._extract(resp.text)
 
     async def a_get_anime(self):
-        resp = await self._a_http().get(self.url)
+        resp = await self.http_async.get(self.url)
         return self._extract(resp.text)
 
 
-@dataclass
+@define(kw_only=True)
 class Anime(BaseAnime):
     @staticmethod
     def _extract(resp: str) -> List["Episode"]:
         pass
 
     def get_episodes(self):
-        resp = self._http().get(f"")
+        resp = self.http.get(f"")
         return self._extract(resp.text)
 
     async def a_get_episodes(self):
-        resp = await self._a_http().get(f"")
+        resp = await self.http_async.get(f"")
         return self._extract(resp.text)
 
 
-@dataclass
+@define(kw_only=True)
 class Episode(BaseEpisode):
     def _extract(self, resp: str) -> List["Source"]:
         pass
 
     def get_sources(self):
-        resp = self._http().get("")
+        resp = self.http.get("")
         return self._extract(resp.text)
 
     async def a_get_sources(self):
-        resp = await self._a_http().get("")
+        resp = await self.http_async.get("")
         return self._extract(resp.text)
 
 
-@dataclass
+@define(kw_only=True)
 class Source(BaseSource):
     pass
 
 
 if __name__ == "__main__":
-    print(Extractor().search("lai")[0].get_anime().get_episodes()[0].get_sources())
+    from anicli_api.tools import cli
+
+    cli(Extractor())
