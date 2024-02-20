@@ -26,8 +26,16 @@ class BaseExtractor:
                  http_client: "Client" = HTTPSync(),
                  http_async_client: "AsyncClient" = HTTPAsync()
                  ):
-        self.http = http_client
-        self.http_async = http_async_client
+        self._http = http_client
+        self._http_async = http_async_client
+
+    @property
+    def http(self) -> "Client":
+        return self._http
+
+    @property
+    def http_async(self) -> "AsyncClient":
+        return self._http_async
 
     @property
     def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
