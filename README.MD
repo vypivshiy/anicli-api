@@ -28,12 +28,12 @@ anicli_api
 │     ├── __template__.py - шаблон модуля PlayerExtractor
 │     ├── ...  ready-made модули
 │     ...
-└── source - модули парсеров с источников
-      ├── parsers/... автоматически сгенерированные парсеры html страниц
-      ├── __template__.py - шаблон для экстрактора
-      ├─ ... ready-made парсеры
-      ...
-
+├── source - модули парсеров с источников
+│     ├── parsers/... автоматически сгенерированные парсеры html страниц
+│     ├── __template__.py - шаблон для экстрактора
+│     ├─ ... ready-made парсеры
+│     ...
+└── tools - прочие модули
 
 ```
 
@@ -43,21 +43,18 @@ anicli_api
 
 ```mermaid
 flowchart TD
-    E[Extractor] -->|"search(<QUERY>)|a_search(<QUERY>)"| S(Search)
-    E -->|"ongoing()|a_ongoing()"| O(Ongoing)
+    E[Extractor] -->|"search(<QUERY>) | a_search(<QUERY>)"| S(Search)
+    E -->|"ongoing() | a_ongoing()"| O(Ongoing)
     
-    O -->|"get_anime()|a_get_anime()"| A[Anime]
-    S -->|"ongoing()|a_ongoing()"| A
+    O -->|"get_anime() | a_get_anime()"| A[Anime]
+    S -->|"ongoing() | a_ongoing()"| A
     
-    A -->|"get_episodes()|a_get_episodes()"|Ep[Episode]
-    Ep -->|"get_sources()|get_sources()"|So[Source]
-    So -->|"get_videos()|a_get_videos()"|V[Video]
+    A -->|"get_episodes() | a_get_episodes()"|Ep[Episode]
+    Ep -->|"get_sources() | get_sources()"|So[Source]
+    So -->|"get_videos() | a_get_videos()"|V[Video]
 
 ```
 # quickstart
-Для быстрого тестирования присутствует [простой CLI интерфейс](anicli_api/tools/dummy_cli.py).
-
-Все описания источников смотрите ниже.
 
 ```python
 from anicli_api.source.animego import Extractor
@@ -66,32 +63,67 @@ from anicli_api.tools import cli
 if __name__ == '__main__':
     cli(Extractor())
 ```
-ручная реализация
+
+> Этот модуль реализован для простого ручного тестирования модулей и "имитирует" потенциальное настоящее приложение
+
+
+Пример своей реализации
 
 ```python
 from anicli_api.source.animego import Extractor  # can usage any source
 
+
+def _print_to_rows(items):
+  print(*[f"{i}) {r}" for i, r in enumerate(items)], sep="\n")
+
+
 if __name__ == "__main__":
-    ex = Extractor()
-    print("PRESS CTRL + C for exit app")
-    while True:
-        results = ex.search(input("search query > "))
-        if not results:
-            print("Not founded, try again")
-            continue
-        
-        print(*[f"{i}) {r}" for i, r in enumerate(results)], sep="\n")
-        anime = results[int(input("anime > "))].get_anime()
-        episodes = anime.get_episodes()
-        print(*[f"{i}) {ep}" for i, ep in enumerate(episodes)], sep="\n")
-        episode = episodes[int(input("episode > "))]
-        sources = episode.get_sources()
-        print(*[f"{i}) {source}" for i, source in enumerate(sources)], sep="\n")
-        source = sources[int(input("source > "))]
-        videos = source.get_videos()
-        print(*[f"{i} {video}" for i, video in enumerate(videos)], sep="\n")
-        video = videos[int(input("video > "))]
-        print(video.type, video.quality, video.url, video.headers)
+  ex = Extractor()
+  print("PRESS CTRL + C for exit app")
+  while True:
+    results = ex.search(input("search query > "))
+    if not results:
+      print("Not founded, try again")
+      continue
+    _print_to_rows(results)
+
+    anime = results[int(input("anime > "))].get_anime()
+    print(anime)
+
+    episodes = anime.get_episodes()
+    _print_to_rows(episodes)
+    episode = episodes[int(input("episode > "))]
+
+    sources = episode.get_sources()
+    _print_to_rows(sources)
+    source = sources[int(input("source > "))]
+
+    videos = source.get_videos()
+    _print_to_rows(videos)
+    video = videos[int(input("video > "))]
+    print(video.type, video.quality, video.url, video.headers)
+```
+
+Также, можно использовать отдельно экстракторы видео
+
+> Эти модули минимально реализуют получение ссылок на видео с минимальными метаданными не стремиться 
+> стать заменой yt-dlp
+
+```python
+import asyncio
+
+from anicli_api.player.sibnet import SibNet
+
+async def main():
+    videos = await SibNet().a_parse(URL)
+    print(*videos)
+    
+    
+if __name__ == '__main__':
+    URL = 'https://video.sibnet.ru/shell.php?videoid=432356'
+    print(*SibNet().parse(URL))
+    # asyncio too!
+    asyncio.run(main())
 ```
 
 С asyncio аналогично, но **все** методы получения объектов имеют префикс `a_`:
@@ -118,16 +150,20 @@ if __name__ == '__main__':
   - **NO** - неофициальный (парсинг html документов и запросы недокументированным API методам) 
   - **YES** - официальный (rest-api)
 - note - примечания
-- dubbers - тип озвучек. many - от различных авторов. subtitles - только субтитры. author - своя
+- dubbers - тип озвучек. 
+  - many - от различных авторов. 
+  - subtitles - только субтитры. 
+  - author - своя
 
-| name           | url                        | official api | dubbers           | note                                                                                                                |
-|----------------|----------------------------|--------------|-------------------|---------------------------------------------------------------------------------------------------------------------|
-| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                         |
-| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                   |
-| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников |
-| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                          |
-| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                     |
-| animevost      | https://animevost.org      | YES          | author            |                                                                                                                     |
+| name           | url                        | official api | dubbers           | note                                                                                                                   |
+|----------------|----------------------------|--------------|-------------------|------------------------------------------------------------------------------------------------------------------------|
+| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                            |
+| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                      |
+| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников    |
+| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                             |
+| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                        |
+| animevost      | https://animevost.org      | YES          | author            |                                                                                                                        |
+| jutsu          | https://jut.su             | NO           | author            | Один вид озвучки. Сжатый 1080. (DEV NOTE): запуск видео зависим от используемого user-agent заголовка в API интерфейсе |
 
 
 # players description
@@ -138,19 +174,19 @@ if __name__ == '__main__':
 - max quality - максимальное разрешение выдаваемое источником. Это может быть 0 (аудио, без видео), 144, 240, 360, 480, 720, 1080
 - note - примечания
 
-| name           | max quality                                                  | note                                                        |
-|----------------|--------------------------------------------------------------|-------------------------------------------------------------|
-| kodik          | 720 (на старых тайтлах (ранние One Peace, Evangelion) - 480) | **работает только на IP СНГ**                               |
-| aniboom        | 1080                                                         | **работает только на IP СНГ**                               |
-| sibnet         | 480                                                          |                                                             |
-| animejoy       | 1080                                                         | только актуальные ongoing, потом видео удаляются с серверов |
-| csst           | 1080                                                         |                                                             |
-| dzen           | 1080                                                         |                                                             |
-| mailru         |                                                              |                                                             |
-| okru           |                                                              |                                                             |
-| sovetromantica | 1080                                                         | не на все тайтлы присутствуют видео                         |
-| vkcom          | 1080 (какого качества автор зальет видео)                    | CDN сервера в РФ, в других странах загружается медленнее    |
-| nuum           | 1080                                                         | проект от wasd.tv                                           |
+| name           | max quality                                                  | note                                                                    |
+|----------------|--------------------------------------------------------------|-------------------------------------------------------------------------|
+| kodik          | 720 (на старых тайтлах (ранние One Peace, Evangelion) - 480) | **работает только на IP СНГ**                                           |
+| aniboom        | 1080                                                         | **работает только на IP СНГ**. Иногда не возвращает mpd ссылку на видео |
+| sibnet         | 480                                                          |                                                                         |
+| animejoy       | 1080                                                         | только актуальные ongoing, потом видео удаляются с серверов             |
+| csst           | 1080                                                         |                                                                         |
+| dzen           | 1080                                                         |                                                                         |
+| mailru         |                                                              |                                                                         |
+| okru           |                                                              |                                                                         |
+| sovetromantica | 1080                                                         | не на все тайтлы присутствуют видео                                     |
+| vkcom          | 1080 (какого качества автор зальет видео)                    | CDN сервера в РФ, в других странах загружается медленнее                |
+| nuum           | 1080                                                         | проект от wasd.tv                                                       |
   
 ## logging
 
