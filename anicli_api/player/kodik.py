@@ -47,13 +47,13 @@ class Kodik(BaseVideoExtractor):
     @staticmethod
     def _parse_api_payload(response: str) -> Dict:
         return {
-            "domain": re.search(r'var domain = "(.*?)";', response)[1],  # type: ignore[index]
-            "d_sign": re.search(r'var d_sign = "(.*?)";', response)[1],  # type: ignore[index]
-            "pd": re.search(r'var pd = "(.*?)";', response)[1],  # type: ignore[index]
-            "ref": re.search(r'var ref = "(.*?)";', response)[1],  # type: ignore[index]
-            "type": re.search(r"videoInfo\.type = '(.*?)';", response)[1],  # type: ignore[index]
-            "hash": re.search(r"videoInfo\.hash = '(.*?)';", response)[1],  # type: ignore[index]
-            "id": re.search(r"videoInfo\.id = '(.*?)';", response)[1],  # type: ignore[index]
+            "domain": re.search(r'var domain = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
+            "d_sign": re.search(r'var d_sign = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
+            "pd": re.search(r'var pd = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
+            "ref": re.search(r'var ref = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
+            "type": re.search(r'videoInfo\.type = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
+            "hash": re.search(r'videoInfo\.hash = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
+            "id": re.search(r'videoInfo\.id = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
             "bad_user": True,
             "info": {},
         }
@@ -85,11 +85,11 @@ class Kodik(BaseVideoExtractor):
         # Violet Evergarden: Kitto "Ai" wo Shiru Hi ga Kuru no Darou
 
         if bool(re.search(r'<div class="message">Видео не найдено</div>', response.text)):
-            msg = (f"Error! Video not found. Is kodik issue, not api-wrapper. Response[{response.status_code}] "
+            msg = (f"Error! Video not found. Is kodik issue, not anicli-api. Response[{response.status_code}] "
                    f"len={len(response.content)}")
             warnings.warn(msg,
                           category=RuntimeWarning,
-                          stacklevel=0)
+                          stacklevel=1)
             return True
         return False
 
@@ -106,11 +106,16 @@ class Kodik(BaseVideoExtractor):
         # extract base64 encoded path from js code
         # original js api path signature:
         # ... $.ajax({type:"POST",url:atob("L2Z0b3I="),cache:! ...
-        # ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !1, dataType: 'json',data: e, ...
-        #                                   PATH --------------------------
-        #                                                                 v
-        path = re.search(r'\$\.ajax\([^>]+,url:\s*atob\((?:"|\')([\w=]+)(?:"|\')\)',  # type: ignore
-                         player_response)[1]
+        # ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !1 ...
+        path = re.search(
+            r'''
+        \$\.ajax\([^>]+,url:\s*atob\(
+        ["']
+        ([\w=]+)                        # BASE64 encoded API path
+        ["']\)
+        ''',
+            player_response,
+            re.VERBOSE)[1]
         if not path.endswith("=="):
             path += "=="
 
