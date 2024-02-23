@@ -1,3 +1,4 @@
+import httpx
 import pytest
 
 from anicli_api.source.jutsu import Extractor
@@ -20,6 +21,20 @@ def test_search(extractor):
     assert len(episodes) == 13
     sources = episodes[0].get_sources()
     assert len(sources) == 1
+
+
+@pytest.mark.skipif(STATUS_JUTSU != 200, reason=f"RETURN CODE [{STATUS_JUTSU}]")
+def test_video_status_code(extractor):
+    result = extractor.search("lain")
+    assert result[0].title == "Эксперименты Лэйн"
+    anime = result[0].get_anime()
+    assert anime.title == "Эксперименты Лэйн"
+    episodes = anime.get_episodes()
+    assert len(episodes) == 13
+    sources = episodes[0].get_sources()
+    video = sources[0].get_videos()[0]
+    resp = httpx.head(video.url, headers=video.headers)
+    assert resp.is_success or resp.is_redirect
 
 
 @pytest.mark.skipif(STATUS_JUTSU != 200, reason=f"RETURN CODE [{STATUS_JUTSU}]")
