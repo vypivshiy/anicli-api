@@ -35,10 +35,9 @@ def _generate_mpv_cmd(vid: "Video"):
             v = v.replace('"', '\\"')
             result.append(f'"{k}: {v}"')
         return ','.join(result)
-
     if vid.headers:
-        return f"mpv {vid.url!r} --http-header-field={_headers_to_str(vid.headers)}"
-    return f"mpv {vid.url!r}"
+        return f'mpv "{vid.url}" --http-header-fields={_headers_to_str(vid.headers)}'
+    return f'mpv "{vid.url}"'
 
 
 def _search_entry(e: "BaseExtractor", q: str):
