@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+import warnings
 from typing import Dict, List, TYPE_CHECKING, Any
-
+from urllib.parse import urlsplit
 from attr import field
 from attrs import define
 
+from anicli_api._http import HTTPSync, HTTPAsync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
 
@@ -15,6 +16,15 @@ if TYPE_CHECKING:
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://jut.su"
+
+    def __init__(self, http_client: "Client" = HTTPSync(),
+                 http_async_client: "AsyncClient" = HTTPAsync()):
+        super().__init__(http_client=http_client, http_async_client=http_async_client)
+        # required for bypass RKN blocks
+        self.http.cookies.update(
+            {'player[anime_last]': "11.0.1.1.3244"})
+        self.http_async.cookies.update(
+            {'player[anime_last]': "11.0.1.1.3244"})
 
     @staticmethod
     def _extract_search(resp: str) -> List["Search"]:
@@ -103,6 +113,13 @@ class Episode(BaseEpisode):
              "quality": int(k.strip('url_'))
              } for k, v in data.items()
         ]
+        # FIXME maybe exclude videos in page
+        # eg: https://jut.su/shingekii-no-kyojin/season-1/episode-1.html
+        # check NoneType
+        for i in raw_videos:
+            if i['url'] is None:
+                msg = f"{self._url} not found video with {i['quality']} quality"
+                warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
         # STUB
         # -----------------------------------v
         return [Source(title='jut.su', url=self._url, raw_videos=raw_videos)]
@@ -125,12 +142,13 @@ class Source(BaseSource):
         # as a client user-agent in the extractor API
         # ELSE VIDEO HOSTING RETURNS 403 CODE
         return [Video(**kw,
-                      headers={"user-agent": self.http.headers.get('user-agent')},
+                      headers=self.http.headers,
                       type='mp4')
-                for kw in self._raw_videos]
+                for kw in self._raw_videos if kw['url']
+                ]
 
     def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
-        return self.get_videos(**httpx_kwargs)
+        return self.get_videos()
 
 
 if __name__ == "__main__":
