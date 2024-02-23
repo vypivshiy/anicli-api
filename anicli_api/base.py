@@ -37,6 +37,14 @@ class BaseExtractor:
     def http_async(self) -> "AsyncClient":
         return self._http_async
 
+    @http.setter
+    def http(self, http_client: "Client"):
+        self._http = http_client
+
+    @http_async.setter
+    def http_async(self, http_async_client: "AsyncClient"):
+        self._http_async = http_async_client
+
     @property
     def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
         """shortcut for pass http arguments in kwargs style"""
