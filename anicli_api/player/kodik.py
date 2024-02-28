@@ -16,6 +16,8 @@ kodik_validator = url_validator(_URL_EQ)
 
 class Kodik(BaseVideoExtractor):
     URL_RULE = _URL_EQ
+    # cached API path to avoid extra requests
+    _CACHED_API_PATH = None
 
     @staticmethod
     def _decode(url_encoded: str) -> str:
@@ -60,7 +62,7 @@ class Kodik(BaseVideoExtractor):
 
     @staticmethod
     def _get_netloc(url: str) -> str:
-        # extract netloc. Its maybe kodik, anivod or other providers
+        # Its maybe kodik, anivod or other providers
         return urlsplit(url).netloc
 
     @staticmethod
@@ -122,6 +124,22 @@ class Kodik(BaseVideoExtractor):
         decoded_path = b64decode(path).decode()
         return decoded_path[1:] if decoded_path.startswith('/') else decoded_path
 
+    def _get_api_path(self, response: str, netloc: str) -> str:
+        if not self._CACHED_API_PATH:
+            url_player_js = self._get_min_js_player_url(response, netloc)
+            response_player = self.http.get(url_player_js)
+            api_path = self._extract_api_path(response_player.text)
+            self._CACHED_API_PATH = api_path
+
+    def _update_api_path(self, netloc, response):
+        url_player_js = self._get_min_js_player_url(response, netloc)
+        response_player = self.http.get(url_player_js)
+        self._CACHED_API_PATH = self._extract_api_path(response_player.text)
+
+    def _first_extract_api_path(self, netloc: str, response: str) -> None:
+        if not self._CACHED_API_PATH:
+            self._update_api_path(netloc, response)
+
     @kodik_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
         response = self.http.get(url)
@@ -132,15 +150,23 @@ class Kodik(BaseVideoExtractor):
         payload = self._parse_api_payload(response)
         netloc = self._get_netloc(url)
 
-        url_player_js = self._get_min_js_player_url(response, netloc)
-        response_player = self.http.get(url_player_js)
-        api_path = self._extract_api_path(response_player.text)
+        self._first_extract_api_path(netloc, response)
 
-        url_api = self._create_url_api(netloc, path=api_path)
+        url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
         headers = self._create_api_headers(url=url, netloc=netloc)
 
         response_api = self.http.post(url_api, data=payload, headers=headers)
+
+        # expired API entry point, update
+        if not response_api.is_success:
+            self._update_api_path(netloc, response)
+            response_api = self.http.post(url_api, data=payload, headers=headers)
+
         return self._extract(response_api.json()["links"])
+
+    async def _a_first_extract_api_path(self, client, netloc: str, response: str) -> None:
+        if not self._CACHED_API_PATH:
+            await self._a_update_api_path(client, netloc, response)
 
     @kodik_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
@@ -152,15 +178,23 @@ class Kodik(BaseVideoExtractor):
             payload = self._parse_api_payload(response)
             netloc = self._get_netloc(url)
 
-            url_player_js = self._get_min_js_player_url(response, netloc)
-            response_player = await client.get(url_player_js)
-            api_path = self._extract_api_path(response_player.text)
+            await self._a_first_extract_api_path(client, netloc, response)
 
-            url_api = self._create_url_api(netloc, path=api_path)
+            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
             headers = self._create_api_headers(url=url, netloc=netloc)
+            response_api = await client.post(url_api, data=payload, headers=headers)
 
-            response_api = (await client.post(url_api, data=payload, headers=headers)).json()["links"]
-            return self._extract(response_api)
+            # expired API entry point, update
+            if not response_api.is_success:
+                await self._a_update_api_path(client, netloc, response)
+                response_api = await client.post(url_api, data=payload, headers=headers)
+
+            return self._extract(response_api.json()["links"])
+
+    async def _a_update_api_path(self, client, netloc, response):
+        url_player_js = self._get_min_js_player_url(response, netloc)
+        response_player = await client.get(url_player_js)
+        self._CACHED_API_PATH = self._extract_api_path(response_player.text)
 
     def _extract(self, response_api: Dict) -> List[Video]:
         # maybe not exists '720' key for VERY old anime titles
