@@ -1,13 +1,13 @@
+import re
 import warnings
 from typing import Dict, List, TYPE_CHECKING, Any
-from urllib.parse import urlsplit
+
 from attr import field
 from attrs import define
 
 from anicli_api._http import HTTPSync, HTTPAsync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
-
 from anicli_api.source.parsers.jutsu_parser import AnimeView, SourceView, SearchView, EpisodeView, OngoingView
 
 if TYPE_CHECKING:
@@ -81,13 +81,11 @@ class _SearchOrOngoing:
 @define(kw_only=True)
 class Search(_SearchOrOngoing, BaseSearch):
     counts: str = field(repr=False)
-    pass
 
 
 @define(kw_only=True)
 class Ongoing(_SearchOrOngoing, BaseOngoing):
     counts: str = field(repr=False)
-    pass
 
 
 @define(kw_only=True)
@@ -106,6 +104,26 @@ class Anime(BaseAnime):
 class Episode(BaseEpisode):
     _url: str = field(repr=False)
 
+    @staticmethod
+    def _is_blocked(raw_videos, response: str) -> bool:
+        if all(i['url'] is None for i in raw_videos):
+            # block jquery signature:
+            # var block_video_text_str = 'К сожалению, в России это видео недоступно.';
+            # var block_video_text_str_everywhere = 'К сожалению, это видео недоступно.';
+            if re.search(r'block_video_text_str\+', response):
+                block_video = 'К сожалению, в России это видео недоступно.'
+            elif re.search(r'block_video_text_str_everywhere\+', response):
+                block_video = 'К сожалению, это видео недоступно.'
+            else:
+                block_video = ''
+
+            reason = re.search(r"var block_[^>]+\s*=\s*['\"](?:<br>)?(.*?)['\"];", response)[1]
+
+            msg = f"Block issue. message: '{block_video} {reason}'."
+            warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
+            return True
+        return False
+
     def _extract(self, resp: str) -> List["Source"]:
         data = SourceView(resp).parse().view()
         raw_videos = [
@@ -113,13 +131,10 @@ class Episode(BaseEpisode):
              "quality": int(k.strip('url_'))
              } for k, v in data.items()
         ]
-        # FIXME maybe exclude videos in page
+        # RKN blocks (RU region)
         # eg: https://jut.su/shingekii-no-kyojin/season-1/episode-1.html
-        # check NoneType
-        for i in raw_videos:
-            if i['url'] is None:
-                msg = f"{self._url} not found video with {i['quality']} quality"
-                warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
+        if self._is_blocked(raw_videos, resp):
+            return []
         # STUB
         # -----------------------------------v
         return [Source(title='jut.su', url=self._url, raw_videos=raw_videos)]
@@ -142,7 +157,7 @@ class Source(BaseSource):
         # as a client user-agent in the extractor API
         # ELSE VIDEO HOSTING RETURNS 403 CODE
         return [Video(**kw,
-                      headers=self.http.headers,
+                      headers={'User-Agent': self.http.headers['user-agent']},
                       type='mp4')
                 for kw in self._raw_videos if kw['url']
                 ]
