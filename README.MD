@@ -155,15 +155,15 @@ if __name__ == '__main__':
   - subtitles - только субтитры. 
   - author - своя
 
-| name           | url                        | official api | dubbers           | note                                                                                                                   |
-|----------------|----------------------------|--------------|-------------------|------------------------------------------------------------------------------------------------------------------------|
-| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                            |
-| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                      |
-| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников    |
-| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                             |
-| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                        |
-| animevost      | https://animevost.org      | YES          | author            |                                                                                                                        |
-| jutsu          | https://jut.su             | NO           | author            | Один вид озвучки. Сжатый 1080. (DEV NOTE): запуск видео зависим от используемого user-agent заголовка в API интерфейсе |
+| name           | url                        | official api | dubbers           | note                                                                                                                                                                    |
+|----------------|----------------------------|--------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                                                                             |
+| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                                                                       |
+| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников                                                     |
+| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                                              |
+| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                                                                         |
+| animevost      | https://animevost.org      | YES          | author            |                                                                                                                                                                         |
+| jutsu          | https://jut.su             | NO           | any               | Один вид озвучки. Сжатый 1080. (DEV NOTE): запуск видео зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
 
 
 # players description
