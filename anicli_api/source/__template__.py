@@ -4,7 +4,8 @@ from attrs import define
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
 
-# from anicli_api.parsers.schemas
+# pre generated parser
+# from anicli_api.source.parsers
 
 
 class Extractor(BaseExtractor):
@@ -37,8 +38,6 @@ class Extractor(BaseExtractor):
 
 @define(kw_only=True)
 class Search(BaseSearch):
-    counts: str
-
     @staticmethod
     def _extract(resp: str) -> "Anime":
         pass
@@ -54,8 +53,6 @@ class Search(BaseSearch):
 
 @define(kw_only=True)
 class Ongoing(BaseOngoing):
-    counts: str
-
     @staticmethod
     def _extract(resp: str) -> "Anime":
         pass
@@ -104,6 +101,7 @@ class Source(BaseSource):
 
 
 if __name__ == "__main__":
+    # manual testing parser
     from anicli_api.tools import cli
 
     cli(Extractor())
