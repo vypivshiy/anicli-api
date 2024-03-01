@@ -74,8 +74,10 @@ class Video:
 class ABCVideoExtractor(ABC):
     # attribute for `==` statement, for auto-detect needed extractor
     URL_RULE: Union[str, re.Pattern] = NotImplemented
+    """regular expression for validate urls for `==` (__eq__) stmt"""
     # config if needed configurate HTTP classes for requests
     DEFAULT_HTTP_CONFIG: Dict[str, Any] = {}
+    """minimal httpx.Client, httpx.AsyncClient for correct work player provider"""
 
     def __init__(self, **httpx_kwargs):
         """
