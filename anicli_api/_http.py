@@ -24,7 +24,7 @@ from httpx import (
 
 from anicli_api._logger import logger
 
-HEADERS: Dict[str, str] = {
+HEADERS = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 10.0; Nexus 5 Build/MRA58N) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
     # Often, XMLHttpRequest header required
@@ -87,19 +87,17 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}' detected"
                     raise DDOSServerDetectError(msg)
-                logger.debug('<%s %s> -> Response[len=%s, %s]',
-                             request.method,
-                             request.url,
-                             len(resp.content),
-                             resp.status_code)
+                logger.debug('%s -> %s',
+                             repr(request),
+                             repr(resp))
                 return resp
 
             except (NetworkError, TimeoutException) as exc:
                 exc_name = exc.__class__.__name__
                 exc_msg = getattr(exc, "message", exc.args[0])
                 sleep(delay)
-                logger.warning("[%s] %s: %s, <%s %s> -> Response[%s] try again",
-                               i+1, exc_name, exc_msg, request.method, request.url, resp.status_code)  # type: ignore
+                logger.warning("[%s] %s: %s, %s -> %s try again",
+                               i+1, exc_name, exc_msg, repr(request), repr(resp))  # type: ignore
                 if isinstance(exc, DDOSServerDetectError) and i == self.ATTEMPTS_CONNECT - 1:
                     raise exc
                 delay += self.DELAY_INCREASE_STEP
@@ -124,11 +122,10 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}' detected"
                     raise DDOSServerDetectError(msg)
-                logger.debug('<%s %s> -> Response[len=%s, %s]',
-                             request.method,
-                             request.url,
-                             len(resp.content),
-                             resp.status_code)
+                logger.debug('%s -> %s',
+                             repr(request),
+                             repr(resp),
+                             )
 
                 return resp
 
@@ -138,9 +135,8 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
 
                 if isinstance(exc, DDOSServerDetectError) and i == self.ATTEMPTS_CONNECT - 1:
                     raise exc
-                logger.warning("[%s] %s: %s, <%s %s> -> Response[%s] try again",
-                               i + 1, exc_name, exc_msg, request.method,
-                               request.url, resp.status_code)  # type: ignore
+                logger.warning("[%s] %s: %s, %s -> %s",
+                               i + 1, exc_name, exc_msg, repr(request), repr(resp))  # type: ignore
                 await asyncio.sleep(delay)
                 delay += self.DELAY_INCREASE_STEP
         return await super().handle_async_request(request)
