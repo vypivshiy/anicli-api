@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 class BaseExtractor:
     BASE_URL: str = NotImplemented
+    """anime source main page"""
 
     def __init__(self,
                  http_client: "Client" = HTTPSync(),
