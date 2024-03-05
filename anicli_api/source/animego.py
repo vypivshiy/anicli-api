@@ -7,11 +7,16 @@ from httpx import Response
 from parsel import Selector
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.animego_parser import AnimeView
-from anicli_api.source.parsers.animego_parser import DubbersView, EpisodeView, SearchView, SourceView
-from anicli_api.source.parsers.animego_parser import OngoingView
+from anicli_api.source.parsers.animego_parser import (
+    AnimeView,
+    DubbersView,
+    EpisodeView,
+    OngoingView,
+    SearchView,
+    SourceView,
+)
 
-_logger = logging.getLogger('anicli-api')  # type: ignore
+_logger = logging.getLogger("anicli-api")  # type: ignore
 
 
 class Extractor(BaseExtractor):
@@ -19,9 +24,7 @@ class Extractor(BaseExtractor):
 
     def _extract_search(self, resp: str):
         data = SearchView(resp).parse().view()
-        return [Search(**d,
-                       **self._kwargs_http
-                       ) for d in data]
+        return [Search(**d, **self._kwargs_http) for d in data]
 
     @staticmethod
     def _remove_ongoings_dups(ongoings: List["Ongoing"]):
@@ -37,9 +40,7 @@ class Extractor(BaseExtractor):
 
     def _extract_ongoing(self, resp: str):
         data = OngoingView(resp).parse().view()
-        ongs = [Ongoing(**d,
-                        **self._kwargs_http
-                        ) for d in data]
+        ongs = [Ongoing(**d, **self._kwargs_http) for d in data]
         return self._remove_ongoings_dups(ongs)
 
     def search(self, query: str):
@@ -63,9 +64,7 @@ class Extractor(BaseExtractor):
 class Search(BaseSearch):
     def _extract(self, resp: str):
         data = AnimeView(resp).parse().view()
-        return Anime(**data,
-                     **self._kwargs_http
-                     )
+        return Anime(**data, **self._kwargs_http)
 
     @staticmethod
     def _is_valid_page(resp: Response):
@@ -76,8 +75,13 @@ class Search(BaseSearch):
             return True
 
         title = re.search(r"<title>(.*?)</title>", resp.text)[1]  # type: ignore
-        _logger.warning("%s returns status code [%s] title='%s' content-length=%s",
-                        resp.url, resp.status_code, title, len(resp.content))
+        _logger.warning(
+            "%s returns status code [%s] title='%s' content-length=%s",
+            resp.url,
+            resp.status_code,
+            title,
+            len(resp.content),
+        )
         return False
 
     def _create_anime(self):
@@ -87,9 +91,9 @@ class Search(BaseSearch):
             thumbnail=self.thumbnail,
             description="",
             # id for API requests contains in url
-            id=self.url.split('-')[-1],
+            id=self.url.split("-")[-1],
             raw_json="",
-            **self._kwargs_http
+            **self._kwargs_http,
         )
 
     def get_anime(self):
@@ -112,8 +116,7 @@ class Ongoing(BaseOngoing):
 
     def _extract(self, resp: str):
         data = AnimeView(resp).parse().view()
-        return Anime(**data,
-                     **self._kwargs_http)
+        return Anime(**data, **self._kwargs_http)
 
     @staticmethod
     def _is_valid_page(resp: Response):
@@ -124,8 +127,13 @@ class Ongoing(BaseOngoing):
             return True
 
         title = re.search(r"<title>(.*?)</title>", resp.text)[1]  # type: ignore
-        _logger.warning("%s returns status code [%s] title='%s' content-length=%s",
-                        resp.url, resp.status_code, title, len(resp.content))
+        _logger.warning(
+            "%s returns status code [%s] title='%s' content-length=%s",
+            resp.url,
+            resp.status_code,
+            title,
+            len(resp.content),
+        )
         return False
 
     def _create_anime(self):
@@ -134,9 +142,9 @@ class Ongoing(BaseOngoing):
             title=self.title,
             thumbnail=self.thumbnail,
             description="",
-            id=self.url.split('-')[-1],
+            id=self.url.split("-")[-1],
             raw_json="",
-            **self._kwargs_http
+            **self._kwargs_http,
         )
 
     def get_anime(self):
@@ -174,7 +182,7 @@ class Anime(BaseAnime):
         # https://animego.org/anime/vtorzhenie-gigantov-2-17
         # this title API request don't work in RU ip
         if sel.css("div.player-blocked").get():
-            _logger.error("API not available in your country. Element: %s", sel.css('div.h5').get())
+            _logger.error("API not available in your country. Element: %s", sel.css("div.h5").get())
             return False
         return True
 
@@ -201,14 +209,10 @@ class Episode(BaseEpisode):
         return [Source(**d, **self._kwargs_http) for d in data_source]
 
     def get_sources(self):
-        resp = (
-            self.http
-            .get(
-                "https://animego.org/anime/series",
-                params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
-            )
-            .json()["content"]
-        )
+        resp = self.http.get(
+            "https://animego.org/anime/series",
+            params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
+        ).json()["content"]
         return self._extract(resp)
 
     async def a_get_sources(self):
@@ -226,7 +230,7 @@ class Source(BaseSource):
     pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from anicli_api.tools import cli
 
     cli(Extractor())

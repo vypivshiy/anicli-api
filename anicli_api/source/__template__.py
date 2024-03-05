@@ -1,8 +1,8 @@
 from typing import Dict, List
 
 from attrs import define
-from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
 # pre generated parser
 # from anicli_api.source.parsers

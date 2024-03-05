@@ -40,7 +40,7 @@ class Kodik(BaseVideoExtractor):
         # }
 
         # https://stackoverflow.com/a/3270252
-        base64_url = codecs.decode(url_encoded, 'rot_13')
+        base64_url = codecs.decode(url_encoded, "rot_13")
         if not base64_url.endswith("=="):
             base64_url += "=="
         decoded_url = b64decode(base64_url).decode()
@@ -87,11 +87,11 @@ class Kodik(BaseVideoExtractor):
         # Violet Evergarden: Kitto "Ai" wo Shiru Hi ga Kuru no Darou
 
         if bool(re.search(r'<div class="message">Видео не найдено</div>', response.text)):
-            msg = (f"Error! Video not found. Is kodik issue, not anicli-api. Response[{response.status_code}] "
-                   f"len={len(response.content)}")
-            warnings.warn(msg,
-                          category=RuntimeWarning,
-                          stacklevel=1)
+            msg = (
+                f"Error! Video not found. Is kodik issue, not anicli-api. Response[{response.status_code}] "
+                f"len={len(response.content)}"
+            )
+            warnings.warn(msg, category=RuntimeWarning, stacklevel=1)
             return True
         return False
 
@@ -99,8 +99,8 @@ class Kodik(BaseVideoExtractor):
     def _get_min_js_player_url(response: str, netloc: str) -> str:
         # get js player file for extract valid kodik api path
         min_player_path = re.search(  # type: ignore
-            r'<script\s*type="text/javascript"\s*src="(/assets/js/app\.player_single.*?)">',
-            response)[1]
+            r'<script\s*type="text/javascript"\s*src="(/assets/js/app\.player_single.*?)">', response
+        )[1]
         return f"https://{netloc}{min_player_path}"
 
     @staticmethod
@@ -110,19 +110,20 @@ class Kodik(BaseVideoExtractor):
         # ... $.ajax({type:"POST",url:atob("L2Z0b3I="),cache:! ...
         # ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !1 ...
         path = re.search(
-            r'''
+            r"""
         \$\.ajax\([^>]+,url:\s*atob\(
         ["']
         ([\w=]+)                        # BASE64 encoded API path
         ["']\)
-        ''',
+        """,
             player_response,
-            re.VERBOSE)[1]
+            re.VERBOSE,
+        )[1]
         if not path.endswith("=="):
             path += "=="
 
         decoded_path = b64decode(path).decode()
-        return decoded_path[1:] if decoded_path.startswith('/') else decoded_path
+        return decoded_path[1:] if decoded_path.startswith("/") else decoded_path
 
     def _get_api_path(self, response: str, netloc: str) -> str:
         if not self._CACHED_API_PATH:
@@ -171,7 +172,7 @@ class Kodik(BaseVideoExtractor):
     @kodik_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
-            response = (await client.get(url))
+            response = await client.get(url)
             if self._is_not_founded_video(response):
                 return []
             response = response.text

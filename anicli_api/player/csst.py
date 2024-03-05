@@ -1,4 +1,5 @@
 """NOTE: THIS Extractor not work in RU"""
+
 import re
 from typing import List
 

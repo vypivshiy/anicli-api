@@ -1,16 +1,16 @@
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Union
 
-from attrs import define
 import chompjs
+from attrs import define
 
+from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video  # direct make this object
-from anicli_api._http import HTTPSync, HTTPAsync
 
 if TYPE_CHECKING:
-    from httpx import Client, AsyncClient
+    from httpx import AsyncClient, Client
 
 
 class VostAPI:
@@ -18,9 +18,7 @@ class VostAPI:
 
     BASE_URL = "https://api.animevost.org/v1/"
 
-    def __init__(self,
-                 http: "Client" = HTTPSync(),
-                 http_async: "AsyncClient" = HTTPAsync()):
+    def __init__(self, http: "Client" = HTTPSync(), http_async: "AsyncClient" = HTTPAsync()):
         self.http = http
         self.http_async = http_async
 
@@ -65,9 +63,7 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://api.animevost.org/v1/"
     API = VostAPI()
 
-    def __init__(self,
-                 http_client: "Client" = HTTPSync(),
-                 http_async_client: "AsyncClient" = HTTPAsync()):
+    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
 
         super().__init__(http_client=http_client, http_async_client=http_async_client)
         self._api = VostAPI(**self._kwargs_http)
@@ -102,23 +98,22 @@ class Extractor(BaseExtractor):
 
     def search(self, query: str) -> List["Search"]:
         # search entrypoint
-        return [Search(**(self._extract_meta_data(kw)),
-                       **self._kwargs_http) for kw in self.api.search(query)["data"]]
+        return [Search(**(self._extract_meta_data(kw)), **self._kwargs_http) for kw in self.api.search(query)["data"]]
 
     async def a_search(self, query: str) -> List["Search"]:
         # async search entrypoint
-        return [Search(**self._extract_meta_data(kw),
-                       **self._kwargs_http) for kw in (await self.api.a_search(query))["data"]]
+        return [
+            Search(**self._extract_meta_data(kw), **self._kwargs_http)
+            for kw in (await self.api.a_search(query))["data"]
+        ]
 
     def ongoing(self) -> List["Ongoing"]:
         # ongoing entrypoint
-        return [Ongoing(**self._extract_meta_data(kw),
-                        **self._kwargs_http) for kw in self.api.last()["data"]]
+        return [Ongoing(**self._extract_meta_data(kw), **self._kwargs_http) for kw in self.api.last()["data"]]
 
     async def a_ongoing(self) -> List["Ongoing"]:
         # async ongoing entrypoint
-        return [Ongoing(**self._extract_meta_data(kw),
-                        **self._kwargs_http) for kw in (await self.api.a_last())["data"]]
+        return [Ongoing(**self._extract_meta_data(kw), **self._kwargs_http) for kw in (await self.api.a_last())["data"]]
 
 
 # without @attrs.define decorator to avoid

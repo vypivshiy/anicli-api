@@ -1,5 +1,5 @@
 import re
-from typing import Dict, List, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Union
 
 from attrs import define
 
@@ -7,7 +7,7 @@ from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, 
 from anicli_api.source.parsers.animania_parser import AnimeView, DubbersView, OngoingView, SearchView, VideoView
 
 if TYPE_CHECKING:
-    from httpx import Client, AsyncClient
+    from httpx import AsyncClient, Client
 
 
 class Extractor(BaseExtractor):
@@ -66,7 +66,7 @@ class _SearchOrOngoing:
             dub_name = dubbers.get(dub_id, "???")
             titles, urls = item["names"], item["urls"]
             # video signature: [{'title': ..., 'url': ...}, ...]
-            videos = [{'title': t.strip(), "url": u} for t, u in zip(titles, urls)]
+            videos = [{"title": t.strip(), "url": u} for t, u in zip(titles, urls)]
 
             episode_item = {"dub_id": dub_id, "dub_name": dub_name, "count": len(urls), "videos": videos}
 
@@ -135,4 +135,5 @@ class Source(BaseSource):
 
 if __name__ == "__main__":
     from anicli_api.tools import cli
+
     cli(Extractor())

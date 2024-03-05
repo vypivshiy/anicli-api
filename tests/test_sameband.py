@@ -26,8 +26,9 @@ def test_search(extractor):
 
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
 def test_video_status_code(extractor):
-    video = \
+    video = (
         extractor.search("Киберпанк: Бегущие по краю")[0].get_anime().get_episodes()[0].get_sources()[0].get_videos()[0]
+    )
     resp = httpx.head(video.url, headers=video.headers)
     assert resp.is_success or resp.is_redirect
 

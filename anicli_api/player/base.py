@@ -1,10 +1,10 @@
 import re
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Any, Dict, List, Literal, Union, TypeVar, Callable
+from typing import Any, Callable, Dict, List, Literal, TypeVar, Union
 from urllib.parse import urlparse
 
-from attrs import define, Factory
+from attrs import Factory, define
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
 
@@ -98,8 +98,7 @@ class ABCVideoExtractor(ABC):
 
     @classmethod
     @abstractmethod
-    def _compare_url(cls, url: str) -> bool:
-        ...
+    def _compare_url(cls, url: str) -> bool: ...
 
     def __eq__(self, other: str):  # type: ignore
         """compare class instance with url string"""

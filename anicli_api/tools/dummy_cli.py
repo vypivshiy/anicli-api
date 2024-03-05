@@ -1,5 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Sequence, Any, Callable, TypeVar
-from contextlib import suppress
+from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 if TYPE_CHECKING:
     from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
@@ -34,7 +33,8 @@ def _generate_mpv_cmd(vid: "Video"):
         for k, v in headers.items():
             v = v.replace('"', '\\"')
             result.append(f'"{k}: {v}"')
-        return ','.join(result)
+        return ",".join(result)
+
     if vid.headers:
         return f'mpv "{vid.url}" --http-header-fields={_headers_to_str(vid.headers)}'
     return f'mpv "{vid.url}"'
@@ -101,8 +101,8 @@ def main(extractor: "BaseExtractor"):
                 continue
             if comma.lower() == "h":
                 print(HELP_)
-            elif comma.lower().startswith('s '):
-                _search_entry(extractor, comma.lstrip('s '))
+            elif comma.lower().startswith("s "):
+                _search_entry(extractor, comma.lstrip("s "))
             elif comma == "o":
                 _ongoing_entry(extractor)
         except (KeyboardInterrupt, EOFError):

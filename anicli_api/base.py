@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Dict, Union
+from typing import TYPE_CHECKING, Dict, List, Union
 from urllib.parse import urlsplit
 
 from attrs import define, field
@@ -15,18 +15,16 @@ from anicli_api._http import (  # noqa: F401
 from anicli_api.player import ALL_DECODERS
 
 if TYPE_CHECKING:
+    from httpx import AsyncClient, Client
+
     from anicli_api.player.base import Video
-    from httpx import Client, AsyncClient
 
 
 class BaseExtractor:
     BASE_URL: str = NotImplemented
     """anime source main page"""
 
-    def __init__(self,
-                 http_client: "Client" = HTTPSync(),
-                 http_async_client: "AsyncClient" = HTTPAsync()
-                 ):
+    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         self._http = http_client
         self._http_async = http_async_client
 
@@ -81,6 +79,7 @@ class BaseExtractor:
 @define(kw_only=True)
 class _HttpExtension:
     """this dataclass provide pre-configured http clients"""
+
     _http: "Client" = field(default=HTTPSync(), repr=False, kw_only=True, hash=False)
     _http_async: "AsyncClient" = field(default=HTTPAsync(), repr=False, kw_only=True, hash=False)
 
@@ -99,7 +98,7 @@ class _HttpExtension:
     @http_async.setter
     def http_async(self, http_async_client: "AsyncClient"):
         self._http_async = http_async_client
-        
+
     @property
     def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
         """shortcut for pass http arguments in kwargs style"""

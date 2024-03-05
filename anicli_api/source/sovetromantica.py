@@ -1,14 +1,13 @@
 import warnings
-from typing import Dict, List, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from attrs import define
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.sovetromantica_parser import AnimeView
-from anicli_api.source.parsers.sovetromantica_parser import EpisodeView, OngoingView, SearchView
+from anicli_api.source.parsers.sovetromantica_parser import AnimeView, EpisodeView, OngoingView, SearchView
 
 if TYPE_CHECKING:
-    from httpx import Client, AsyncClient
+    from httpx import AsyncClient, Client
 
 
 class Extractor(BaseExtractor):
@@ -89,8 +88,10 @@ class Anime(BaseAnime):
             warnings.warn("Not available videos")
             return []
 
-        return [Episode(num=str(i), url=d["url"], title=d["title"], **self._kwargs_http)
-                for i, d in enumerate(self.episodes, 1)]
+        return [
+            Episode(num=str(i), url=d["url"], title=d["title"], **self._kwargs_http)
+            for i, d in enumerate(self.episodes, 1)
+        ]
 
     async def a_get_episodes(self):
         return self.get_episodes()
@@ -119,6 +120,7 @@ class Source(BaseSource):
     pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from anicli_api.tools import cli
+
     cli(Extractor())

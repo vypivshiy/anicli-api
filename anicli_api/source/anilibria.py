@@ -1,13 +1,14 @@
 from dataclasses import dataclass
-from typing import List, Union, TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, List, Union
+
 from attrs import define
 
+from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video  # direct make this object
-from anicli_api._http import HTTPSync, HTTPAsync
 
 if TYPE_CHECKING:
-    from httpx import Client, AsyncClient
+    from httpx import AsyncClient, Client
 
 
 class AnilibriaAPI:
@@ -17,9 +18,7 @@ class AnilibriaAPI:
 
     BASE_URL = "https://api.anilibria.tv/v3/"
 
-    def __init__(self,
-                 http_client: "Client" = HTTPSync(),
-                 http_async_client: "AsyncClient" = HTTPAsync()):
+    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         self.http = http_client
         self.http_async = http_async_client
 
@@ -39,11 +38,11 @@ class AnilibriaAPI:
 
     def search_titles(self, *, search: str, limit: int = -1, **kwargs) -> dict:
         params = self._kwargs_pop_params(kwargs, search=search, limit=limit)
-        return self.api_request(api_method="title/search", params=params, **kwargs)['list']
+        return self.api_request(api_method="title/search", params=params, **kwargs)["list"]
 
     async def a_search_titles(self, *, search: str, limit: int = -1, **kwargs) -> dict:
         params = self._kwargs_pop_params(kwargs, limit=limit)
-        return (await self.a_api_request(api_method="title/search", params=params, **kwargs))['list']
+        return (await self.a_api_request(api_method="title/search", params=params, **kwargs))["list"]
 
     def get_updates(self, *, limit: int = -1, **kwargs) -> dict:
         """getUpdates method
@@ -53,20 +52,17 @@ class AnilibriaAPI:
         """
         params = self._kwargs_pop_params(kwargs, limit=limit)
         resp = self.api_request(api_method="title/updates", data=params, **kwargs)
-        return resp['list']
+        return resp["list"]
 
     async def a_get_updates(self, *, limit: int = -1, **kwargs) -> dict:
         params = self._kwargs_pop_params(kwargs, limit=limit)
-        return (await self.a_api_request(api_method="title/updates", data=params, **kwargs))['list']
+        return (await self.a_api_request(api_method="title/updates", data=params, **kwargs))["list"]
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://api.anilibria.tv/v3/"
 
-    def __init__(self,
-                 http_client: "Client" = HTTPSync(),
-                 http_async_client: "AsyncClient" = HTTPAsync()
-                 ):
+    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         super().__init__(http_client=http_client, http_async_client=http_async_client)
         self._api = AnilibriaAPI(http_client=http_client, http_async_client=http_async_client)
 
@@ -80,27 +76,27 @@ class Extractor(BaseExtractor):
         return dict(
             **kw,
             # STUB values for API interface
-            title=kw['names']['ru'],
-            thumbnail=kw['posters']['original'],
-            url=""
+            title=kw["names"]["ru"],
+            thumbnail=kw["posters"]["original"],
+            url="",
         )
 
     def search(self, query: str) -> List["Search"]:
-        return [Search(**self._extract_meta_data(kw),
-                       **self._kwargs_http) for kw in self.api.search_titles(search=query)
-                ]
+        return [
+            Search(**self._extract_meta_data(kw), **self._kwargs_http) for kw in self.api.search_titles(search=query)
+        ]
 
     async def a_search(self, query: str) -> List["Search"]:
-        return [Search(**self._extract_meta_data(kw),
-                       **self._kwargs_http) for kw in (await self.api.a_search_titles(search=query))]
+        return [
+            Search(**self._extract_meta_data(kw), **self._kwargs_http)
+            for kw in (await self.api.a_search_titles(search=query))
+        ]
 
     def ongoing(self) -> List["Ongoing"]:
-        return [Ongoing(**self._extract_meta_data(kw),
-                        **self._kwargs_http) for kw in self.api.get_updates()]
+        return [Ongoing(**self._extract_meta_data(kw), **self._kwargs_http) for kw in self.api.get_updates()]
 
     async def a_ongoing(self) -> List["Ongoing"]:
-        return [Ongoing(**self._extract_meta_data(kw),
-                        **self._kwargs_http) for kw in (await self.api.a_get_updates())]
+        return [Ongoing(**self._extract_meta_data(kw), **self._kwargs_http) for kw in (await self.api.a_get_updates())]
 
 
 # without @attrs.define decorator to avoid
@@ -139,12 +135,12 @@ class _SearchOrOngoing:
     def get_anime(self) -> "Anime":
         return Anime(
             title=self.title,
-            alt_title=self.names['en'],
+            alt_title=self.names["en"],
             description=self.description,
             thumbnail=self.thumbnail,
             genres=self.genres,
             player=self.player,
-            **self._kwargs_http
+            **self._kwargs_http,
         )
 
     def __str__(self):
@@ -210,18 +206,18 @@ class Anime(BaseAnime):
         return self.title
 
     def get_episodes(self) -> List["Episode"]:
-        host = self.player['host']
+        host = self.player["host"]
         # TODO validate fhd key
         return [
             Episode(
-                title=item['name'] or 'Episode',  # maybe return None
+                title=item["name"] or "Episode",  # maybe return None
                 num=num,
                 # maybe dont exist 1080p
-                fhd=f"https://{host}{item['hls']['fhd']}" if item['hls'].get('fhd') else None,
+                fhd=f"https://{host}{item['hls']['fhd']}" if item["hls"].get("fhd") else None,
                 hd=f"https://{host}{item['hls']['hd']}",
                 sd=f"https://{host}{item['hls']['sd']}",
             )
-            for num, item in self.player['list'].items()
+            for num, item in self.player["list"].items()
         ]
 
     async def a_get_episodes(self) -> List["Episode"]:
@@ -238,12 +234,7 @@ class Episode(BaseEpisode):
     _sd: str
 
     def get_sources(self) -> List["Source"]:
-        return [Source(title="Anilibria",
-                       url="https://api.anilibria.tv",
-                       fhd=self._fhd,
-                       hd=self._hd,
-                       sd=self._sd)
-                ]
+        return [Source(title="Anilibria", url="https://api.anilibria.tv", fhd=self._fhd, hd=self._hd, sd=self._sd)]
 
     async def a_get_sources(self) -> List["Source"]:
         return self.get_sources()

@@ -7,6 +7,7 @@ AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114
 2. x-requested-with: XMLHttpRequest
 
 """
+
 import asyncio
 from time import sleep
 from typing import Dict
@@ -87,17 +88,16 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}' detected"
                     raise DDOSServerDetectError(msg)
-                logger.debug('%s -> %s',
-                             repr(request),
-                             repr(resp))
+                logger.debug("%s -> %s", repr(request), repr(resp))
                 return resp
 
             except (NetworkError, TimeoutException) as exc:
                 exc_name = exc.__class__.__name__
                 exc_msg = getattr(exc, "message", exc.args[0])
                 sleep(delay)
-                logger.warning("[%s] %s: %s, %s -> %s try again",
-                               i+1, exc_name, exc_msg, repr(request), repr(resp))  # type: ignore
+                logger.warning(
+                    "[%s] %s: %s, %s -> %s try again", i + 1, exc_name, exc_msg, repr(request), repr(resp)
+                )  # type: ignore
                 if isinstance(exc, DDOSServerDetectError) and i == self.ATTEMPTS_CONNECT - 1:
                     raise exc
                 delay += self.DELAY_INCREASE_STEP
@@ -122,10 +122,11 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}' detected"
                     raise DDOSServerDetectError(msg)
-                logger.debug('%s -> %s',
-                             repr(request),
-                             repr(resp),
-                             )
+                logger.debug(
+                    "%s -> %s",
+                    repr(request),
+                    repr(resp),
+                )
 
                 return resp
 
@@ -135,8 +136,9 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
 
                 if isinstance(exc, DDOSServerDetectError) and i == self.ATTEMPTS_CONNECT - 1:
                     raise exc
-                logger.warning("[%s] %s: %s, %s -> %s",
-                               i + 1, exc_name, exc_msg, repr(request), repr(resp))  # type: ignore
+                logger.warning(
+                    "[%s] %s: %s, %s -> %s", i + 1, exc_name, exc_msg, repr(request), repr(resp)
+                )  # type: ignore
                 await asyncio.sleep(delay)
                 delay += self.DELAY_INCREASE_STEP
         return await super().handle_async_request(request)
@@ -151,11 +153,7 @@ class BaseHTTPSync(Client):
         headers = kwargs.pop("headers", HEADERS.copy())
         follow_redirects = kwargs.pop("follow_redirects", True)
 
-        super().__init__(http2=http2,
-                         transport=transport,
-                         headers=headers,
-                         follow_redirects=follow_redirects,
-                         **kwargs)
+        super().__init__(http2=http2, transport=transport, headers=headers, follow_redirects=follow_redirects, **kwargs)
 
 
 class BaseHTTPAsync(AsyncClient):
@@ -167,11 +165,7 @@ class BaseHTTPAsync(AsyncClient):
         headers = kwargs.pop("headers", HEADERS.copy())
         follow_redirects = kwargs.pop("follow_redirects", True)
 
-        super().__init__(http2=http2,
-                         transport=transport,
-                         headers=headers,
-                         follow_redirects=follow_redirects,
-                         **kwargs)
+        super().__init__(http2=http2, transport=transport, headers=headers, follow_redirects=follow_redirects, **kwargs)
 
 
 HTTPSync = BaseHTTPSync

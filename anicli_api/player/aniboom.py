@@ -32,15 +32,17 @@ class Aniboom(BaseVideoExtractor):
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
         async with self.a_http as client:
-            response = (await client.get(url))
+            response = await client.get(url)
             return self._extract(response)
 
     @staticmethod
     def _is_not_found(resp: Response):
         if resp.status_code == 404:
             sel = Selector(resp.text)
-            msg = (f"Aniboom returns 404 code with `{sel.css('title ::text').get()}` error. "
-                   f"Maybe you missing `episode` and `translation` GET params or your IP not from CIS countries?")
+            msg = (
+                f"Aniboom returns 404 code with `{sel.css('title ::text').get()}` error. "
+                f"Maybe you missing `episode` and `translation` GET params or your IP not from CIS countries?"
+            )
             warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
             return True
         return False
@@ -56,10 +58,8 @@ class Aniboom(BaseVideoExtractor):
         # "hls":"{\"src\":\"https:...master_device.m3u8\",
         # \"type\":\"application\\\/x-mpegURL\"}"
         # ... }
-        if dash_url.endswith('.m3u8'):
-            warnings.warn('Missing mpd link. This aniboom issue, not anicli-api',
-                          stacklevel=1,
-                          category=RuntimeWarning)
+        if dash_url.endswith(".m3u8"):
+            warnings.warn("Missing mpd link. This aniboom issue, not anicli-api", stacklevel=1, category=RuntimeWarning)
             return True
         return False
 
@@ -84,13 +84,7 @@ class Aniboom(BaseVideoExtractor):
             # backend sometimes return m3u8 link in src.dash key
             if self._is_failed_dash_key(video_url):
                 # in this case, hls.src == dash.src - return one Video object
-                return [
-                    Video(
-                        type='m3u8',
-                        quality=1080,
-                        url=video_url,
-                        headers=self.VIDEO_HEADERS
-                    )]
+                return [Video(type="m3u8", quality=1080, url=video_url, headers=self.VIDEO_HEADERS)]
 
             videos.append(
                 Video(

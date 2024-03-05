@@ -1,15 +1,16 @@
 from dataclasses import dataclass
-from typing import Dict, List, Union, TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 from attrs import define
 from parsel import Selector
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.animejoy_parser import AnimeView, OngoingView, PlayerView, SearchView
+from anicli_api.source.parsers.animejoy_parser import AnimeView, OngoingView
 from anicli_api.source.parsers.animejoy_parser import PlayerUrlsView as PlayerUrlsViewOld
+from anicli_api.source.parsers.animejoy_parser import PlayerView, SearchView
 
 if TYPE_CHECKING:
-    from httpx import Client, AsyncClient
+    from httpx import AsyncClient, Client
 
 
 # schema patches
@@ -143,22 +144,20 @@ class Anime(BaseAnime):
         { player_id: count, ...}
         """
         return {
-            pl_id: [item['url'] for item in data_player_urls if item['player_id'] == pl_id]
+            pl_id: [item["url"] for item in data_player_urls if item["player_id"] == pl_id]
             for pl_id in data_players.keys()
         }
 
     @staticmethod
     def _create_player_id_urls_map(data_player_urls, data_players):
         player_urls_map = {
-            pl_id: [item['url'] for item in data_player_urls if item['player_id'] == pl_id]
+            pl_id: [item["url"] for item in data_player_urls if item["player_id"] == pl_id]
             for pl_id in data_players.keys()
         }
         return player_urls_map
 
     @staticmethod
-    def _create_episodes_context(data_players,
-                                 max_episodes_count,
-                                 player_urls_map):
+    def _create_episodes_context(data_players, max_episodes_count, player_urls_map):
         """
         signature:
             [
@@ -180,13 +179,10 @@ class Anime(BaseAnime):
                 "title": "Episode",
                 "num": f"{i + 1}",
                 "sources": [
-                    {
-                        "title": data_players.get(player_id),
-                        "url": urls[i]
-                    }
+                    {"title": data_players.get(player_id), "url": urls[i]}
                     for player_id, urls in player_urls_map.items()
                     if len(urls) > i
-                ]
+                ],
             }
             for i in range(max_episodes_count)
         ]
@@ -247,15 +243,18 @@ class Source(BaseSource):
 
 if __name__ == "__main__":
     import httpx
+
     from anicli_api.tools import cli
 
-    cl = httpx.Client(http2=True,
-                      cookies={
-                          "__ddg1_": "0HPrt5ZR3CWWXIWGf8QV",
-                          "PHPSESSID": "b09e9770b2ad74941d92dc7dc8e38cb7",
-                          "cf_clearance": "rwXam5mBN96.LO1KXYDJGmzGUlWqdP.vdv2RkaWGIVU-1708090223-1.0-AQHHuJBqyI/8sMsbrnIn2j5XumncNctbmYUJefj+aSlWQK8EQV82za3Qkj6uFJg40DpVI88bFb4dmCKYAXvbwc0="
-                      },
-                      headers={
-                          "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"}
-                      )
+    cl = httpx.Client(
+        http2=True,
+        cookies={
+            "__ddg1_": "0HPrt5ZR3CWWXIWGf8QV",
+            "PHPSESSID": "b09e9770b2ad74941d92dc7dc8e38cb7",
+            "cf_clearance": "rwXam5mBN96.LO1KXYDJGmzGUlWqdP.vdv2RkaWGIVU-1708090223-1.0-AQHHuJBqyI/8sMsbrnIn2j5XumncNctbmYUJefj+aSlWQK8EQV82za3Qkj6uFJg40DpVI88bFb4dmCKYAXvbwc0=",
+        },
+        headers={
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        },
+    )
     cli(Extractor(http_client=cl))
