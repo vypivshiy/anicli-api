@@ -15,13 +15,13 @@ if TYPE_CHECKING:
 
 
 class Extractor(BaseExtractor):
+    """NOTE: For playing video usage user-agent from http or http_async instance
+
+    """
     BASE_URL = "https://jut.su"
 
     def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         super().__init__(http_client=http_client, http_async_client=http_async_client)
-        # required for bypass RKN blocks
-        self.http.cookies.update({"player[anime_last]": "11.0.1.1.3244"})
-        self.http_async.cookies.update({"player[anime_last]": "11.0.1.1.3244"})
 
     @staticmethod
     def _extract_search(resp: str) -> List["Search"]:
