@@ -39,19 +39,19 @@ anicli_api
 
 Схематичный принцип работы модуля из директории `source`
 
-префикс `a_` обозначает асинхронный метод
+префикс `a_` обозначает асинхронный метод, возвращаемые объекты идентичны 
 
 ```mermaid
 flowchart TD
-    E[Extractor] -->|"search(<QUERY>) | a_search(<QUERY>)"| S(Search)
-    E -->|"ongoing() | a_ongoing()"| O(Ongoing)
+    E[Extractor] -->|"search('QUERY') | a_search('QUERY')"| S("List[Search]")
+    E -->|"ongoing() | a_ongoing()"| O("List[Ongoing]")
     
     O -->|"get_anime() | a_get_anime()"| A[Anime]
     S -->|"get_anime() | a_get_anime()"| A
     
-    A -->|"get_episodes() | a_get_episodes()"|Ep[Episode]
-    Ep -->|"get_sources() | get_sources()"|So[Source]
-    So -->|"get_videos() | a_get_videos()"|V[Video]
+    A -->|"get_episodes() | a_get_episodes()"|Ep["List[Episode]"]
+    Ep -->|"get_sources() | a_get_sources()"|So["List[Source]"]
+    So -->|"get_videos() | a_get_videos()"|V["List[Video]"]
 
 ```
 # quickstart
@@ -74,17 +74,17 @@ from anicli_api.source.animego import Extractor  # can usage any source
 
 
 def _print_to_rows(items):
-  print(*[f"{i}) {r}" for i, r in enumerate(items)], sep="\n")
+    print(*[f"{i}) {r}" for i, r in enumerate(items)], sep="\n")
 
 
 if __name__ == "__main__":
-  ex = Extractor()
-  print("PRESS CTRL + C for exit app")
-  while True:
-    results = ex.search(input("search query > "))
-    if not results:
-      print("Not founded, try again")
-      continue
+    ex = Extractor()
+    print("PRESS CTRL + C for exit app")
+    while True:
+        results = ex.search(input("search query > "))
+        if not results:
+            print("Not founded, try again")
+        continue
     _print_to_rows(results)
 
     anime = results[int(input("anime > "))].get_anime()
@@ -102,28 +102,6 @@ if __name__ == "__main__":
     _print_to_rows(videos)
     video = videos[int(input("video > "))]
     print(video.type, video.quality, video.url, video.headers)
-```
-
-Также, можно использовать отдельно экстракторы видео
-
-> Эти модули минимально реализуют получение ссылок на видео с минимальными метаданными не стремиться 
-> стать заменой yt-dlp
-
-```python
-import asyncio
-
-from anicli_api.player.sibnet import SibNet
-
-async def main():
-    videos = await SibNet().a_parse(URL)
-    print(*videos)
-    
-    
-if __name__ == '__main__':
-    URL = 'https://video.sibnet.ru/shell.php?videoid=432356'
-    print(*SibNet().parse(URL))
-    # asyncio too!
-    asyncio.run(main())
 ```
 
 С asyncio аналогично, но **все** методы получения объектов имеют префикс `a_`:
@@ -144,7 +122,32 @@ if __name__ == '__main__':
     asyncio.run(main())
 ```
 
+# Player
+
+Также, можно использовать отдельно экстракторы видео
+
+> Эти модули минимально реализуют получение ссылок на видео с минимальными метаданными и заголовками для скачивания и 
+> не стремятся стать заменой yt-dlp
+
+```python
+import asyncio
+
+from anicli_api.player.sibnet import SibNet
+
+async def main():
+    videos = await SibNet().a_parse(URL)
+    print(*videos)
+    
+    
+if __name__ == '__main__':
+    URL = 'https://video.sibnet.ru/shell.php?videoid=432356'
+    print(*SibNet().parse(URL))
+    # asyncio support!
+    asyncio.run(main())
+```
+
 # source description
+
 - name - имя модуля
 - type - тип источника получения данных.
   - **NO** - неофициальный (парсинг html документов и запросы недокументированным API методам) 
@@ -153,17 +156,19 @@ if __name__ == '__main__':
 - dubbers - тип озвучек. 
   - many - от различных авторов. 
   - subtitles - только субтитры. 
+  - once - один вид (случайный)
   - author - своя
 
-| name           | url                        | official api | dubbers           | note                                                                                                                                                                    |
-|----------------|----------------------------|--------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                                                                             |
-| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                                                                       |
-| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников                                                     |
-| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                                              |
-| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                                                                         |
-| animevost      | https://animevost.org      | YES          | author            |                                                                                                                                                                         |
-| jutsu          | https://jut.su             | NO           | any               | Один вид озвучки. Сжатый 1080. (DEV NOTE): запуск видео зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
+| name           | url                        | official api | dubbers           | note                                                                                                                                             |
+|----------------|----------------------------|--------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                                                      |
+| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                                                |
+| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников                              |
+| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                       |
+| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                                                  |
+| animevost      | https://animevost.org      | YES          | author            |                                                                                                                                                  |
+| jutsu          | https://jut.su             | NO           | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
+| sameband       | https://jut.su             | NO           | author            |                                                                                                                                                  |
 
 
 # players description
@@ -187,6 +192,9 @@ if __name__ == '__main__':
 | sovetromantica | 1080                                                         | не на все тайтлы присутствуют видео                                     |
 | vkcom          | 1080 (какого качества автор зальет видео)                    | CDN сервера в РФ, в других странах загружается медленнее                |
 | nuum           | 1080                                                         | проект от wasd.tv                                                       |
+| anilibria      | 1080                                                         |                                                                         |
+| jutsu          | 1080                                                         |                                                                         |
+| sameband       | 1080                                                         |                                                                         |
   
 ## logging
 
@@ -202,15 +210,15 @@ logger = logging.getLogger('anicli-api')
 ### source
 
 Если по какой-то либо причине вас не устраивают настройки по умолчанию - то вы можете задать
-конфигурацию http клиентов для экстракторов
+конфигурацию http клиентов для экстракторов. Или если необходимо подключить proxy
 
 ```python
 from anicli_api.source.animego import Extractor
 import httpx
 # не обязательно настраивать все клиенты, зависит от режима использования
 # например, если вы будете использовать только asyncio - настраивайте только http_async_client 
-my_client = httpx.Client(headers={"user-agent": "007"}, proxies="http:127.0.0.1:8080")
-my_async_client = httpx.AsyncClient(headers={"user-agent": "007"}, proxies="http:127.0.0.1:8080")
+my_client = httpx.Client(headers={"user-agent": "007"}, proxies="http://127.0.0.1:8080")
+my_async_client = httpx.AsyncClient(headers={"user-agent": "007"}, proxies="http://127.0.0.1:8080")
 
 # настройки клиентов будут передаваться всем объектам кроме методов Source.get_videos() 
 # и Source.a_get_videos()
@@ -248,12 +256,18 @@ videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTra
 
 ## Структуры объектов
 
-Приведены поля, которые **гарантированно** возвращаются в API интерфейсе библиотеки, 
-в некоторых источниках могут присутствовать дополнительные поля или атрибуты для 
+Приведены поля, которые **гарантированно** возвращаются в API интерфейсе библиотеки. 
+В некоторых источниках могут присутствовать дополнительные поля или атрибуты для 
 использования во внутренних методах.
 
-Например, в `anilibria` и `animevost` поля почти идентичны ответам API. 
+- Например, в `anilibria` и `animevost` поля почти идентичны ответам API. 
 В `animego.Anime` есть сырой несериализованный `raw_json` для извлечения дополнительных метаданных.
+
+- В некоторых источниках на полях могут присутствовать "заглушки" для поддержания консистентности API интерфейса. Например, 
+- в модуле `anicli_api.source.jutsu.Episode` уже можно получить прямые ссылки на видео (Video объект),
+но для поддержания полиморфизма, необходимо возвращать объект `Source` и только потом `Video`
+- Если по какой-либо причине объекты не получены (ddos защита, региональные ограничения) - то возвращает пустой список.
+  (#TODO возможно, необходимо выбрасывать исключение?)
 
 ### Search
 - url: str - URL на тайтл
@@ -271,7 +285,7 @@ videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTra
 - description: Optional[str] - описание тайтла
 
 ### Episode
-- title: str - имя эпизода
+- title: str - имя эпизода (Если источник его не хранит, то будет Серия или Serie)
 - num: str - номер эпизода
 
 ### Source
