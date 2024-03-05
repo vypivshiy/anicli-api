@@ -47,7 +47,7 @@ flowchart TD
     E -->|"ongoing() | a_ongoing()"| O(Ongoing)
     
     O -->|"get_anime() | a_get_anime()"| A[Anime]
-    S -->|"ongoing() | a_ongoing()"| A
+    S -->|"get_anime() | a_get_anime()"| A
     
     A -->|"get_episodes() | a_get_episodes()"|Ep[Episode]
     Ep -->|"get_sources() | get_sources()"|So[Source]
