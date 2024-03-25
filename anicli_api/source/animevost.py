@@ -1,5 +1,4 @@
 import re
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Union
 
 import chompjs
@@ -27,7 +26,7 @@ class VostAPI:
         return response.json()
 
     async def a_api_request(self, method: str, *, api_method: str, **kwargs) -> Union[Dict, List[Dict]]:
-        response = await session.request(method, self.BASE_URL + api_method, **kwargs)
+        response = await self.http_async.request(method, self.BASE_URL + api_method, **kwargs)
         return response.json()
 
     @staticmethod
