@@ -24,6 +24,11 @@ class BaseExtractor:
     BASE_URL: str = NotImplemented
     """anime source main page"""
 
+    @property
+    def source_name(self) -> str:
+        """return source name (by url netloc)"""
+        return urlsplit(self.BASE_URL).netloc
+
     def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         self._http = http_client
         self._http_async = http_async_client
@@ -81,7 +86,9 @@ class _HttpExtension:
     """this dataclass provide pre-configured http clients"""
 
     _http: "Client" = field(default=HTTPSync(), repr=False, kw_only=True, hash=False)
+    """pre-configured sync httpx Client"""
     _http_async: "AsyncClient" = field(default=HTTPAsync(), repr=False, kw_only=True, hash=False)
+    """pre-configured async httpx Client"""
 
     @property
     def http(self):
@@ -108,8 +115,11 @@ class _HttpExtension:
 @define(kw_only=True)
 class BaseSearch(_HttpExtension):
     title: str
+    """Search item name"""
     thumbnail: str
+    """Search item image"""
     url: str
+    """Search item url to anime page"""
 
     @abstractmethod
     def get_anime(self):
@@ -128,8 +138,11 @@ class BaseSearch(_HttpExtension):
 @define(kw_only=True)
 class BaseOngoing(_HttpExtension):
     title: str
+    """Ongoing item name"""
     thumbnail: str
+    """Ongoing item image"""
     url: str
+    """Ongoing url to main page"""
 
     @abstractmethod
     def get_anime(self):
@@ -148,8 +161,11 @@ class BaseOngoing(_HttpExtension):
 @define(kw_only=True)
 class BaseAnime(_HttpExtension):
     title: str
+    """anime name"""
     thumbnail: str
+    """anime image"""
     description: str
+    """anime description"""
 
     @abstractmethod
     def get_episodes(self):
@@ -170,7 +186,14 @@ class BaseAnime(_HttpExtension):
 @define(kw_only=True)
 class BaseEpisode(_HttpExtension):
     title: str
+    """episode name. If api or source not provided, default naming like: 
+    
+    - Episode {num}
+    - Serie {num}
+    - Эпизод {num}
+    - Серия {num}"""
     num: str
+    """episode number. Stars from 1"""
 
     @abstractmethod
     def get_sources(self):
@@ -189,7 +212,12 @@ class BaseEpisode(_HttpExtension):
 @define(kw_only=True)
 class BaseSource(_HttpExtension):
     title: str
+    """Source name. If source/api provide multiple dubbers - named by dubber name + source (player).
+    
+    If single dubber provide - named by source netloc
+    """
     url: str
+    """player (source) url"""
 
     @property
     def _all_video_extractors(self):
