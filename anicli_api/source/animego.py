@@ -137,7 +137,7 @@ class Ongoing(BaseOngoing):
         return False
 
     def _create_anime(self):
-        # skip extract metadata, and manual create object (API requests still works)
+        # skip extract metadata, and manual create object (API requests MAYBE still works)
         return Anime(
             title=self.title,
             thumbnail=self.thumbnail,
