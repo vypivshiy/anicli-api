@@ -107,10 +107,10 @@ class Episode(BaseEpisode):
             # block jquery signature:
             # var block_video_text_str = 'К сожалению, в России это видео недоступно.';
             # var block_video_text_str_everywhere = 'К сожалению, это видео недоступно.';
-            if re.search(r"block_video_text_str\+", response):
-                block_video = "К сожалению, в России это видео недоступно."
-            elif re.search(r"block_video_text_str_everywhere\+", response):
+            if re.search(r"block_video_text_str_everywhere\+", response):
                 block_video = "К сожалению, это видео недоступно."
+            elif re.search(r"block_video_text_str\+", response):
+                block_video = "К сожалению, в России это видео недоступно."
             else:
                 block_video = ""
 
@@ -155,8 +155,12 @@ class Source(BaseSource):
             if kw["url"]
         ]
 
-    def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
-        return self.get_videos()
+    async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
+        return [
+            Video(**kw, headers={"User-Agent": self.http_async.headers["user-agent"]}, type="mp4")
+            for kw in self._raw_videos
+            if kw["url"]
+        ]
 
 
 if __name__ == "__main__":
