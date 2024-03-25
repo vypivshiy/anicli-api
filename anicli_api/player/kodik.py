@@ -125,7 +125,7 @@ class Kodik(BaseVideoExtractor):
         decoded_path = b64decode(path).decode()
         return decoded_path[1:] if decoded_path.startswith("/") else decoded_path
 
-    def _get_api_path(self, response: str, netloc: str) -> str:
+    def _first_update_api_path(self, response: str, netloc: str) -> None:
         if not self._CACHED_API_PATH:
             url_player_js = self._get_min_js_player_url(response, netloc)
             response_player = self.http.get(url_player_js)
