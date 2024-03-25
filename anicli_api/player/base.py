@@ -77,7 +77,7 @@ class ABCVideoExtractor(ABC):
     """regular expression for validate urls for `==` (__eq__) stmt"""
     # config if needed configurate HTTP classes for requests
     DEFAULT_HTTP_CONFIG: Dict[str, Any] = {}
-    """minimal httpx.Client, httpx.AsyncClient for correct work player provider"""
+    """minimal httpx.Client, httpx.AsyncClient configuration for correct work player provider"""
 
     def __init__(self, **httpx_kwargs):
         """
