@@ -53,9 +53,9 @@ class Aniboom(BaseVideoExtractor):
         #
         # actual json signature (look dash.src and hls.src keys):
         # { ...
-        # "dash":"{\"src\":\"https:...master_device.m3u8\",\
+        # "dash":"{\"src\":\"https:...master_device.m3u8\",\  <<<
         # "type\":\"application\\\/dash+xml\"}",
-        # "hls":"{\"src\":\"https:...master_device.m3u8\",
+        # "hls":"{\"src\":\"https:...master_device.m3u8\",    <<<
         # \"type\":\"application\\\/x-mpegURL\"}"
         # ... }
         if dash_url.endswith(".m3u8"):
