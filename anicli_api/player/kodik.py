@@ -1,4 +1,5 @@
 import codecs
+import json
 import re
 import warnings
 from base64 import b64decode
@@ -18,6 +19,7 @@ class Kodik(BaseVideoExtractor):
     URL_RULE = _URL_EQ
     # cached API path to avoid extra requests
     _CACHED_API_PATH = None
+    DEFAULT_HTTP_CONFIG = {"http2": True}
 
     @staticmethod
     def _decode(url_encoded: str) -> str:
@@ -48,17 +50,30 @@ class Kodik(BaseVideoExtractor):
 
     @staticmethod
     def _parse_api_payload(response: str) -> Dict:
-        return {
-            "domain": re.search(r'var domain = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
-            "d_sign": re.search(r'var d_sign = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
-            "pd": re.search(r'var pd = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
-            "ref": re.search(r'var ref = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
-            "type": re.search(r'videoInfo\.type = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
-            "hash": re.search(r'videoInfo\.hash = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
-            "id": re.search(r'videoInfo\.id = ["\'](.*?)["\'];', response)[1],  # type: ignore[index]
-            "bad_user": True,
-            "info": {},
-        }
+        raw_payload = re.search(r"var\s*urlParams\s*=\s*['\"](\{.*?\})['\"];?", response)[1]
+        payload: dict = json.loads(raw_payload)
+
+        # drop unused keys
+        payload.pop("advert_debug", None)
+        payload.pop('min_age', None)
+        payload.pop('first_url', None)
+        payload.pop('translations', None)
+
+        # add required keys
+        payload.update(
+            {
+                "type": re.search(r'var\s*type\s*=\s*["\'](.*?)["\'];?', response)[1],
+                "id": re.search(r'var\s*videoId\s*=\s*["\'](.*?)["\'];?', response)[1],
+                "hash": re.search(r'videoInfo\.hash\s*=\s*["\'](.*?)["\'];?', response)[1],
+                # constants keys
+                "bad_user": False,
+                "info": {},
+                # new key 26.03.24
+                "cdn_is_working": True,
+            }
+        )
+        return payload
+
 
     @staticmethod
     def _get_netloc(url: str) -> str:
