@@ -25,6 +25,7 @@ check_and_clone_repository
 
 # Generate parsers
 generate_parser "libanime_schema/source/animego.py" "py.parsel" "anicli_api/source/parsers/animego_parser.py"
+generate_parser "libanime_schema/source/animego_pro.py" "py.parsel" "anicli_api/source/parsers/animego_pro_parser.py"
 generate_parser "libanime_schema/source/animania.py" "py.parsel" "anicli_api/source/parsers/animania_parser.py"
 generate_parser "libanime_schema/source/animejoy.py" "py.parsel" "anicli_api/source/parsers/animejoy_parser.py"
 generate_parser "libanime_schema/source/sovetromantica.py" "py.parsel" "anicli_api/source/parsers/sovetromantica_parser.py"
