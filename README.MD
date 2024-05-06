@@ -168,7 +168,8 @@ if __name__ == '__main__':
 | anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                                                  |
 | animevost      | https://animevost.org      | YES          | author            |                                                                                                                                                  |
 | jutsu          | https://jut.su             | NO           | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
-| sameband       | https://jut.su             | NO           | author            |                                                                                                                                                  |
+| sameband       | https://sameband.studio    | NO           | author            |                                                                                                                                                  |
+| animego.pro    | https://animego.pro        | NO           | many              | Нестабильный uptime сайта (могут быть проблемы с доступом)                                                                                       |
 
 
 # players description
