@@ -39,7 +39,7 @@ def test_ongoing(extractor):
     assert len(result) > 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
 async def test_search(extractor):
     result = await extractor.a_search("Киберпанк: Бегущие по краю")
@@ -53,7 +53,7 @@ async def test_search(extractor):
     assert len((await sources[0].a_get_videos())) == 3
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
 async def test_ongoing(extractor):
     result = await extractor.a_ongoing()

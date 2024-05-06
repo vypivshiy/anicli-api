@@ -65,7 +65,7 @@ def test_sync_video_extractor(
     assert resp.is_success or resp.is_redirect
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 @pytest.mark.parametrize(
     "player, url, count, types, index",
     [

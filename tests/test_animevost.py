@@ -28,7 +28,7 @@ def test_ongoing(extractor):
     assert len(result) > 2
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
 async def test_search(extractor):
     result = await extractor.a_search("chainsaw")
@@ -41,7 +41,7 @@ async def test_search(extractor):
     assert len(sources) == 1
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 @pytest.mark.skipif(STATUS != 200, reason=f"RETURN CODE [{STATUS}]")
 async def test_ongoing(extractor):
     result = await extractor.a_ongoing()

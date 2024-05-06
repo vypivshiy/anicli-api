@@ -11,7 +11,7 @@ def test_generate_m3u():
     assert generate_playlist(target=["1.mp4", "2.mp4", "3.mp4"], names=["v1", "v2", "v3"]) == RESULT_WITH_NAMES
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(scope="session")
 async def test_async_generate_m3u():
     assert (await generate_asyncio_playlist(target=["1.mp4", "2.mp4", "3.mp4"])) == RESULT
     assert (
