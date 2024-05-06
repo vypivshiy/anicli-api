@@ -20,7 +20,7 @@ from httpx import (
     NetworkError,
     Request,
     Response,
-    TimeoutException,
+    TimeoutException, ReadTimeout,
 )
 
 from anicli_api._logger import logger
@@ -91,10 +91,14 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 logger.debug("%s -> %s", repr(request), repr(resp))
                 return resp
 
-            except (NetworkError, TimeoutException) as exc:
+            except (NetworkError, TimeoutException, ReadTimeout) as exc:
                 exc_name = exc.__class__.__name__
                 exc_msg = getattr(exc, "message", exc.args[0])
                 sleep(delay)
+                # stub response
+                if exc.__class__ == ReadTimeout:
+                    resp = None
+
                 logger.warning(
                     "[%s] %s: %s, %s -> %s try again", i + 1, exc_name, exc_msg, repr(request), repr(resp)
                 )  # type: ignore
