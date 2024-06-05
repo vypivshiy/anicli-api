@@ -6,6 +6,7 @@ from httpx import Response
 from parsel import Selector
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
+from parsers.aniboom_parser import AniboomResult
 
 __all__ = ["Aniboom"]
 
@@ -38,9 +39,9 @@ class Aniboom(BaseVideoExtractor):
     @staticmethod
     def _is_not_found(resp: Response):
         if resp.status_code == 404:
-            sel = Selector(resp.text)
+            title = re.search(r'<title>(.+?)</title>', resp.text)
             msg = (
-                f"Aniboom returns 404 code with `{sel.css('title ::text').get()}` error. "
+                f"Aniboom returns 404 code with `{title}` error. "
                 f"Maybe you missing `episode` and `translation` GET params or your IP not from CIS countries?"
             )
             warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
@@ -59,7 +60,8 @@ class Aniboom(BaseVideoExtractor):
         # \"type\":\"application\\\/x-mpegURL\"}"
         # ... }
         if dash_url.endswith(".m3u8"):
-            warnings.warn("Missing mpd link. This aniboom issue, not anicli-api", stacklevel=1, category=RuntimeWarning)
+            warnings.warn("Missing mpd link. This aniboom issue, not anicli-api",
+                          stacklevel=1, category=RuntimeWarning)
             return True
         return False
 
@@ -67,41 +69,26 @@ class Aniboom(BaseVideoExtractor):
         if self._is_not_found(response):
             return []
 
-        # if pre unescape response - parsel selector incorrect get data-parameters attr
-        sel = Selector(response.text)
-        # expected json signature:
-        # { ...
-        # "dash":"{\"src\":\"https:.../abcdef.mpd\",\
-        # "type\":\"application\\\/dash+xml\"}",
-        # "hls":"{\"src\":\"https:...\\\/master_device.m3u8\",
-        # \"type\":\"application\\\/x-mpegURL\"}"
-        # ... }
-        jsn = sel.xpath('//*[@id="video"]/@data-parameters')
-        videos: List[Video] = []
+        result = AniboomResult(response.text).parse()
+        hls, dash = result.get('hls', None), result.get('dash', None)
 
-        if dash := jsn.jmespath("dash"):
-            video_url = dash.re(r"(https:.*\.(?:mpd|m3u8))")[0].replace("\\", "")
-            # backend sometimes return m3u8 link in src.dash key
-            if self._is_failed_dash_key(video_url):
-                # in this case, hls.src == dash.src - return one Video object
-                return [Video(type="m3u8", quality=1080, url=video_url, headers=self.VIDEO_HEADERS)]
+        if not hls:
+            warnings.warn("Missing m3u8 link",
+                          stacklevel=1, category=RuntimeWarning)
 
-            videos.append(
-                Video(
-                    type="mpd",
-                    quality=1080,
-                    url=video_url,
-                    headers=self.VIDEO_HEADERS,
-                )
-            )
+        if not dash:
+            warnings.warn("Missing dash link", stacklevel=1, category=RuntimeWarning)
 
-        if hls := jsn.jmespath("hls"):
-            videos.append(
-                Video(
-                    type="m3u8",
-                    quality=1080,
-                    url=hls.re(r"https:.*\.m3u8")[0].replace("\\", ""),
-                    headers=self.VIDEO_HEADERS,
-                )
-            )
-        return videos
+        # backend sometimes return m3u8 link in src.dash key
+        if self._is_failed_dash_key(dash):
+            # in this case, hls.src == dash.src - return one Video object
+            return [Video(type="m3u8", quality=1080, url=hls, headers=self.VIDEO_HEADERS)]
+
+        return [
+            Video(type="mpd", quality=1080, url=dash, headers=self.VIDEO_HEADERS),
+            Video(type="m3u8", quality=1080, url=hls, headers=self.VIDEO_HEADERS)
+        ]
+
+
+if __name__ == '__main__':
+    print(Aniboom().parse("https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30"))
