@@ -72,7 +72,7 @@ class MovieTranslationsPanel(BaseParser):
 
 class KodikAPIPayload(BaseParser):
     """
-
+        payload for Kodik API request
 
     {
       "d": "String",
