@@ -4,13 +4,13 @@ import json
 import re
 import warnings
 from base64 import b64decode
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 from urllib.parse import urlsplit
 
 from httpx import Response
 
-from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
-from parsers.kodik_parser import KodikPage, KodikApiPath
+from .base import BaseVideoExtractor, Video, url_validator
+from .parsers.kodik_parser import KodikApiPath, KodikPage
 
 __all__ = ["Kodik"]
 _URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:seria|video|film)/\d+/\w+/\d{3,4}p")
@@ -22,11 +22,7 @@ class Kodik(BaseVideoExtractor):
     # cached API path to avoid extra requests
     _CACHED_API_PATH = None
     DEFAULT_HTTP_CONFIG = {"http2": True}
-    API_CONSTS_PAYLOAD = {
-        "bad_user": False,
-        "info": {},
-        "cdn_is_working": True
-    }
+    API_CONSTS_PAYLOAD = {"bad_user": False, "info": {}, "cdn_is_working": True}
 
     @staticmethod
     def _decode(url_encoded: str) -> str:
@@ -103,7 +99,7 @@ class Kodik(BaseVideoExtractor):
         return self._extract(response_api.json()["links"])
 
     def _update_api_path(self, response_player) -> None:
-        path = KodikApiPath(response_player.text).parse()['path']
+        path = KodikApiPath(response_player.text).parse()["path"]
         self._CACHED_API_PATH = b64decode(path).decode()
 
     @kodik_validator
@@ -138,7 +134,7 @@ class Kodik(BaseVideoExtractor):
     def _extract_api_payload(self, response):
         response = response.text
         page = KodikPage(response).parse()
-        payload: Dict[str, Any] = page['api_payload']
+        payload: Dict[str, Any] = page["api_payload"]
         payload.update(self.API_CONSTS_PAYLOAD)
         return page, payload
 
@@ -163,4 +159,3 @@ class Kodik(BaseVideoExtractor):
             ]
         # OMG :O
         return [Video(type="m3u8", quality=360, url=self._decode(response_api["360"][0]["src"]))]
-

@@ -5,8 +5,8 @@ from typing import List
 from httpx import Response
 from parsel import Selector
 
-from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
-from parsers.aniboom_parser import AniboomResult
+from .base import BaseVideoExtractor, Video, url_validator
+from .parsers.aniboom_parser import AniboomPage
 
 __all__ = ["Aniboom"]
 
@@ -39,7 +39,7 @@ class Aniboom(BaseVideoExtractor):
     @staticmethod
     def _is_not_found(resp: Response):
         if resp.status_code == 404:
-            title = re.search(r'<title>(.+?)</title>', resp.text)
+            title = re.search(r"<title>(.+?)</title>", resp.text)
             msg = (
                 f"Aniboom returns 404 code with `{title}` error. "
                 f"Maybe you missing `episode` and `translation` GET params or your IP not from CIS countries?"
@@ -60,8 +60,7 @@ class Aniboom(BaseVideoExtractor):
         # \"type\":\"application\\\/x-mpegURL\"}"
         # ... }
         if dash_url.endswith(".m3u8"):
-            warnings.warn("Missing mpd link. This aniboom issue, not anicli-api",
-                          stacklevel=1, category=RuntimeWarning)
+            warnings.warn("Missing mpd link. This aniboom issue, not anicli-api", stacklevel=1, category=RuntimeWarning)
             return True
         return False
 
@@ -69,12 +68,11 @@ class Aniboom(BaseVideoExtractor):
         if self._is_not_found(response):
             return []
 
-        result = AniboomResult(response.text).parse()
-        hls, dash = result.get('hls', None), result.get('dash', None)
+        result = AniboomPage(response.text).parse()
+        hls, dash = result.get("hls", None), result.get("dash", None)
 
         if not hls:
-            warnings.warn("Missing m3u8 link",
-                          stacklevel=1, category=RuntimeWarning)
+            warnings.warn("Missing m3u8 link", stacklevel=1, category=RuntimeWarning)
 
         if not dash:
             warnings.warn("Missing dash link", stacklevel=1, category=RuntimeWarning)
@@ -86,9 +84,9 @@ class Aniboom(BaseVideoExtractor):
 
         return [
             Video(type="mpd", quality=1080, url=dash, headers=self.VIDEO_HEADERS),
-            Video(type="m3u8", quality=1080, url=hls, headers=self.VIDEO_HEADERS)
+            Video(type="m3u8", quality=1080, url=hls, headers=self.VIDEO_HEADERS),
         ]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print(Aniboom().parse("https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30"))
