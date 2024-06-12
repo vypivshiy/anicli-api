@@ -159,17 +159,17 @@ if __name__ == '__main__':
   - once - один вид (случайный)
   - author - своя
 
-| name           | url                        | official api | dubbers           | note                                                                                                                                             |
-|----------------|----------------------------|--------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| animego        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                                                      |
-| animania       | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                                                |
-| animejoy       | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников                              |
-| sovetromantica | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                       |
-| anilibria      | https://anilibria.tv       | YES          | author            |                                                                                                                                                  |
-| animevost      | https://animevost.org      | YES          | author            |                                                                                                                                                  |
-| jutsu          | https://jut.su             | NO           | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
-| sameband       | https://sameband.studio    | NO           | author            |                                                                                                                                                  |
-| animego.pro    | https://animego.pro        | NO           | many              | Нестабильный uptime сайта (могут быть проблемы с доступом)                                                                                       |
+| name                           | url                        | official api | dubbers           | note                                                                                                                                             |
+|--------------------------------|----------------------------|--------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| animego                        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ                                                                                      |
+| animania DROP (dead)           | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ                                                                                                |
+| ~~animejoy~~ DROP (cloudflare) | https://animejoy.ru        | NO           | subtitles         | **имеет cloudflare**, требуется реализация обхода или предварительное получения cookies и headers, много источников                              |
+| sovetromantica                 | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                       |
+| anilibria                      | https://anilibria.tv       | YES          | author            |                                                                                                                                                  |
+| animevost                      | https://animevost.org      | YES          | author            |                                                                                                                                                  |
+| jutsu                          | https://jut.su             | NO           | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
+| sameband                       | https://sameband.studio    | NO           | author            |                                                                                                                                                  |
+| animego.pro                    | https://animego.pro        | NO           | many              | Нестабильный uptime сайта (могут быть проблемы с доступом)                                                                                       |
 
 
 # players description
