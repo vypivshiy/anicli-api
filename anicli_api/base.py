@@ -112,7 +112,6 @@ class HttpMixin:
         return {"http": self.http, "http_async": self.http_async}
 
 
-
 @define(kw_only=True)
 class BaseSearch(HttpMixin):
     title: str

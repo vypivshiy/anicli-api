@@ -18,9 +18,10 @@ from httpx import (
     Client,
     HTTPTransport,
     NetworkError,
+    ReadTimeout,
     Request,
     Response,
-    TimeoutException, ReadTimeout,
+    TimeoutException,
 )
 
 from anicli_api._logger import logger
