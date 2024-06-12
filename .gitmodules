@@ -1,0 +1,3 @@
+[submodule "libanime_schema"]
+	path = libanime_schema
+	url = https://github.com/libanime/libanime_schema
