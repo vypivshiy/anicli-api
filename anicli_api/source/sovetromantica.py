@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from attrs import define
 
-from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.sovetromantica_parser import AnimeView, EpisodeView, OngoingView, SearchView
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, HttpMixin
+from anicli_api.source.parsers.sovetromantica_parser import AnimePage, OngoingPage, SearchPage, T_EpisodeView
 
 if TYPE_CHECKING:
     from httpx import AsyncClient, Client
@@ -14,12 +14,10 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://sovetromantica.com/"
 
     def _extract_search(self, resp: str) -> List["Search"]:
-        data = SearchView(resp).parse().view()
-        return [Search(**d, **self._kwargs_http) for d in data]
+        return [Search(**d, **self._kwargs_http) for d in SearchPage(resp).parse()]
 
     def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
-        data = OngoingView(resp).parse().view()
-        return [Ongoing(**d, **self._kwargs_http) for d in data]
+        return [Ongoing(**d, **self._kwargs_http) for d in OngoingPage(resp).parse()]
 
     def search(self, query: str):
         resp = self.http.get(f"https://sovetromantica.com/anime?query={query}")
@@ -41,20 +39,16 @@ class Extractor(BaseExtractor):
 # without @attrs.define decorator to avoid
 # TypeError: multiple bases have instance lay-out conflict error
 # (__slots__ magic method and attrs hooks issue)
-class _SearchOrOngoing:
-
+class _SearchOrOngoing(HttpMixin):
     title: str
-    http: "Client"
-    http_async: "AsyncClient"
     url: str
     alt_title: str
-    _kwargs_http: Dict[str, Union["Client", "AsyncClient"]]
 
     def _extract(self, resp: str) -> "Anime":
-        data = AnimeView(resp).parse().view()
-        episodes = EpisodeView(resp).parse().view()
-
-        return Anime(**data, episodes=episodes, **self._kwargs_http)
+        data = AnimePage(resp).parse()
+        # DESCRIPTION MAYBE DOES NOT EXIST
+        data["description"] = data["description"] or ""
+        return Anime(**data, **self._kwargs_http)
 
     def get_anime(self):
         resp = self.http.get(self.url)
@@ -80,17 +74,17 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 
 @define(kw_only=True)
 class Anime(BaseAnime):
-    video: Optional[str]  # STUB ATTRIBUTE
-    episodes: List[Dict[str, str]]
+    _video_url: Optional[str]  # STUB ATTRIBUTE
+    _episodes: List[T_EpisodeView]
 
     def get_episodes(self):
-        if not self.video:
+        if not self._video_url:
             warnings.warn("Not available videos")
             return []
 
         return [
             Episode(num=str(i), url=d["url"], title=d["title"], **self._kwargs_http)
-            for i, d in enumerate(self.episodes, 1)
+            for i, d in enumerate(self._episodes, 1)
         ]
 
     async def a_get_episodes(self):
@@ -99,19 +93,19 @@ class Anime(BaseAnime):
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    url: str
+    _url: str
 
     def _extract(self, resp: str) -> List["Source"]:
         # video link contains in anime page
-        data = AnimeView(resp).parse().view()
-        return [Source(title="Sovetromantica", url=data["video"], **self._kwargs_http)]
+        data = AnimePage(resp).parse()
+        return [Source(title="Sovetromantica", url=data["video_url"], **self._kwargs_http)]
 
     def get_sources(self):
-        resp = self.http.get(self.url)
+        resp = self.http.get(self._url)
         return self._extract(resp.text)
 
     async def a_get_sources(self):
-        resp = await self.http_async.get(self.url)
+        resp = await self.http_async.get(self._url)
         return self._extract(resp.text)
 
 

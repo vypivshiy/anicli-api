@@ -1,39 +1,33 @@
-from typing import Dict, List, TYPE_CHECKING, Union, Any
+from typing import Any, Dict, List
 from urllib.parse import urlsplit
 
 from attrs import define
 
-from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-
-# pre generated parser
-from anicli_api.source.parsers.animego_pro_parser import AnimeView, EpisodesView, SearchView, OngoingView, \
-    FirstPlayerUrlView, SourceKodikView
-
-if TYPE_CHECKING:
-    from httpx import Client, AsyncClient
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, HttpMixin
+from anicli_api.source.parsers.animego_pro_parser import (
+    AnimePage,
+    EpisodesPage,
+    OngoingPage,
+    SearchPage,
+    SourceKodikSerialPage,
+)
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://animego.pro/"
 
-    @staticmethod
-    def _extract_search(resp: str) -> List["Search"]:
-        result = SearchView(resp).parse().view()
-        return [Search(**kw) for kw in result]
+    def _extract_search(self, resp: str) -> List["Search"]:
+        return [Search(**kw, **self._kwargs_http) for kw in SearchPage(resp).parse()]
 
-    @staticmethod
-    def _extract_ongoing(resp: str) -> List["Ongoing"]:
-        result = OngoingView(resp).parse().view()
-        return [Ongoing(**kw) for kw in result]
+    def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
+        return [Ongoing(**kw, **self._kwargs_http) for kw in OngoingPage(resp).parse()]
 
     def search(self, query: str):
-        resp = self.http.post(self.BASE_URL,
-                              data={"do": "search", "subaction": "search", "story": query})
+        resp = self.http.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
         return self._extract_search(resp.text)
 
     async def a_search(self, query: str):
-        resp = await self.http_async.post(self.BASE_URL,
-                                          data={"do": "search", "subaction": "search", "story": query})
+        resp = await self.http_async.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
         return self._extract_search(resp.text)
 
     def ongoing(self):
@@ -45,18 +39,13 @@ class Extractor(BaseExtractor):
         return self._extract_ongoing(resp.text)
 
 
-class _SearchOrOngoing:
+class _SearchOrOngoing(HttpMixin):
     title: str
     thumbnail: str
     url: str
 
-    http: "Client"
-    http_async: "AsyncClient"
-    _kwargs_http: Dict[str, Any]
-
     def _extract(self, resp: str) -> "Anime":
-        data = AnimeView(resp).parse().view()
-        return Anime(**data, **self._kwargs_http)
+        return Anime(**AnimePage(resp).parse(), **self._kwargs_http)
 
     def get_anime(self):
         resp = self.http.get(self.url)
@@ -84,46 +73,58 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 class Anime(BaseAnime):
     news_id: str
 
-    @staticmethod
-    def _extract(resp: str) -> List["Episode"]:
-        result = EpisodesView(resp).parse().view()
+    def _extract(self, resp: str) -> List["Episode"]:
         # remap result, create player links
+        result = SourceKodikSerialPage(resp).parse()
         results = [
-            {'count': d['episode_count'], 'dubber_id': d['id'], 'dubber_name': d['title'],
-             'url':
-                 f"https://kodik.info/{d['media_type']}/{d['media_id']}/{d['media_hash']}/720p"
-                 f"?translations=false&only_translations={d['id']}"}
-            for d in result
+            {
+                "count": d["data_episode_count"],
+                "dubber_id": d["data_id"],
+                "dubber_name": d["data_title"],
+                "url": self._create_kodik_ep_url(d),
+            }
+            for d in result["translations"]
         ]
-        max_episodes_count = int(
-            max(
-                results, key=lambda x: int(x['count'])
-            )['count']
+        # calculate max episodes count
+        max_episodes_count = int(max(results, key=lambda x: int(x["count"]))["count"])
+        return [
+            Episode(
+                num=str(i),
+                title="Episode",
+                # send payload for extract needed Source by translation later
+                player_ctx=[j for j in results if int(j["count"]) >= i],
+                **self._kwargs_http,
+            )
+            for i in range(1, max_episodes_count + 1)
+        ]
+
+    def _create_kodik_ep_url(self, d):
+        return (
+            f"https://kodik.info/{d['data_media_type']}/{d['data_media_id']}/{d['data_media_hash']}/720p?translations=false"
+            f"&only_translations={d['data_id']}"
         )
-        # {i: {params, dubbers:, url}]
-        return [Episode(num=str(i),
-                        title='Episode',
-                        player_ctx=[j for j in results if int(j['count']) >= i]
-                        ) for i in range(1, max_episodes_count + 1)
-                ]
 
     def get_episodes(self):
-        resp = self.http.post("https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax",
-                              data={'news_id': self.news_id, "action": "load_player"})
-        player_url = FirstPlayerUrlView(resp.text).parse().view()['url']
+        resp = self.http.post(
+            "https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax",
+            data={"news_id": self.news_id, "action": "load_player"},
+        )
+        episodes = EpisodesPage(resp.text).parse()
         # replace params help extract ALL episodes and dubbers
         # TODO: test films (/video/ path)
-        new_player_url = player_url.split("?", 1)[0] + '?translations=true'
+        new_player_url = episodes["player_url"].split("?", 1)[0] + "?translations=true"
         resp_2 = self.http.get(new_player_url)
         return self._extract(resp_2.text)
 
     async def a_get_episodes(self):
-        resp = await self.http_async.post("https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax",
-                              data={'news_id': self.news_id, "action": "load_player"})
-        player_url = FirstPlayerUrlView(resp.text).parse().view()['url']
+        resp = await self.http_async.post(
+            "https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax",
+            data={"news_id": self.news_id, "action": "load_player"},
+        )
+        episodes = EpisodesPage(resp.text).parse()
         # replace params help extract ALL episodes and dubbers
         # TODO: test films (/video/ path)
-        new_player_url = player_url.split("?", 1)[0] + '?translations=true'
+        new_player_url = episodes["player_url"].split("?", 1)[0] + "?translations=true"
         resp_2 = await self.http_async.get(new_player_url)
         return self._extract(resp_2.text)
 
@@ -134,13 +135,16 @@ class Episode(BaseEpisode):
 
     def get_sources(self) -> List["Source"]:
         # overwrite Source methods decrease http requests
-        return [Source(title=d['dubber_name'],
-                       url='_',  # stub, lazy parse
-                       playlist_url=d['url'],
-                       num=self.num,
-                       )
-                for d in self._player_ctx
-                ]
+        return [
+            Source(
+                title=d["dubber_name"],
+                url="_",  # stub, parse in the Source object
+                playlist_url=d["url"],
+                num=self.num,
+                **self._kwargs_http,
+            )
+            for d in self._player_ctx
+        ]
 
     async def a_get_sources(self):
         return self.get_sources()
@@ -152,11 +156,13 @@ class Source(BaseSource):
     _playlist_url: str
 
     def _parse_episode_url(self, resp) -> None:
-        results = SourceKodikView(resp.text).parse().view()
-        video_ctx = [d for d in results if d['value'] == self._num][0]
+        results = SourceKodikSerialPage(resp.text).parse()
+        video_ctx = [d for d in results["episodes"] if d["value"] == self._num][0]
         # TODO: /video/ path coverage (films?)
         # overwrite url attribute and call base class implementation
-        url = f"https://{urlsplit(self._playlist_url).netloc}/seria/{video_ctx['id']}/{video_ctx['hash']}/720p"
+        url = (
+            f"https://{urlsplit(self._playlist_url).netloc}/seria/{video_ctx['data_id']}/{video_ctx['data_hash']}/720p"
+        )
         self.url = url
 
     def get_videos(self, **httpx_kwargs):

@@ -5,74 +5,65 @@ from typing import TYPE_CHECKING, Any, Dict, List
 from attr import field
 from attrs import define
 
-from anicli_api._http import HTTPAsync, HTTPSync
-from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
+from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, HttpMixin
 from anicli_api.player.base import Video
-from anicli_api.source.parsers.jutsu_parser import AnimeView, EpisodeView, OngoingView, SearchView, SourceView
+from anicli_api.source.parsers.jutsu_parser import AnimePage, OngoingPage, SearchPage, SourcePage
 
 if TYPE_CHECKING:
     from httpx import AsyncClient, Client
 
 
 class Extractor(BaseExtractor):
-    """NOTE: For playing video usage user-agent from http or http_async instance
+    """NOTE: For playing video usage user-agent from http or http_async instance"""
 
-    """
     BASE_URL = "https://jut.su"
 
-    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
-        super().__init__(http_client=http_client, http_async_client=http_async_client)
+    def _extract_search(self, resp: str) -> List["Search"]:
+        return [Search(**kw, **self._kwargs_http) for kw in SearchPage(resp).parse()]
 
-    @staticmethod
-    def _extract_search(resp: str) -> List["Search"]:
-        data = SearchView(resp).parse().view()
-        return [Search(**kw) for kw in data]
-
-    @staticmethod
-    def _extract_ongoing(resp: str) -> List["Ongoing"]:
-        data = OngoingView(resp).parse().view()
-        return [Ongoing(**kw) for kw in data]
+    def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
+        return [Ongoing(**kw, **self._kwargs_http) for kw in OngoingPage(resp).parse()]
 
     def search(self, query: str):
         resp = self.http.post(
-            self.BASE_URL + "/anime", data={"ajax_load": "yes", "start_from_page": 1, "show_search": query}
+            f"{self.BASE_URL}/anime",
+            data={"ajax_load": "yes", "start_from_page": 1, "show_search": query},
         )
         return self._extract_search(resp.text)
 
     async def a_search(self, query: str):
         resp = await self.http_async.post(
-            self.BASE_URL + "/anime", data={"ajax_load": "yes", "start_from_page": 1, "show_search": query}
+            f"{self.BASE_URL}/anime",
+            data={"ajax_load": "yes", "start_from_page": 1, "show_search": query},
         )
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.http.post(self.BASE_URL + "/anime", data={"ajax_load": "yes", "start_from_page": 1})
+        resp = self.http.post(
+            f"{self.BASE_URL}/anime",
+            data={"ajax_load": "yes", "start_from_page": 1},
+        )
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.http_async.post(self.BASE_URL + "/anime", data={"ajax_load": "yes", "start_from_page": 1})
+        resp = await self.http_async.post(
+            f"{self.BASE_URL}/anime",
+            data={"ajax_load": "yes", "start_from_page": 1},
+        )
         return self._extract_ongoing(resp.text)
 
 
-class _SearchOrOngoing:
-    url: str
-    http: "Client"
-    http_async: "AsyncClient"
-
-    @staticmethod
-    def _extract(resp: str) -> "Anime":
-        data = AnimeView(resp).parse().view()
-        # num attribute API required
-        raw_episodes = [{"num": f"{i + 1}", **kw} for i, kw in enumerate(EpisodeView(resp).parse().view())]
-        return Anime(**data, raw_episodes=raw_episodes)
+class _SearchOrOngoing(HttpMixin):
+    def _extract(self, resp: str):
+        return Anime(**AnimePage(resp).parse(), **self._kwargs_http)
 
     def get_anime(self):
-        resp = self.http.get(self.url)
-        return self._extract(resp.text)
+        resp = self.http.get(self.url)  # type: ignore
+        return self._extract(resp.text)  # type: ignore
 
     async def a_get_anime(self):
-        resp = await self.http_async.get(self.url)
-        return self._extract(resp.text)
+        resp = await self.http_async.get(self.url)  # type: ignore
+        return self._extract(resp.text)  # type: ignore
 
 
 @define(kw_only=True)
@@ -88,10 +79,10 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 @define(kw_only=True)
 class Anime(BaseAnime):
     # stub attribute
-    _raw_episodes: List[Dict[str, Any]] = field(repr=False)
+    _episodes: List[Dict[str, Any]] = field(repr=False)
 
     def get_episodes(self):
-        return [Episode(**kw) for kw in self._raw_episodes]
+        return [Episode(num=str(n), **kw, **self._kwargs_http) for n, kw in enumerate(self._episodes, 1)]
 
     async def a_get_episodes(self):
         return self.get_episodes()
@@ -103,34 +94,34 @@ class Episode(BaseEpisode):
 
     @staticmethod
     def _is_blocked(raw_videos, response: str) -> bool:
-        if all(i["url"] is None for i in raw_videos):
-            # block jquery signature:
-            # var block_video_text_str = 'К сожалению, в России это видео недоступно.';
-            # var block_video_text_str_everywhere = 'К сожалению, это видео недоступно.';
-            if re.search(r"block_video_text_str_everywhere\+", response):
-                block_video = "К сожалению, это видео недоступно."
-            elif re.search(r"block_video_text_str\+", response):
-                block_video = "К сожалению, в России это видео недоступно."
-            else:
-                block_video = ""
+        if not raw_videos.get("null"):
+            return False
 
-            reason = re.search(r"var block_[^>]+\s*=\s*['\"](?:<br>)?(.*?)['\"];", response)[1]
+        # block jquery signature:
+        # var block_video_text_str = 'К сожалению, в России это видео недоступно.';
+        # var block_video_text_str_everywhere = 'К сожалению, это видео недоступно.';
+        if re.search(r"block_video_text_str_everywhere\+", response):
+            block_video = "К сожалению, это видео недоступно."
+        elif re.search(r"block_video_text_str\+", response):
+            block_video = "К сожалению, в России это видео недоступно."
+        else:
+            block_video = ""
 
-            msg = f"Block issue. message: '{block_video} {reason}'."
-            warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
-            return True
-        return False
+        reason = re.search(r"var block_[^>]+\s*=\s*['\"](?:<br>)?(.*?)['\"];", response)[1]  # type: ignore
+
+        msg = f"Block issue. message: '{block_video} {reason}'."
+        warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
+        return True
 
     def _extract(self, resp: str) -> List["Source"]:
-        data = SourceView(resp).parse().view()
-        raw_videos = [{"url": v, "quality": int(k.strip("url_"))} for k, v in data.items()]
+        data = SourcePage(resp).parse()["videos"]
         # RKN blocks (RU region)
         # eg: https://jut.su/shingekii-no-kyojin/season-1/episode-1.html
-        if self._is_blocked(raw_videos, resp):
+        if self._is_blocked(data, resp):
             return []
         # STUB
         # -----------------------------------v
-        return [Source(title="jut.su", url=self._url, raw_videos=raw_videos)]
+        return [Source(title="jut.su", url=self._url, source=data)]
 
     def get_sources(self):
         resp = self.http.get(self._url)
@@ -143,22 +134,26 @@ class Episode(BaseEpisode):
 
 @define(kw_only=True)
 class Source(BaseSource):
-    _raw_videos: List[Dict[str, Any]] = field(repr=False)
+    _source: Dict[str, Any] = field(repr=False)
 
     def get_videos(self, **_) -> List["Video"]:
         # For video playing, the user-agent MUST BE equal
         # as a client user-agent in the extractor API
         # ELSE VIDEO HOSTING RETURNS 403 CODE
         return [
-            Video(**kw, headers={"User-Agent": self.http.headers["user-agent"]}, type="mp4")
-            for kw in self._raw_videos
-            if kw["url"]
+            Video(
+                url=url,
+                quality=int(quality),  # type: ignore
+                headers={"User-Agent": self.http.headers["user-agent"]},
+                type="mp4",
+            )
+            for quality, url in self._source.items()
         ]
 
     async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
         return [
             Video(**kw, headers={"User-Agent": self.http_async.headers["user-agent"]}, type="mp4")
-            for kw in self._raw_videos
+            for kw in self._source
             if kw["url"]
         ]
 
