@@ -82,7 +82,7 @@ class BaseExtractor:
 
 
 @define(kw_only=True)
-class _HttpExtension:
+class HttpMixin:
     """this dataclass provide pre-configured http clients"""
 
     _http: "Client" = field(default=HTTPSync(), repr=False, kw_only=True, hash=False)
@@ -112,8 +112,9 @@ class _HttpExtension:
         return {"http": self.http, "http_async": self.http_async}
 
 
+
 @define(kw_only=True)
-class BaseSearch(_HttpExtension):
+class BaseSearch(HttpMixin):
     title: str
     """Search item name"""
     thumbnail: str
@@ -136,7 +137,7 @@ class BaseSearch(_HttpExtension):
 
 
 @define(kw_only=True)
-class BaseOngoing(_HttpExtension):
+class BaseOngoing(HttpMixin):
     title: str
     """Ongoing item name"""
     thumbnail: str
@@ -159,7 +160,7 @@ class BaseOngoing(_HttpExtension):
 
 
 @define(kw_only=True)
-class BaseAnime(_HttpExtension):
+class BaseAnime(HttpMixin):
     title: str
     """anime name"""
     thumbnail: str
@@ -184,7 +185,7 @@ class BaseAnime(_HttpExtension):
 
 
 @define(kw_only=True)
-class BaseEpisode(_HttpExtension):
+class BaseEpisode(HttpMixin):
     title: str
     """episode name. If api or source not provided, default naming like: 
     
@@ -210,7 +211,7 @@ class BaseEpisode(_HttpExtension):
 
 
 @define(kw_only=True)
-class BaseSource(_HttpExtension):
+class BaseSource(HttpMixin):
     title: str
     """Source name. If source/api provide multiple dubbers - named by dubber name + source (player).
     
