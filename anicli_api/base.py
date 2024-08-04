@@ -134,6 +134,9 @@ class BaseSearch(HttpMixin):
     def __str__(self):
         return self.title
 
+    def __hash__(self):
+        return hash(tuple((self.title, self.thumbnail, self.url)))
+
 
 @define(kw_only=True)
 class BaseOngoing(HttpMixin):
@@ -156,6 +159,9 @@ class BaseOngoing(HttpMixin):
 
     def __str__(self):
         return self.title
+
+    def __hash__(self):
+        return hash(tuple((self.title, self.thumbnail, self.url)))
 
 
 @define(kw_only=True)
@@ -182,6 +188,9 @@ class BaseAnime(HttpMixin):
             return f"{self.title} {self.description[:(80 - len(self.title) - 3)]}..."
         return f"{self.title} {self.description}"
 
+    def __hash__(self):
+        return hash(tuple((self.title, self.thumbnail, self.description)))
+
 
 @define(kw_only=True)
 class BaseEpisode(HttpMixin):
@@ -207,6 +216,9 @@ class BaseEpisode(HttpMixin):
 
     def __str__(self):
         return f"{self.title} {self.num}"
+
+    def __hash__(self):
+        return hash(tuple((self.title, self.num)))
 
 
 @define(kw_only=True)
@@ -247,3 +259,6 @@ class BaseSource(HttpMixin):
 
     def __str__(self):
         return f"{urlsplit(self.url).netloc} ({self.title})"
+
+    def __hash__(self):
+        return hash(tuple((self.title, self.url)))
