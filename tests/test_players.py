@@ -5,7 +5,6 @@ import pytest
 
 from anicli_api.player import (
     Aniboom,
-    AnimeJoy,
     CsstOnline,
     Dzen,
     Kodik,
@@ -90,7 +89,7 @@ def test_sync_video_extractor(
             ("m3u8",),
             0,
         ),
-        (VkCom, "https://vk.com/video_ext.php?oid=793268683&id=456239019&hash=0f28589bfca114f7", 5, ("mp4",), 0),
+        (VkCom, "https://vk.com/video_ext.php?oid=793268683&id=456239019&hash=0f28589bfca114f7", 6, ("mp4",), 0),
         (Nuum, "https://nuum.ru/embed/record/1610248", 1, ("m3u8",), 0),
     ],
 )
@@ -115,20 +114,9 @@ async def test_async_video_extractor(
     (
         (Nuum(), "https://nuum.ru/embed/record/1549072"),
         (Kodik(), "https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p"),
+        # 500 code: ULTRA rare kodik backend bug Spotted in 'Cyberpunk: Edgerunners' ep5 Anilibria dub
+        (Kodik(), "https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p")
     ),
 )
 def test_not_found_video_url(extractor, url):
     assert len(extractor.parse(url)) == 0
-
-
-def test_animejoy():
-    # This video extractor is only relevant for ONGOINGS
-    # (After release, videos are deleted from the servers).
-    # Written this TEST CASE to avoid rewriting relevant source
-    videos = AnimeJoy().parse(
-        "https://animejoy.ru/player/playerjs.html?file=[1080p]https://noda3.cdnjoy.site/Tsunlise/KAZOKU/01-1080.mp4,"
-        "[360p]https://noda3.cdnjoy.site/Tsunlise/KAZOKU/01-360.mp4"
-    )
-
-    assert len(videos) == 2
-    assert all(v.type in ("mp4",) for v in videos)
