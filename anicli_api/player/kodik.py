@@ -24,11 +24,71 @@ class Kodik(BaseVideoExtractor):
     DEFAULT_HTTP_CONFIG = {"http2": True}
     API_CONSTS_PAYLOAD = {"bad_user": False, "info": {}, "cdn_is_working": True}
 
+    @kodik_validator
+    def parse(self, url: str, **kwargs) -> List[Video]:
+        response = self.http.get(url)
+        if self._is_unhandled_error_response(response):
+            return []
+        if self._is_not_founded_video(response):
+            return []
+
+        page, payload = self._extract_api_payload(response)
+        netloc = self._get_netloc(url)
+
+        if not self._CACHED_API_PATH:
+            url_js_player = f"https://{netloc}{page['player_js_path']}"
+            response_player = self.http.get(url_js_player)
+            self._update_api_path(response_player)
+
+        url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+        headers = self._create_api_headers(url=url, netloc=netloc)
+        response_api = self.http.post(url_api, data=payload, headers=headers)
+
+        # expired API entry point, update
+        if not response_api.is_success:
+            url_js_player = f"https://{netloc}{page['player_js_path']}"
+            response_player = self.http.get(url_js_player)
+            self._update_api_path(response_player)
+
+            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+            response_api = self.http.post(url_api, data=payload, headers=headers)
+
+        return self._extract(response_api.json()["links"])
+
+    @kodik_validator
+    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+        async with self.a_http as client:
+            response = await client.get(url)
+            if self._is_unhandled_error_response(response):
+                return []
+            if self._is_not_founded_video(response):
+                return []
+            page, payload = self._extract_api_payload(response)
+            netloc = self._get_netloc(url)
+
+            if not self._CACHED_API_PATH:
+                url_js_player = f"https://{netloc}{page['player_js_path']}"
+                response_player = await client.get(url_js_player)
+                self._update_api_path(response_player)
+
+            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+            headers = self._create_api_headers(url=url, netloc=netloc)
+            response_api = await client.post(url_api, data=payload, headers=headers)
+
+            # expired API entry point, update
+            if not response_api.is_success:
+                url_js_player = f"https://{netloc}{page['player_js_path']}"
+                response_player = await client.get(url_js_player)
+                self._update_api_path(response_player)
+
+                url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+                response_api = await client.post(url_api, data=payload, headers=headers)
+
+            return self._extract(response_api.json()["links"])
+
     @staticmethod
     def _decode(url_encoded: str) -> str:
         """decode video url (ROT13 + base64)"""
-
-        # https://stackoverflow.com/a/3270252
         base64_url = codecs.decode(url_encoded, "rot_13")
         if not base64_url.endswith("=="):
             base64_url += "=="
@@ -63,73 +123,29 @@ class Kodik(BaseVideoExtractor):
 
         if bool(re.search(r'<div class="message">Видео не найдено</div>', response.text)):
             msg = (
-                f"Error! Video not found. Is kodik issue, not anicli-api. Response[{response.status_code}] "
-                f"len={len(response.content)}"
+                f"Error! Video not found with {response.status_code} status code. Is kodik issue, not anicli-api."
             )
             warnings.warn(msg, category=RuntimeWarning, stacklevel=1)
             return True
         return False
 
-    @kodik_validator
-    def parse(self, url: str, **kwargs) -> List[Video]:
-        response = self.http.get(url)
-        if self._is_not_founded_video(response):
-            return []
-        page, payload = self._extract_api_payload(response)
-        netloc = self._get_netloc(url)
-
-        if not self._CACHED_API_PATH:
-            url_js_player = f"https://{netloc}{page['player_js_path']}"
-            response_player = self.http.get(url_js_player)
-            self._update_api_path(response_player)
-
-        url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
-        headers = self._create_api_headers(url=url, netloc=netloc)
-        response_api = self.http.post(url_api, data=payload, headers=headers)
-
-        # expired API entry point, update
-        if not response_api.is_success:
-            url_js_player = f"https://{netloc}{page['player_js_path']}"
-            response_player = self.http.get(url_js_player)
-            self._update_api_path(response_player)
-
-            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
-            response_api = self.http.post(url_api, data=payload, headers=headers)
-
-        return self._extract(response_api.json()["links"])
+    @staticmethod
+    def _is_unhandled_error_response(response: Response) -> bool:
+        # ULTRA rare kodik backend bug
+        # Spotted in 'Cyberpunk: Edgerunners' ep5 Anilibria dub
+        # https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p
+        if response.status_code == 500 and 'An unhandled lowlevel error occurred' in response.text:
+            msg = (
+                f"Error! Kodik returns 'An unhandled lowlevel error occurred' with {response.status_code} status code."
+                f" Is kodik issue, not anicli-api."
+            )
+            warnings.warn(msg, category=RuntimeWarning)
+            return True
+        return False
 
     def _update_api_path(self, response_player) -> None:
         path = KodikApiPath(response_player.text).parse()["path"]
         self._CACHED_API_PATH = b64decode(path).decode()
-
-    @kodik_validator
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
-        async with self.a_http as client:
-            response = await client.get(url)
-            if self._is_not_founded_video(response):
-                return []
-            page, payload = self._extract_api_payload(response)
-            netloc = self._get_netloc(url)
-
-            if not self._CACHED_API_PATH:
-                url_js_player = f"https://{netloc}{page['player_js_path']}"
-                response_player = await client.get(url_js_player)
-                self._update_api_path(response_player)
-
-            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
-            headers = self._create_api_headers(url=url, netloc=netloc)
-            response_api = await client.post(url_api, data=payload, headers=headers)
-
-            # expired API entry point, update
-            if not response_api.is_success:
-                url_js_player = f"https://{netloc}{page['player_js_path']}"
-                response_player = await client.get(url_js_player)
-                self._update_api_path(response_player)
-
-                url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
-                response_api = await client.post(url_api, data=payload, headers=headers)
-
-            return self._extract(response_api.json()["links"])
 
     def _extract_api_payload(self, response):
         response = response.text
