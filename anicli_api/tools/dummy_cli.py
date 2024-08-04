@@ -1,5 +1,5 @@
-from typing import TYPE_CHECKING, Any, Sequence, TypeVar
-
+from typing import TYPE_CHECKING, Sequence, TypeVar
+from anicli_api.base import BaseSource
 if TYPE_CHECKING:
     from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
     from anicli_api.player.base import Video
@@ -11,10 +11,11 @@ T = TypeVar("T")
 HELP_ = """h - print help
 s <query> - search by query
 o - get ongoings
+p <url> - extract videos from player url
 """
 
 
-def _pretty_print(items: Sequence[Any]):
+def _pretty_print(items: Sequence[T]):
     for i, item in enumerate(items):
         print(f"[{i + 1}] {item}")
 
@@ -101,10 +102,14 @@ def main(extractor: "BaseExtractor"):
                 continue
             if comma.lower() == "h":
                 print(HELP_)
-            elif comma.lower().startswith("s "):
+            elif comma.startswith("s "):
                 _search_entry(extractor, comma.lstrip("s "))
             elif comma == "o":
                 _ongoing_entry(extractor)
+            elif comma.startswith('p '):
+                url = comma.lstrip('p ')
+                videos = BaseSource(title='_', url=url).get_videos()
+                print(*[f'{v.url} {v.quality} {v.headers}' for v in videos], sep="\n")
         except (KeyboardInterrupt, EOFError):
             exit(0)
 
