@@ -1,7 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Any, Callable, Dict, List, Literal, TypeVar, Union
+from typing import Any, Dict, List, Literal, TypeVar, Union, Callable
 from urllib.parse import urlparse
 
 from attrs import Factory, define
@@ -14,7 +14,7 @@ ALL_QUALITIES = (144, 240, 360, 480, 720, 1080)
 T = TypeVar("T")
 
 
-def url_validator(pattern: Union[str, re.Pattern]) -> Callable[..., Callable[..., T]]:
+def url_validator(pattern: Union[str, re.Pattern]) -> Callable[..., Callable[..., List["Video"]]]:
     """check valid url for extractor"""
     if isinstance(pattern, str):
         pattern = re.compile(pattern)
@@ -30,6 +30,21 @@ def url_validator(pattern: Union[str, re.Pattern]) -> Callable[..., Callable[...
         return wrapper
 
     return decorator
+
+
+def drop_domain_levels(netloc: str, levels_to_keep: int = 2):
+    """Drops domain levels higher than the specified number of levels to keep.
+    """
+    parts = netloc.split('.')
+    if levels_to_keep <= 0:
+        raise ValueError("levels_to_keep must be greater than 0")
+
+    if len(parts) > levels_to_keep:
+        result = '.'.join(parts[-levels_to_keep:])
+    else:
+        result = netloc
+
+    return result
 
 
 @define(eq=False)
@@ -62,7 +77,13 @@ class Video:
         return f"[{self.quality}] {urlparse(self.url).netloc}...{self.type}"
 
     def __hash__(self):
-        return hash((self.type, self.quality, urlparse(self.url).netloc))
+        # aniboom hls links contains several third-level subdomain:
+        # evie.yagami-light.com emily.yagami-light.com amelia.yagami-light.com calcium.yagami-light.com...
+        # drop third-level or GE subdomains for correct compare
+        netloc = drop_domain_levels(
+            urlparse(self.url).netloc
+        )
+        return hash((self.type, self.quality, netloc))
 
     def __eq__(self, other):
         if isinstance(other, Video):
