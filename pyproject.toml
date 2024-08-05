@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "anicli_api"
-version = "0.6.5"
+version = "0.6.6"
 description = "Anime extractors api implementation"
 authors = ["vypivshiy"]
 license = "MIT"
@@ -73,7 +73,8 @@ exclude = [
     "__pycache__",
     "examples",
     "__template__.py",
-    "^anicli_api/source/parsers/[a-z]+_parser.py$"  # auto generated files
+    "^anicli_api/source/parsers/[a-z]+_parser.py$",  # auto generated files
+    "^anicli_api/players/parsers/[a-z]+_parser.py$",  # auto generated files
 ]
 files=["anicli_api/*"]
 
