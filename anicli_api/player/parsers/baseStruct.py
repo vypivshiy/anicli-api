@@ -4,7 +4,8 @@
 
 
 import re
-from typing import Dict, List, Optional, Type, TypedDict, Union
+from typing import List, Union, Type
+
 
 from parsel import Selector, SelectorList
 
