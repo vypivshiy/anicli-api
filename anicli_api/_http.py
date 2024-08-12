@@ -10,7 +10,6 @@ AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114
 
 import asyncio
 from time import sleep
-from typing import Dict
 
 from httpx import (
     AsyncClient,
@@ -21,14 +20,14 @@ from httpx import (
     ReadTimeout,
     Request,
     Response,
-    TimeoutException,
+    TimeoutException, ConnectTimeout,
 )
 
 from anicli_api._logger import logger
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 10.0; Nexus 5 Build/MRA58N) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+                  "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
     # Often, XMLHttpRequest header required
     "x-requested-with": "XMLHttpRequest",
     "Sec-Ch-Ua": '"Not.A/Brand";v="8", "Chromium";v="114"',
@@ -38,7 +37,6 @@ HEADERS = {
     "Sec-Fetch-Mode": "navigate",
     "Sec-Fetch-Site": "same-origin",
 }
-
 
 __all__ = (
     "BaseHTTPSync",
@@ -62,9 +60,9 @@ def have_ddos_protect(response: Response) -> bool:
     - status_code = 403
     """
     return (
-        response.headers.get("Server") in DDOS_SERVICES
-        and response.headers.get("Connection", None) == "close"
-        or response.status_code == 403
+            response.headers.get("Server") in DDOS_SERVICES
+            and response.headers.get("Connection", None) == "close"
+            or response.status_code == 403
     )
 
 
@@ -93,13 +91,12 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 return resp
 
             except (NetworkError, TimeoutException, ReadTimeout) as exc:
+                # HACK: stub response to avoid UnboundLocalError
+                resp = locals().get('resp', '')
+
                 exc_name = exc.__class__.__name__
                 exc_msg = getattr(exc, "message", exc.args[0])
                 sleep(delay)
-                # stub response
-                if exc.__class__ == ReadTimeout:
-                    resp = None
-
                 logger.warning(
                     "[%s] %s: %s, %s -> %s try again", i + 1, exc_name, exc_msg, repr(request), repr(resp)
                 )  # type: ignore
@@ -117,8 +114,8 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
     DELAY_INCREASE_STEP = 0.3  # linear increase connect delay
 
     async def handle_async_request(
-        self,
-        request: Request,
+            self,
+            request: Request,
     ) -> Response:
         delay = self.RETRY_CONNECT_DELAY
         for i in range(self.ATTEMPTS_CONNECT):
@@ -135,12 +132,16 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
 
                 return resp
 
-            except (NetworkError, TimeoutException) as exc:
+            except (ConnectTimeout, NetworkError, TimeoutException) as exc:
+                # HACK: stub response to avoid UnboundLocalError
+                resp = locals().get('resp', '')
+
                 exc_name = exc.__class__.__name__
                 exc_msg = getattr(exc, "message", exc.args[0])
 
                 if isinstance(exc, DDOSServerDetectError) and i == self.ATTEMPTS_CONNECT - 1:
                     raise exc
+
                 logger.warning(
                     "[%s] %s: %s, %s -> %s", i + 1, exc_name, exc_msg, repr(request), repr(resp)
                 )  # type: ignore
