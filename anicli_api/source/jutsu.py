@@ -39,17 +39,11 @@ class Extractor(BaseExtractor):
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.http.post(
-            f"{self.BASE_URL}/anime",
-            data={"ajax_load": "yes", "start_from_page": 1},
-        )
+        resp = self.http.get(f"{self.BASE_URL}/anime/ongoing/")
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.http_async.post(
-            f"{self.BASE_URL}/anime",
-            data={"ajax_load": "yes", "start_from_page": 1},
-        )
+        resp = await self.http_async.post(f"{self.BASE_URL}/anime/ongoing/")
         return self._extract_ongoing(resp.text)
 
 
