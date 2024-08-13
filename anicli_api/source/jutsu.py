@@ -146,9 +146,13 @@ class Source(BaseSource):
 
     async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
         return [
-            Video(**kw, headers={"User-Agent": self.http_async.headers["user-agent"]}, type="mp4")
-            for kw in self._source
-            if kw["url"]
+            Video(
+                url=url,
+                quality=int(quality),  # type: ignore
+                headers={"User-Agent": self.http_async.headers["user-agent"]},
+                type="mp4",
+            )
+            for quality, url in self._source.items()
         ]
 
 
