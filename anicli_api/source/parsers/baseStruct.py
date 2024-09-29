@@ -63,20 +63,20 @@ class BaseParser:
         return el.getall()
 
     @staticmethod
-    def _attr(el, name) -> str:
+    def _attr(el, name: str) -> str:
         return el.attrib.get(name)
 
     @staticmethod
-    def _attr_all(el, name) -> list[str]:
+    def _attr_all(el, name: str) -> List[str]:
         return el.attrib.get(name)
 
     @staticmethod
-    def _assert_css(item: Selector, query, msg):
+    def _assert_css(item: Selector, query: str, msg: str):
         assert item.css(query), msg
         return item
 
     @staticmethod
-    def _assert_xpath(item: Selector, query, msg):
+    def _assert_xpath(item: Selector, query, msg: str):
         assert item.xpath(query), msg
         return item
 
@@ -97,7 +97,7 @@ class BaseParser:
         return s.replace(old, new)
 
     @staticmethod
-    def _str_split(s, sep) -> list[str]:
+    def _str_split(s, sep) -> List[str]:
         return s.split(sep)
 
     @staticmethod
@@ -109,7 +109,7 @@ class BaseParser:
         return re.search(pattern, s)[group]  # type: ignore
 
     @staticmethod
-    def _re_match_all(s, pattern) -> list[str]:
+    def _re_match_all(s, pattern) -> List[str]:
         return re.findall(pattern, s)
 
     @staticmethod
