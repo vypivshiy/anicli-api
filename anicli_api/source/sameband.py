@@ -101,7 +101,7 @@ class Anime(BaseAnime):
                     {
                         "url": "https://sameband.studio" + re.sub(r"^\[\d+p\]", "", u),
                         # Video object quality
-                        "quality": re.match(r"^\[(\d+)p\]", u)[1],  # type: ignore
+                        "quality": int(re.match(r"^\[(\d+)p\]", u)[1]),  # type: ignore
                         "type": "m3u8",
                     }
                     for u in item["file"].split(",")
