@@ -32,7 +32,7 @@ class OngoingPage(BaseParser):
     """
         Get all available ongoings from the main page
 
-        GET https://animego.org
+        GET https://animego.me
 
 
     [
@@ -72,7 +72,7 @@ class OngoingPage(BaseParser):
         var = self._attr(el, "onclick")
         var_1 = self._str_ltrim(var, "location.href=")
         var_2 = self._str_trim(var_1, "'")
-        var_3 = self._str_format(var_2, "https://animego.org{}")
+        var_3 = self._str_format(var_2, "https://animego.me{}")
         return var_3
 
     def _parse_title(self, el):
@@ -107,12 +107,12 @@ class SearchPage(BaseParser):
 
         USAGE:
 
-            GET https://animego.org/search/anime
+            GET https://animego.me/search/anime
             q={QUERY}
 
         EXAMPLE:
 
-            GET https://animego.org/search/anime?q=LAIN
+            GET https://animego.me/search/anime?q=LAIN
 
 
     [
@@ -169,11 +169,11 @@ class AnimePage(BaseParser):
 
         USAGE:
 
-            GET https://animego.org/anime/<ANIME_PATH>
+            GET https://animego.me/anime/<ANIME_PATH>
 
         EXAMPLE:
 
-            GET https://animego.org/anime/eksperimenty-leyn-1114
+            GET https://animego.me/anime/eksperimenty-leyn-1114
 
 
     {
@@ -314,13 +314,13 @@ class EpisodePage(BaseParser):
 
         Prepare:
           1. get id from Anime object
-          2. GET 'https://animego.org/anime/{Anime.id}/player?_allow=true'
+          2. GET 'https://animego.me/anime/{Anime.id}/player?_allow=true'
           3. extract html from json by ['content'] key
           4. OPTIONAL: unescape HTML
 
         EXAMPLE:
 
-            GET https://animego.org/anime/anime/1114//player?_allow=true
+            GET https://animego.me/anime/anime/1114//player?_allow=true
 
 
     {
@@ -452,7 +452,7 @@ class SourcePage(BaseParser):
 
           2.
 
-          GET https://animego.org/anime/series
+          GET https://animego.me/anime/series
           dubbing=2&provider=24&episode={Episode.num}id={Episode.id}
 
           3. extract html from json by ["content"] key
@@ -461,7 +461,7 @@ class SourcePage(BaseParser):
 
         EXAMPLE:
 
-            GET https://animego.org/anime/series?dubbing=2&provider=24&episode=2&id=15837
+            GET https://animego.me/anime/series?dubbing=2&provider=24&episode=2&id=15837
 
 
     {

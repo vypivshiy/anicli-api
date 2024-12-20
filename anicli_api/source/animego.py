@@ -13,7 +13,7 @@ _logger = logging.getLogger("anicli-api")  # type: ignore
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://animego.org"
+    BASE_URL = "https://animego.me"
 
     def _extract_search(self, resp: str):
         return [Search(**d, **self._kwargs_http) for d in SearchPage(resp).parse()]
@@ -68,7 +68,7 @@ class Search(BaseSearch):
     @staticmethod
     def _is_valid_page(resp: Response):
         # RKN blocks issues eg:
-        # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
+        # https://animego.me/anime/ya-predpochitayu-zlodeyku-2413
         # but API requests MAYBE still work.
         if resp.is_success:
             return True
@@ -107,7 +107,7 @@ class Ongoing(BaseOngoing):
     @staticmethod
     def _is_valid_page(resp: Response):
         # RKN blocks issues eg:
-        # https://animego.org/anime/ya-predpochitayu-zlodeyku-2413
+        # https://animego.me/anime/ya-predpochitayu-zlodeyku-2413
         # but API requests MAYBE still work.
         if resp.is_success:
             return True
@@ -159,7 +159,7 @@ class Anime(BaseAnime):
         sel = Selector(response)
         # RKN issue: maybe title not available in your country
         # eg:
-        # https://animego.org/anime/vtorzhenie-gigantov-2-17
+        # https://animego.me/anime/vtorzhenie-gigantov-2-17
         # this title API request don't work in RU ip
         # TODO: drop selector, rewrite in regex
         if sel.css("div.player-blocked").get():
@@ -168,11 +168,11 @@ class Anime(BaseAnime):
         return True
 
     def get_episodes(self):
-        resp = self.http.get(f"https://animego.org/anime/{self.id}/player?_allow=true").json()["content"]
+        resp = self.http.get(f"https://animego.me/anime/{self.id}/player?_allow=true").json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
     async def a_get_episodes(self):
-        resp = await self.http_async.get(f"https://animego.org/anime/{self.id}/player?_allow=true")
+        resp = await self.http_async.get(f"https://animego.me/anime/{self.id}/player?_allow=true")
         resp = resp.json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
@@ -192,7 +192,7 @@ class Episode(BaseEpisode):
 
     def get_sources(self):
         resp = self.http.get(
-            "https://animego.org/anime/series",
+            "https://animego.me/anime/series",
             params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
         ).json()["content"]
         return self._extract(resp)
@@ -200,7 +200,7 @@ class Episode(BaseEpisode):
     async def a_get_sources(self):
         resp = (
             await self.http_async.get(
-                "https://animego.org/anime/series",
+                "https://animego.me/anime/series",
                 params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
             )
         ).json()["content"]
