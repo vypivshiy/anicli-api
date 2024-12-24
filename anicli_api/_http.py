@@ -75,8 +75,8 @@ class DDOSServerDetectError(NetworkError):
 class HTTPRetryConnectSyncTransport(HTTPTransport):
     """Handle attempts connects with delay"""
 
-    ATTEMPTS_CONNECT = 5
-    RETRY_CONNECT_DELAY = 0.8
+    ATTEMPTS_CONNECT = 10
+    RETRY_CONNECT_DELAY = 1.2
     DELAY_INCREASE_STEP = 0.3  # linear increase connect delay
 
     def handle_request(self, request: Request) -> Response:
@@ -109,8 +109,8 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
 class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
     """Handle attempts connects with delay"""
 
-    ATTEMPTS_CONNECT = 5
-    RETRY_CONNECT_DELAY = 0.8
+    ATTEMPTS_CONNECT = 10
+    RETRY_CONNECT_DELAY = 1.2
     DELAY_INCREASE_STEP = 0.3  # linear increase connect delay
 
     async def handle_async_request(
