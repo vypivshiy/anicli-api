@@ -78,10 +78,6 @@ def decode(x):
         return x
 
 
-def exist(x):
-    return x is not None and x != "undefined"
-
-
 class Salt:
     def __init__(self, key_str=_SALT_ABC_STRING):
         self._keyStr = key_str
