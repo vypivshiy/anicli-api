@@ -221,6 +221,7 @@ class Episode(BaseEpisode):
     _thumbnails: str
     embed: str
     id: str
+    vars: Dict[str, Any]
 
     def get_sources(self):
         return [Source(title="Dreamcast", url=self._file, **self._kwargs_http)]
