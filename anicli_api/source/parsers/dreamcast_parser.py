@@ -20,6 +20,7 @@ from __future__ import annotations
 import re
 from typing import TypedDict, Union, Optional
 from contextlib import suppress
+
 from parsel import Selector, SelectorList
 
 T_AnimePage = TypedDict(
@@ -52,25 +53,25 @@ class AnimePage:
         "player_js_url": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css("h3")
-        value2 = value1.css("::text").get()
+        value2 = "".join(value1.css("::text").getall())
         return value2
 
     def _parse_description(self, value: Selector) -> Optional[str]:
         value1 = value
         with suppress(Exception):
-            value1 = value.css(".postDesc")
-            value2 = value1.css("::text").get()
-            return value2
+            value2 = value1.css(".postDesc")
+            value3 = "".join(value2.css("::text").getall())
+            return value3
         return None
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".details_poster img")
-        value2 = value1.css("::attr(src)").get()
+        value2 = value1.attrib["src"]
         value3 = "https:{}".format(value2) if value2 else value2
         return value3
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 import re
 from typing import TypedDict, Union
+
 from parsel import Selector, SelectorList
 
 T_AniboomPage = TypedDict("T_AniboomPage", {"data_parameters": str, "hls": str, "dash": str})
@@ -55,19 +56,19 @@ class AniboomPage:
         "dash": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_data_parameters(self, value: Selector) -> str:
         value1 = value.css("#video")
-        value2 = value1.css("::attr(data-parameters)").get()
+        value2 = value1.attrib["data-parameters"]
         value3 = value2.replace("\\", "")
         value4 = value3.replace("&quot;", '"')
         return value4
 
     def _parse_hls(self, value: Selector) -> str:
         value1 = value.css("#video")
-        value2 = value1.css("::attr(data-parameters)").get()
+        value2 = value1.attrib["data-parameters"]
         value3 = value2.replace("\\", "")
         value4 = value3.replace("&quot;", '"')
         value5 = re.search('"hls":"{"src":"(https?.*?\\.m3u8)"', value4)[1]
@@ -75,7 +76,7 @@ class AniboomPage:
 
     def _parse_dash(self, value: Selector) -> str:
         value1 = value.css("#video")
-        value2 = value1.css("::attr(data-parameters)").get()
+        value2 = value1.attrib["data-parameters"]
         value3 = value2.replace("\\", "")
         value4 = value3.replace("&quot;", '"')
         value5 = re.search('"dash":"{"src":"(https?.*?\\.(?:mpd|m3u8))"', value4)[1]

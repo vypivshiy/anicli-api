@@ -3,11 +3,15 @@ from __future__ import annotations
 import re
 from typing import List, Dict, TypedDict, Union, Optional
 from contextlib import suppress
+
 from parsel import Selector, SelectorList
 
-T_OngoingPage = TypedDict("T_OngoingPage", {"url": str, "title": str, "thumbnail": str, "counts": str})
-T_SearchPage = TypedDict("T_SearchPage", {"url": str, "title": str, "thumbnail": str, "counts": str})
-T_EpisodesView = TypedDict("T_EpisodesView", {"title": str, "url": str})
+T_OngoingPage_ITEM = TypedDict("T_OngoingPage_ITEM", {"url": str, "title": str, "thumbnail": str, "counts": str})
+T_OngoingPage = List[T_OngoingPage_ITEM]
+T_SearchPage_ITEM = TypedDict("T_SearchPage_ITEM", {"url": str, "title": str, "thumbnail": str, "counts": str})
+T_SearchPage = List[T_SearchPage_ITEM]
+T_EpisodesView_ITEM = TypedDict("T_EpisodesView_ITEM", {"title": str, "url": str})
+T_EpisodesView = List[T_EpisodesView_ITEM]
 T_AnimePage = TypedDict("T_AnimePage", {"title": str, "description": str, "thumbnail": str, "episodes": T_EpisodesView})
 T_SourceView = Dict[str, Optional[str]]
 T_SourcePage = TypedDict("T_SourcePage", {"videos": T_SourceView})
@@ -31,7 +35,7 @@ class OngoingPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _split_doc(self, value: Selector) -> SelectorList:
@@ -40,18 +44,18 @@ class OngoingPage:
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.css("a")
-        value2 = value1.css("::attr(href)").get()
+        value2 = value1.attrib["href"]
         value3 = "https://jut.su{}".format(value2) if value2 else value2
         return value3
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".aaname")
-        value2 = value1.css("::text").get()
+        value2 = "".join(value1.css("::text").getall())
         return value2
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".all_anime_image")
-        value2 = value1.css("::attr(style)").get()
+        value2 = value1.attrib["style"]
         value3 = re.search("'(https?://.*?)'", value2)[1]
         return value3
 
@@ -62,7 +66,7 @@ class OngoingPage:
         value4 = " ".join(value3)
         return value4
 
-    def parse(self) -> List[T_OngoingPage]:
+    def parse(self) -> T_OngoingPage:
         return [
             {
                 "url": self._parse_url(e),
@@ -94,7 +98,7 @@ class SearchPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _split_doc(self, value: Selector) -> SelectorList:
@@ -103,18 +107,18 @@ class SearchPage:
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.css("a")
-        value2 = value1.css("::attr(href)").get()
+        value2 = value1.attrib["href"]
         value3 = "https://jut.su{}".format(value2) if value2 else value2
         return value3
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".aaname")
-        value2 = value1.css("::text").get()
+        value2 = "".join(value1.css("::text").getall())
         return value2
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".all_anime_image")
-        value2 = value1.css("::attr(style)").get()
+        value2 = value1.attrib["style"]
         value3 = re.search("'(https?://.*?)'", value2)[1]
         return value3
 
@@ -125,7 +129,7 @@ class SearchPage:
         value4 = " ".join(value3)
         return value4
 
-    def parse(self) -> List[T_SearchPage]:
+    def parse(self) -> T_SearchPage:
         return [
             {
                 "url": self._parse_url(e),
@@ -148,7 +152,7 @@ class EpisodesView:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _split_doc(self, value: Selector) -> SelectorList:
@@ -156,16 +160,16 @@ class EpisodesView:
         return value1
 
     def _parse_title(self, value: Selector) -> str:
-        value1 = value.css("::text").get()
+        value1 = "".join(value.css("::text").getall())
         value2 = value1.strip(" ")
         return value2
 
     def _parse_url(self, value: Selector) -> str:
-        value1 = value.css("::attr(href)").get()
+        value1 = value.attrib["href"]
         value2 = "https://jut.su{}".format(value1) if value1 else value1
         return value2
 
-    def parse(self) -> List[T_EpisodesView]:
+    def parse(self) -> T_EpisodesView:
         return [{"title": self._parse_title(e), "url": self._parse_url(e)} for e in self._split_doc(self._doc)]
 
 
@@ -190,12 +194,12 @@ class AnimePage:
         ]
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".anime_padding_for_title")
-        value2 = value1.css("::text").get()
+        value2 = "".join(value1.css("::text").getall())
         value3 = re.search("Смотреть (.*?) все", value2)[1]
         return value3
 
@@ -207,11 +211,11 @@ class AnimePage:
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".all_anime_title")
-        value2 = value1.css("::attr(style)").get()
+        value2 = value1.attrib["style"]
         value3 = re.search("'(https?://.*?)'", value2)[1]
         return value3
 
-    def _parse_episodes(self, value: Selector) -> List[T_EpisodesView]:
+    def _parse_episodes(self, value: Selector) -> T_EpisodesView:
         value1 = EpisodesView(value).parse()
         return value1
 
@@ -231,25 +235,25 @@ class SourceView:
         "QUALITY": "URL"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _split_doc(self, value: Selector) -> SelectorList:
         value1 = value.css("#my-player > source")
         return value1
 
-    def _parse_key(self, value: Selector) -> Optional[str]:
+    def _parse_key(self, value: Selector) -> str:
         value1 = value
         with suppress(Exception):
-            value1 = value.css("::attr(res)").get()
-            return value1
+            value2 = value1.attrib["res"]
+            return value2
         return "null"
 
     def _parse_value(self, value: Selector) -> Optional[str]:
         value1 = value
         with suppress(Exception):
-            value1 = value.css("::attr(src)").get()
-            return value1
+            value2 = value1.attrib["src"]
+            return value2
         return None
 
     def parse(self) -> T_SourceView:
@@ -294,7 +298,7 @@ class SourcePage:
         }
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_videos(self, value: Selector) -> T_SourceView:

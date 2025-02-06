@@ -2,10 +2,11 @@
 from __future__ import annotations
 import re
 from typing import List, TypedDict, Union
+
 from parsel import Selector, SelectorList
 
-T_MovieTranslationsPanel = TypedDict(
-    "T_MovieTranslationsPanel",
+T_MovieTranslationsPanel_ITEM = TypedDict(
+    "T_MovieTranslationsPanel_ITEM",
     {
         "name": str,
         "value": str,
@@ -16,6 +17,7 @@ T_MovieTranslationsPanel = TypedDict(
         "data_title": str,
     },
 )
+T_MovieTranslationsPanel = List[T_MovieTranslationsPanel_ITEM]
 T_KodikAPIPayload = TypedDict(
     "T_KodikAPIPayload",
     {
@@ -58,7 +60,7 @@ class MovieTranslationsPanel:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _split_doc(self, value: Selector) -> SelectorList:
@@ -67,35 +69,35 @@ class MovieTranslationsPanel:
         return value2
 
     def _parse_name(self, value: Selector) -> str:
-        value1 = value.css("::text").get()
+        value1 = "".join(value.css("::text").getall())
         value2 = value1.strip(" ")
         return value2
 
     def _parse_value(self, value: Selector) -> str:
-        value1 = value.css("::attr(value)").get()
+        value1 = value.attrib["value"]
         return value1
 
     def _parse_data_id(self, value: Selector) -> str:
-        value1 = value.css("::attr(data-id)").get()
+        value1 = value.attrib["data-id"]
         return value1
 
     def _parse_data_translation_type(self, value: Selector) -> str:
-        value1 = value.css("::attr(data-translation-type)").get()
+        value1 = value.attrib["data-translation-type"]
         return value1
 
     def _parse_data_media_hash(self, value: Selector) -> str:
-        value1 = value.css("::attr(data-media-hash)").get()
+        value1 = value.attrib["data-media-hash"]
         return value1
 
     def _parse_data_media_type(self, value: Selector) -> str:
-        value1 = value.css("::attr(data-media-type)").get()
+        value1 = value.attrib["data-media-type"]
         return value1
 
     def _parse_data_title(self, value: Selector) -> str:
-        value1 = value.css("::attr(data-title)").get()
+        value1 = value.attrib["data-title"]
         return value1
 
-    def parse(self) -> List[T_MovieTranslationsPanel]:
+    def parse(self) -> T_MovieTranslationsPanel:
         return [
             {
                 "name": self._parse_name(e),
@@ -125,7 +127,7 @@ class KodikAPIPayload:
         "id": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_d(self, value: Selector) -> str:
@@ -243,7 +245,7 @@ class KodikPage:
         ]
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_url_params(self, value: Selector) -> str:
@@ -260,7 +262,7 @@ class KodikPage:
         value2 = re.search('<script\\s*type="text/javascript"\\s*src="(/assets/js/app\\.player_single.*?)">', value1)[1]
         return value2
 
-    def _parse_movie_translations(self, value: Selector) -> List[T_MovieTranslationsPanel]:
+    def _parse_movie_translations(self, value: Selector) -> T_MovieTranslationsPanel:
         value1 = MovieTranslationsPanel(value).parse()
         return value1
 
@@ -280,7 +282,7 @@ class KodikApiPath:
         "path": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]):
+    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_path(self, value: Selector) -> str:
