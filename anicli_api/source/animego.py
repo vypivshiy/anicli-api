@@ -43,11 +43,11 @@ class Extractor(BaseExtractor):
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.http.get(self.BASE_URL)
+        resp = self.http.get(self.BASE_URL + '/index')
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.http_async.get(self.BASE_URL)
+        resp = await self.http_async.get(self.BASE_URL + '/index')
         return self._extract_ongoing(resp.text)
 
 
