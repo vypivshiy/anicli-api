@@ -14,7 +14,7 @@ from anicli_api.source.parsers.animego_pro_parser import (
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://animego.pro/"
+    BASE_URL = "https://v1.anmgo.org/"
 
     def _extract_search(self, resp: str) -> List["Search"]:
         return [Search(**kw, **self._kwargs_http) for kw in SearchPage(resp).parse()]
@@ -106,7 +106,7 @@ class Anime(BaseAnime):
 
     def get_episodes(self):
         resp = self.http.post(
-            "https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax",
+            "https://v1.anmgo.org/engine/ajax/controller.php?mod=kodik_playlist_ajax",
             data={"news_id": self.news_id, "action": "load_player"},
         )
         episodes = EpisodesPage(resp.text).parse()
@@ -118,7 +118,7 @@ class Anime(BaseAnime):
 
     async def a_get_episodes(self):
         resp = await self.http_async.post(
-            "https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax",
+            "https://v1.anmgo.org/engine/ajax/controller.php?mod=kodik_playlist_ajax",
             data={"news_id": self.news_id, "action": "load_player"},
         )
         episodes = EpisodesPage(resp.text).parse()
