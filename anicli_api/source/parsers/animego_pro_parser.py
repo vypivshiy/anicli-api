@@ -37,7 +37,7 @@ T_SourceKodikSerialPage = TypedDict(
 class OngoingPage:
     """Get all available ongoings from main page
 
-        GET https://animego.pro/ongoing
+        GET https://v1.anmgo.org/ongoing
 
 
     [
@@ -70,7 +70,7 @@ class OngoingPage:
         value1 = value.css(".card img")
         value2 = value1.attrib["src"]
         value3 = value2.lstrip("https://animego-online.org")
-        value4 = "https://animego.pro{}".format(value3) if value3 else value3
+        value4 = "https://v1.anmgo.org{}".format(value3) if value3 else value3
         return value4
 
     def parse(self) -> T_OngoingPage:
@@ -83,7 +83,7 @@ class OngoingPage:
 class SearchPage:
     """Get all search results by query
 
-        POST https://animego.pro
+        POST https://v1.anmgo.org
         do=search&subaction=search&story=QUERY
 
 
@@ -117,7 +117,7 @@ class SearchPage:
         value1 = value.css(".card img")
         value2 = value1.attrib["src"]
         value3 = value2.lstrip("https://animego-online.org")
-        value4 = "https://animego.pro{}".format(value3) if value3 else value3
+        value4 = "https://v1.anmgo.org{}".format(value3) if value3 else value3
         return value4
 
     def parse(self) -> T_SearchPage:
@@ -130,11 +130,11 @@ class SearchPage:
 class AnimePage:
     """Anime page information. anime path contains in SearchView.url or Ongoing.url
 
-        GET https://animego.pro/<ANIME_PATH>
+        GET https://v1.anmgo.org/<ANIME_PATH>
 
         EXAMPLE:
 
-            GET https://animego.pro/3374-serial-experiments-lain.html
+            GET https://v1.anmgo.org/6155-serial-experiments-lain.html
 
 
     {
@@ -162,7 +162,7 @@ class AnimePage:
         value1 = value.css(".pmovie__poster > img")
         value2 = value1.attrib["src"]
         value3 = value2.lstrip("https://animego-online.org")
-        value4 = "https://animego.pro{}".format(value3) if value3 else value3
+        value4 = "https://v1.anmgo.org{}".format(value3) if value3 else value3
         return value4
 
     def _parse_news_id(self, value: Selector) -> str:
@@ -211,15 +211,15 @@ class EpisodesPage:
 
         Prepare:
           1. get news_id from Anime object
-          2. POST 'https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax'
+          2. POST 'https://v1.anmgo.org/engine/ajax/controller.php?mod=kodik_playlist_ajax'
             news_id=<AnimeView.news_id>&action=load_player
           3. send request to /serial/ link, DROP param only_translations
         EXAMPLE:
 
             # SOURCE:
-                https://animego.pro/6240-loop-7-kaime-no-akuyaku-reijou-wa-moto-tekikoku-de-jiyuukimama-na-hanayome-seikatsu-o-mankitsu-suru.html
+                https://v1.anmgo.org/6240-loop-7-kaime-no-akuyaku-reijou-wa-moto-tekikoku-de-jiyuukimama-na-hanayome-seikatsu-o-mankitsu-suru.html
 
-            POST https://animego.pro/engine/ajax/controller.php?mod=kodik_playlist_ajax
+            POST https://v1.anmgo.org/engine/ajax/controller.php?mod=kodik_playlist_ajax
             news_id=6240&action=load_player
 
 
