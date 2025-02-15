@@ -1,6 +1,4 @@
-import asyncio
 import codecs
-import json
 import re
 import warnings
 from base64 import b64decode
@@ -10,10 +8,11 @@ from urllib.parse import urlsplit
 from httpx import Response
 
 from .base import BaseVideoExtractor, Video, url_validator
-from .parsers.kodik_parser import KodikApiPath, KodikPage
+from .parsers.kodik_parser import MainKodikMin
+from .parsers.kodik_parser import MainKodikAPIPath
 
 __all__ = ["Kodik"]
-_URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:seria|video|film)/\d+/\w+/\d{3,4}p")
+_URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:serial?|video|film)/\d+/\w+/\d{3,4}p")
 kodik_validator = url_validator(_URL_EQ)
 
 
@@ -122,9 +121,7 @@ class Kodik(BaseVideoExtractor):
         # Violet Evergarden: Kitto "Ai" wo Shiru Hi ga Kuru no Darou
 
         if bool(re.search(r'<div class="message">Видео не найдено</div>', response.text)):
-            msg = (
-                f"Error! Video not found with {response.status_code} status code. Is kodik issue, not anicli-api."
-            )
+            msg = f"Error! Video not found with {response.status_code} status code. Is kodik issue, not anicli-api."
             warnings.warn(msg, category=RuntimeWarning, stacklevel=1)
             return True
         return False
@@ -134,7 +131,7 @@ class Kodik(BaseVideoExtractor):
         # ULTRA rare kodik backend bug
         # Spotted in 'Cyberpunk: Edgerunners' ep5 Anilibria dub
         # https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p
-        if response.status_code == 500 and 'An unhandled lowlevel error occurred' in response.text:
+        if response.status_code == 500 and "An unhandled lowlevel error occurred" in response.text:
             msg = (
                 f"Error! Kodik returns 'An unhandled lowlevel error occurred' with {response.status_code} status code."
                 f" Is kodik issue, not anicli-api."
@@ -144,14 +141,14 @@ class Kodik(BaseVideoExtractor):
         return False
 
     def _update_api_path(self, response_player) -> None:
-        path = KodikApiPath(response_player.text).parse()["path"]
+        path = MainKodikAPIPath(response_player.text).parse()["api_path"]
         self._CACHED_API_PATH = b64decode(path).decode()
 
     def _extract_api_payload(self, response):
         response = response.text
-        page = KodikPage(response).parse()
-        payload: Dict[str, Any] = page["api_payload"]
-        payload.update(self.API_CONSTS_PAYLOAD)
+        page = MainKodikMin(response).parse()
+        payload = page["api_payload"]
+        payload.update(self.API_CONSTS_PAYLOAD) # type: ignore
         return page, payload
 
     def _extract(self, response_api: Dict) -> List[Video]:
