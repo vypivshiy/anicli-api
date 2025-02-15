@@ -78,7 +78,7 @@ T_SourcePage = TypedDict(
 class OngoingPage:
     """Get all available ongoings from the main page
 
-    GET https://animego.ong
+    GET https://animego.me
 
 
     [
@@ -103,7 +103,7 @@ class OngoingPage:
         value1 = value.attrib["onclick"]
         value2 = value1.lstrip("location.href=")
         value3 = value2.strip("'")
-        value4 = "https://animego.ong{}".format(value3) if value3 else value3
+        value4 = "https://animego.me{}".format(value3) if value3 else value3
         return value4
 
     def _parse_title(self, value: Selector) -> str:
@@ -149,12 +149,12 @@ class SearchPage:
 
     USAGE:
 
-        GET https://animego.ong/search/anime
+        GET https://animego.me/search/anime
         q={QUERY}
 
     EXAMPLE:
 
-        GET https://animego.ong/search/anime?q=LAIN
+        GET https://animego.me/search/anime?q=LAIN
 
 
     [
@@ -203,11 +203,11 @@ class AnimePage:
 
     USAGE:
 
-        GET https://animego.ong/anime/<ANIME_PATH>
+        GET https://animego.me/anime/<ANIME_PATH>
 
     EXAMPLE:
 
-        GET https://animego.ong/anime/eksperimenty-leyn-1114
+        GET https://animego.me/anime/eksperimenty-leyn-1114
 
 
     {
@@ -334,13 +334,13 @@ class EpisodePage:
 
     Prepare:
       1. get id from Anime object
-      2. GET 'https://animego.ong/anime/{Anime.id}/player?_allow=true'
+      2. GET 'https://animego.me/anime/{Anime.id}/player?_allow=true'
       3. extract html from json by ['content'] key
       4. OPTIONAL: unescape HTML
 
     EXAMPLE:
 
-        GET https://animego.ong/anime/anime/1114//player?_allow=true
+        GET https://animego.me/anime/anime/1114//player?_allow=true
 
 
     {
@@ -459,7 +459,7 @@ class SourcePage:
 
       2.
 
-      GET https://animego.ong/anime/series
+      GET https://animego.me/anime/series
       dubbing=2&provider=24&episode={Episode.num}id={Episode.id}
 
       3. extract html from json by ["content"] key
@@ -468,7 +468,7 @@ class SourcePage:
 
     EXAMPLE:
 
-        GET https://animego.ong/anime/series?dubbing=2&provider=24&episode=2&id=15837
+        GET https://animego.me/anime/series?dubbing=2&provider=24&episode=2&id=15837
 
 
     {
