@@ -33,14 +33,13 @@ def url_validator(pattern: Union[str, re.Pattern]) -> Callable[..., Callable[...
 
 
 def drop_domain_levels(netloc: str, levels_to_keep: int = 2):
-    """Drops domain levels higher than the specified number of levels to keep.
-    """
-    parts = netloc.split('.')
+    """Drops domain levels higher than the specified number of levels to keep."""
+    parts = netloc.split(".")
     if levels_to_keep <= 0:
         raise ValueError("levels_to_keep must be greater than 0")
 
     if len(parts) > levels_to_keep:
-        result = '.'.join(parts[-levels_to_keep:])
+        result = ".".join(parts[-levels_to_keep:])
     else:
         result = netloc
 
@@ -80,9 +79,7 @@ class Video:
         # aniboom hls links contains several third-level subdomain:
         # evie.yagami-light.com emily.yagami-light.com amelia.yagami-light.com calcium.yagami-light.com...
         # drop third-level or GE subdomains for correct compare
-        netloc = drop_domain_levels(
-            urlparse(self.url).netloc
-        )
+        netloc = drop_domain_levels(urlparse(self.url).netloc)
         return hash((self.type, self.quality, netloc))
 
     def __eq__(self, other):

@@ -3,15 +3,41 @@ from __future__ import annotations
 import re
 from typing import List, TypedDict, Union, Optional
 from contextlib import suppress
+import sys
+
+if sys.version_info >= (3, 10):
+    from types import NoneType
+else:
+    NoneType = type(None)
 
 from parsel import Selector, SelectorList
 
-T_OngoingPage_ITEM = TypedDict("T_OngoingPage_ITEM", {"title": str, "thumbnail": str, "alt_title": str, "url": str})
-T_OngoingPage = List[T_OngoingPage_ITEM]
-T_SearchPage_ITEM = TypedDict("T_SearchPage_ITEM", {"title": str, "thumbnail": str, "alt_title": str, "url": str})
-T_SearchPage = List[T_SearchPage_ITEM]
-T_EpisodeView_ITEM = TypedDict("T_EpisodeView_ITEM", {"url": str, "thumbnail": str, "title": str})
-T_EpisodeView = List[T_EpisodeView_ITEM]
+T_OngoingPage = TypedDict(
+    "T_OngoingPage",
+    {
+        "title": str,
+        "thumbnail": str,
+        "alt_title": str,
+        "url": str,
+    },
+)
+T_SearchPage = TypedDict(
+    "T_SearchPage",
+    {
+        "title": str,
+        "thumbnail": str,
+        "alt_title": str,
+        "url": str,
+    },
+)
+T_EpisodeView = TypedDict(
+    "T_EpisodeView",
+    {
+        "url": str,
+        "thumbnail": str,
+        "title": str,
+    },
+)
 T_AnimePage = TypedDict(
     "T_AnimePage",
     {
@@ -19,14 +45,14 @@ T_AnimePage = TypedDict(
         "description": Optional[str],
         "thumbnail": str,
         "video_url": Optional[str],
-        "episodes": T_EpisodeView,
+        "episodes": List[T_EpisodeView],
     },
 )
 
 
 class OngoingPage:
     """
-        GET https://sovetromantica.com/anime
+    GET https://sovetromantica.com/anime
 
 
     [
@@ -67,7 +93,7 @@ class OngoingPage:
         value2 = value1.attrib["href"]
         return value2
 
-    def parse(self) -> T_OngoingPage:
+    def parse(self) -> List[T_OngoingPage]:
         return [
             {
                 "title": self._parse_title(e),
@@ -82,12 +108,12 @@ class OngoingPage:
 class SearchPage:
     """Get all search results by query
 
-        GET https://sovetromantica.com/anime
-        query=<QUERY>
+    GET https://sovetromantica.com/anime
+    query=<QUERY>
 
-        EXAMPLE:
-            GET https://sovetromantica.com/anime
-            query=LAIN
+    EXAMPLE:
+        GET https://sovetromantica.com/anime
+        query=LAIN
 
 
     [
@@ -128,7 +154,7 @@ class SearchPage:
         value2 = value1.attrib["href"]
         return value2
 
-    def parse(self) -> T_SearchPage:
+    def parse(self) -> List[T_SearchPage]:
         return [
             {
                 "title": self._parse_title(e),
@@ -143,12 +169,12 @@ class SearchPage:
 class EpisodeView:
     """WARNING!
 
-        target page maybe does not contain video!
+    target page maybe does not contain video!
 
-        GET https://sovetromantica.com/anime/<ANIME PATH>
+    GET https://sovetromantica.com/anime/<ANIME PATH>
 
-        EXAMPLE:
-            GET https://sovetromantica.com/anime/1459-sousou-no-frieren
+    EXAMPLE:
+        GET https://sovetromantica.com/anime/1459-sousou-no-frieren
 
 
 
@@ -184,7 +210,7 @@ class EpisodeView:
         value2 = value1.attrib["alt"]
         return value2
 
-    def parse(self) -> T_EpisodeView:
+    def parse(self) -> List[T_EpisodeView]:
         return [
             {"url": self._parse_url(e), "thumbnail": self._parse_thumbnail(e), "title": self._parse_title(e)}
             for e in self._split_doc(self._doc)
@@ -194,14 +220,14 @@ class EpisodeView:
 class AnimePage:
     """Anime page information
 
-        GET https://sovetromantica.com/anime/<ANIME PATH>
+    GET https://sovetromantica.com/anime/<ANIME PATH>
 
-        EXAMPLE:
-            GET https://sovetromantica.com/anime/1459-sousou-no-frieren
+    EXAMPLE:
+        GET https://sovetromantica.com/anime/1459-sousou-no-frieren
 
-        ISSUES:
-            - description maybe does not exist and return null (CHECK IT)
-            - video key maybe returns null (not available)
+    ISSUES:
+        - description maybe does not exist and return null (CHECK IT)
+        - video key maybe returns null (not available)
 
 
     {
@@ -249,7 +275,7 @@ class AnimePage:
             return value3
         return None
 
-    def _parse_episodes(self, value: Selector) -> T_EpisodeView:
+    def _parse_episodes(self, value: Selector) -> List[T_EpisodeView]:
         value1 = EpisodeView(value).parse()
         return value1
 

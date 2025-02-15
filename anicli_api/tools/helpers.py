@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from anicli_api.base import Video, BaseEpisode, BaseAnime, BaseSource
 
 
-def get_video_by_quality(videos: List['Video'], quality: int) -> 'Video':
+def get_video_by_quality(videos: List["Video"], quality: int) -> "Video":
     """get video by quality from collection
     if current quality not exist - get closest
 
@@ -18,12 +18,9 @@ def get_video_by_quality(videos: List['Video'], quality: int) -> 'Video':
     >>> get_video_by_quality(ex_videos, 144) # Video('m3u8', quality=480, url=...)
     """
     if not videos:
-        raise TypeError('No videos specified')
+        raise TypeError("No videos specified")
 
-    closest_video = min(
-        videos,
-        key=lambda video: abs(video.quality - quality)
-    )
+    closest_video = min(videos, key=lambda video: abs(video.quality - quality))
 
     return closest_video
 
@@ -33,19 +30,19 @@ def _source_hash(source: "BaseSource") -> int:
     return hash((source.title, urlsplit(source.url).netloc))
 
 
-def title_callback(anime: 'BaseAnime', episode: 'BaseEpisode', source: 'BaseSource') -> str:
+def title_callback(anime: "BaseAnime", episode: "BaseEpisode", source: "BaseSource") -> str:
     """default title callback function"""
-    return f'{episode.num} {episode.title} ({source.title}) - {anime.title}'
+    return f"{episode.num} {episode.title} ({source.title}) - {anime.title}"
 
 
 def video_picker_iterator(
-        *,
-        start_source: 'BaseSource',
-        start_video: 'Video',
-        anime: 'BaseAnime',
-        episodes: List['BaseEpisode'],
-        title_cb: Callable[['BaseAnime', 'BaseEpisode', 'BaseSource'], str] = title_callback,
-) -> Generator[None, None, Tuple['Video', str]]:
+    *,
+    start_source: "BaseSource",
+    start_video: "Video",
+    anime: "BaseAnime",
+    episodes: List["BaseEpisode"],
+    title_cb: Callable[["BaseAnime", "BaseEpisode", "BaseSource"], str] = title_callback,
+) -> Generator[None, None, Tuple["Video", str]]:
     """video picker generator. compare by start_source hash function
 
     useful, for implementation playlists features.
@@ -87,24 +84,24 @@ def video_picker_iterator(
 
 
 async def async_video_picker_iterator(
-        *,
-        anime: 'BaseAnime',
-        episodes: List['BaseEpisode'],
-        start_source: 'BaseSource',
-        start_video: 'Video',
-        title_cb: Callable[['BaseAnime', 'BaseEpisode', 'BaseSource'], str] = title_callback,
-) -> Generator[Tuple['Video', str], None, None]:
+    *,
+    anime: "BaseAnime",
+    episodes: List["BaseEpisode"],
+    start_source: "BaseSource",
+    start_video: "Video",
+    title_cb: Callable[["BaseAnime", "BaseEpisode", "BaseSource"], str] = title_callback,
+) -> Generator[Tuple["Video", str], None, None]:
     """video picker generator. compare by start_source hash function
 
-       useful, for implementation playlists features.
+    useful, for implementation playlists features.
 
-       :param anime: Anime object
-       :param episodes: list of Episode objects
-       :param start_source: start Source for compare next iterations
-       :param start_video: start Video for compare next iterations
-       :param title_cb: callback for generate string title
-       :return: iterator with Video object and title
-       """
+    :param anime: Anime object
+    :param episodes: list of Episode objects
+    :param start_source: start Source for compare next iterations
+    :param start_video: start Video for compare next iterations
+    :param title_cb: callback for generate string title
+    :return: iterator with Video object and title
+    """
     base_source_hash = _source_hash(start_source)
 
     for episode in episodes:

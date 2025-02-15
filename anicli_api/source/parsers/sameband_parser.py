@@ -2,17 +2,47 @@
 from __future__ import annotations
 import re
 from typing import List, TypedDict, Union
+import sys
+
+if sys.version_info >= (3, 10):
+    from types import NoneType
+else:
+    NoneType = type(None)
 
 from parsel import Selector, SelectorList
 
-T_OngoingPage_ITEM = TypedDict("T_OngoingPage_ITEM", {"url": str, "title": str, "thumbnail": str})
-T_OngoingPage = List[T_OngoingPage_ITEM]
-T_SearchPage_ITEM = TypedDict("T_SearchPage_ITEM", {"title": str, "thumbnail": str, "url": str})
-T_SearchPage = List[T_SearchPage_ITEM]
-T_AnimePage = TypedDict(
-    "T_AnimePage", {"title": str, "alt_title": str, "description": str, "thumbnail": str, "player_url": str}
+T_OngoingPage = TypedDict(
+    "T_OngoingPage",
+    {
+        "url": str,
+        "title": str,
+        "thumbnail": str,
+    },
 )
-T_PlaylistURLPage = TypedDict("T_PlaylistURLPage", {"playlist_url": str})
+T_SearchPage = TypedDict(
+    "T_SearchPage",
+    {
+        "title": str,
+        "thumbnail": str,
+        "url": str,
+    },
+)
+T_AnimePage = TypedDict(
+    "T_AnimePage",
+    {
+        "title": str,
+        "alt_title": str,
+        "description": str,
+        "thumbnail": str,
+        "player_url": str,
+    },
+)
+T_PlaylistURLPage = TypedDict(
+    "T_PlaylistURLPage",
+    {
+        "playlist_url": str,
+    },
+)
 
 
 class OngoingPage:
@@ -50,7 +80,7 @@ class OngoingPage:
         value3 = "https://sameband.studio{}".format(value2) if value2 else value2
         return value3
 
-    def parse(self) -> T_OngoingPage:
+    def parse(self) -> List[T_OngoingPage]:
         return [
             {"url": self._parse_url(e), "title": self._parse_title(e), "thumbnail": self._parse_thumbnail(e)}
             for e in self._split_doc(self._doc)
@@ -59,15 +89,15 @@ class OngoingPage:
 
 class SearchPage:
     """
+    POST https://sameband.studio/index.php?do=search
+    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
+
+    NOTE:
+        search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
+
+    EXAMPLE:
         POST https://sameband.studio/index.php?do=search
-        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
-
-        NOTE:
-            search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
-
-        EXAMPLE:
-            POST https://sameband.studio/index.php?do=search
-        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
+    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
 
 
     [
@@ -102,7 +132,7 @@ class SearchPage:
         value2 = value1.attrib["href"]
         return value2
 
-    def parse(self) -> T_SearchPage:
+    def parse(self) -> List[T_SearchPage]:
         return [
             {"title": self._parse_title(e), "thumbnail": self._parse_thumbnail(e), "url": self._parse_url(e)}
             for e in self._split_doc(self._doc)
@@ -111,11 +141,11 @@ class SearchPage:
 
 class AnimePage:
     """
-        GET https://sameband.studio/anime/<ANIME PATH>.html
+    GET https://sameband.studio/anime/<ANIME PATH>.html
 
-        EXAMPLE:
-            # https://sameband.studio/anime/20-госпожа-кагуя-3.html
-            GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
+    EXAMPLE:
+        # https://sameband.studio/anime/20-госпожа-кагуя-3.html
+        GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
 
 
     {
@@ -170,8 +200,8 @@ class AnimePage:
 class PlaylistURLPage:
     """GET https://sameband.studio/pl/a/<PLAYLIST NAME>.html
 
-        EXAMPLE:
-            GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
+    EXAMPLE:
+        GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
 
 
     {

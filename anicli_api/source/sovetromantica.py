@@ -1,5 +1,5 @@
 import warnings
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional
 
 from attrs import define
 
@@ -7,7 +7,7 @@ from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, 
 from anicli_api.source.parsers.sovetromantica_parser import AnimePage, OngoingPage, SearchPage, T_EpisodeView
 
 if TYPE_CHECKING:
-    from httpx import AsyncClient, Client
+    pass
 
 
 class Extractor(BaseExtractor):

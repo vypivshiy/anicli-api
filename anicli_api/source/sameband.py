@@ -52,7 +52,7 @@ class Extractor(BaseExtractor):
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.http_async.get(f'{self.BASE_URL}/novinki')
+        resp = await self.http_async.get(f"{self.BASE_URL}/novinki")
         return self._extract_ongoing(resp.text)
 
 
@@ -72,7 +72,6 @@ class Search(BaseSearch):
 
 @define(kw_only=True)
 class Ongoing(BaseOngoing):
-
     def _extract(self, resp: str) -> "Anime":
         return Anime(**AnimePage(resp).parse(), **self._kwargs_http)
 

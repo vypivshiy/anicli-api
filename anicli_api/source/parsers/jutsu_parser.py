@@ -3,25 +3,63 @@ from __future__ import annotations
 import re
 from typing import List, Dict, TypedDict, Union, Optional
 from contextlib import suppress
+import sys
+
+if sys.version_info >= (3, 10):
+    from types import NoneType
+else:
+    NoneType = type(None)
 
 from parsel import Selector, SelectorList
 
-T_OngoingPage_ITEM = TypedDict("T_OngoingPage_ITEM", {"url": str, "title": str, "thumbnail": str, "counts": str})
-T_OngoingPage = List[T_OngoingPage_ITEM]
-T_SearchPage_ITEM = TypedDict("T_SearchPage_ITEM", {"url": str, "title": str, "thumbnail": str, "counts": str})
-T_SearchPage = List[T_SearchPage_ITEM]
-T_EpisodesView_ITEM = TypedDict("T_EpisodesView_ITEM", {"title": str, "url": str})
-T_EpisodesView = List[T_EpisodesView_ITEM]
-T_AnimePage = TypedDict("T_AnimePage", {"title": str, "description": str, "thumbnail": str, "episodes": T_EpisodesView})
+T_OngoingPage = TypedDict(
+    "T_OngoingPage",
+    {
+        "url": str,
+        "title": str,
+        "thumbnail": str,
+        "counts": str,
+    },
+)
+T_SearchPage = TypedDict(
+    "T_SearchPage",
+    {
+        "url": str,
+        "title": str,
+        "thumbnail": str,
+        "counts": str,
+    },
+)
+T_EpisodesView = TypedDict(
+    "T_EpisodesView",
+    {
+        "title": str,
+        "url": str,
+    },
+)
+T_AnimePage = TypedDict(
+    "T_AnimePage",
+    {
+        "title": str,
+        "description": str,
+        "thumbnail": str,
+        "episodes": List[T_EpisodesView],
+    },
+)
 T_SourceView = Dict[str, Optional[str]]
-T_SourcePage = TypedDict("T_SourcePage", {"videos": T_SourceView})
+T_SourcePage = TypedDict(
+    "T_SourcePage",
+    {
+        "videos": T_SourceView,
+    },
+)
 
 
 class OngoingPage:
     """usage:
 
-        POST https://jut.su/anime/ongoing/
-        ajax_load=yes&start_from_page=1&show_search=&anime_of_user=
+    POST https://jut.su/anime/ongoing/
+    ajax_load=yes&start_from_page=1&show_search=&anime_of_user=
 
 
 
@@ -66,7 +104,7 @@ class OngoingPage:
         value4 = " ".join(value3)
         return value4
 
-    def parse(self) -> T_OngoingPage:
+    def parse(self) -> List[T_OngoingPage]:
         return [
             {
                 "url": self._parse_url(e),
@@ -80,12 +118,12 @@ class OngoingPage:
 
 class SearchPage:
     """
-        POST https://jut.su/anime/
-        ajax_load=yes&start_from_page=1&show_search=<QUERY>&anime_of_user=
+    POST https://jut.su/anime/
+    ajax_load=yes&start_from_page=1&show_search=<QUERY>&anime_of_user=
 
-        EXAMPLE:
-            POST https://jut.su/anime/
-            ajax_load=yes&start_from_page=1&show_search=LA&anime_of_user=
+    EXAMPLE:
+        POST https://jut.su/anime/
+        ajax_load=yes&start_from_page=1&show_search=LA&anime_of_user=
 
 
     [
@@ -129,7 +167,7 @@ class SearchPage:
         value4 = " ".join(value3)
         return value4
 
-    def parse(self) -> T_SearchPage:
+    def parse(self) -> List[T_SearchPage]:
         return [
             {
                 "url": self._parse_url(e),
@@ -169,16 +207,16 @@ class EpisodesView:
         value2 = "https://jut.su{}".format(value1) if value1 else value1
         return value2
 
-    def parse(self) -> T_EpisodesView:
+    def parse(self) -> List[T_EpisodesView]:
         return [{"title": self._parse_title(e), "url": self._parse_url(e)} for e in self._split_doc(self._doc)]
 
 
 class AnimePage:
     """
-        GET https://jut.su/<ANIME PATH>
+    GET https://jut.su/<ANIME PATH>
 
-        EXAMPLE:
-            GET https://jut.su/kime-no-yaiba/
+    EXAMPLE:
+        GET https://jut.su/kime-no-yaiba/
 
 
     {
@@ -215,7 +253,7 @@ class AnimePage:
         value3 = re.search("'(https?://.*?)'", value2)[1]
         return value3
 
-    def _parse_episodes(self, value: Selector) -> T_EpisodesView:
+    def _parse_episodes(self, value: Selector) -> List[T_EpisodesView]:
         value1 = EpisodesView(value).parse()
         return value1
 
@@ -262,34 +300,34 @@ class SourceView:
 
 class SourcePage:
     """
-        GET https://jut.su/<ANIME PATH>/<SEASON?>/episode-<NUM>.html
+    GET https://jut.su/<ANIME PATH>/<SEASON?>/episode-<NUM>.html
 
-        NOTE: VIDEO PLAY REQUEST SHOULD HAVE THE SAME USER-AGENT AS AN API CLIENT
+    NOTE: VIDEO PLAY REQUEST SHOULD HAVE THE SAME USER-AGENT AS AN API CLIENT
 
-        eg:
+    eg:
 
-        cl = Client(headers={"user-agent": "X"})
+    cl = Client(headers={"user-agent": "X"})
 
-        ...
+    ...
 
-        s = SourcePage(doc).parse()
+    s = SourcePage(doc).parse()
 
-        mpv s["url_1080"] # 403, FORBIDDEN
+    mpv s["url_1080"] # 403, FORBIDDEN
 
-        mpv s["url_1080"] --user-agent="Y" # 403, FORBIDDEN
+    mpv s["url_1080"] --user-agent="Y" # 403, FORBIDDEN
 
-        mpv s["url_1080"] --user-agent="X" # 200, OK
+    mpv s["url_1080"] --user-agent="X" # 200, OK
 
-        EXAMPLE:
-            GET https://jut.su/kime-no-yaiba/season-1/episode-1.html
+    EXAMPLE:
+        GET https://jut.su/kime-no-yaiba/season-1/episode-1.html
 
-        ISSUES:
-            CHECK 'null' KEY in 'video'. if it contains - videos not available
+    ISSUES:
+        CHECK 'null' KEY in 'video'. if it contains - videos not available
 
-            check block reasons regex patterns:
+        check block reasons regex patterns:
 
-            - 'block_video_text_str_everywhere\\+' - К сожалению, это видео недоступно.
-            - 'block_video_text_str\\+' - К сожалению, в России это видео недоступно.
+        - 'block_video_text_str_everywhere\\+' - К сожалению, это видео недоступно.
+        - 'block_video_text_str\\+' - К сожалению, в России это видео недоступно.
 
 
     {

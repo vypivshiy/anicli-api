@@ -43,17 +43,16 @@ class Extractor(BaseExtractor):
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.http.get(self.BASE_URL + '/index')
+        resp = self.http.get(self.BASE_URL + "/index")
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.http_async.get(self.BASE_URL + '/index')
+        resp = await self.http_async.get(self.BASE_URL + "/index")
         return self._extract_ongoing(resp.text)
 
 
 @define(kw_only=True)
 class Search(BaseSearch):
-
     def get_anime(self):
         resp = self.http.get(self.url)
         return self._extract(resp.text) if self._is_valid_page(resp) else self._create_anime()

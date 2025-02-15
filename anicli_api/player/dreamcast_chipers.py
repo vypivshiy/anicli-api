@@ -1,5 +1,4 @@
-"""thanks https://github.com/barsikus007 for researches and decoder implementation
-"""
+"""thanks https://github.com/barsikus007 for researches and decoder implementation"""
 
 import base64
 import json
@@ -15,30 +14,30 @@ _O_Y = "xx???x=xx?x??="  # maybe dynamic
 _ABC = "ABCDEFGHIJKLMabcdefghijklmNOPQRSTUVWXYZnopqrstuvwxyz"
 _SALT_ABC_STRING = f"{_ABC}0123456789+/="
 
-_RE_O_U1 = re.compile(r'''u:\\['"](#1[^>]+==)\\['"]''')  # for extract ciphered data from player js
+_RE_O_U1 = re.compile(r"""u:\\['"](#1[^>]+==)\\['"]""")  # for extract ciphered data from player js
 _BASE36_STRING = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 # search anchors
 _PARAMS_START = "return p}('"
 _PARAMS_PACKED_OFFSET = len(_PARAMS_START) - 1
 
-__all__ = ['extract_playlist']
+__all__ = ["extract_playlist"]
 
 
 def parse_params_to_unpack(packed: str) -> T_PACKED:
     index = packed.find(_PARAMS_START)  # start js code paks
 
-    packed = packed[index + _PARAMS_PACKED_OFFSET: -1]
+    packed = packed[index + _PARAMS_PACKED_OFFSET : -1]
     p_re = re.search(r"'(.*[^\\])',", packed)
     try:
         p = p_re[1]  # type: ignore
-        packed = packed[p_re.span(1)[1] + 2:]  # type: ignore
+        packed = packed[p_re.span(1)[1] + 2 :]  # type: ignore
         a_re = re.search(r"(\d+),", packed)
         a = int(a_re[1])  # type: ignore
-        packed = packed[a_re.span(1)[1] + 1:]  # type: ignore
+        packed = packed[a_re.span(1)[1] + 1 :]  # type: ignore
         c_re = re.search(r"(\d+),", packed)
         c = int(c_re[1])  # type: ignore
-        packed = packed[c_re.span(1)[1] + 1:]  # type: ignore
+        packed = packed[c_re.span(1)[1] + 1 :]  # type: ignore
         k_re = re.search(r"'(.*)[^\\]'\.split", packed)
         k = k_re[1].split("|")  # type: ignore
     except AttributeError as e:
@@ -132,7 +131,7 @@ def pepper(s, n):
     a = sugar(_O_Y) * n
     if n < 0:
         a += len(_ABC) / 2
-    r = _ABC[int(a * 2):] + _ABC[: int(a * 2)]
+    r = _ABC[int(a * 2) :] + _ABC[: int(a * 2)]
     return re.sub(r"[A-Za-z]", lambda c: r[_ABC.index(c.group())], s)
 
 
@@ -158,8 +157,7 @@ def b64d_url_params(s):
     return urllib.parse.unquote(base64.b64decode(s).decode())
 
 
-def extract_playlist(player_js_packed_response: str,
-                     player_encoded: str) -> Dict[str, Any]:
+def extract_playlist(player_js_packed_response: str, player_encoded: str) -> Dict[str, Any]:
     """extract and decode playlist from dreamcast player
 
     :param player_js_packed_response: raw dreamcast playerjs response
@@ -171,24 +169,23 @@ def extract_playlist(player_js_packed_response: str,
     v["file3_separator"] = "//"
     a = player_encoded[2:]
     # bk0 ... bk4 keys
-    for key in (f'bk{i}' for i in range(4, -1, -1)):
+    for key in (f"bk{i}" for i in range(4, -1, -1)):
         if (result := v.get(key)) and result not in ("undefined", "", None):
             a = a.replace(v["file3_separator"] + b64e_url_params(result), "")
     # unsafe, maybe throw error
     return json.loads(b64d_url_params(a))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import httpx
 
     from anicli_api.source.parsers.dreamcast_parser import AnimePage
 
-
     def main(anime_url: str) -> dict:
         anime_resp = httpx.get(anime_url)
         anime_page = AnimePage(anime_resp.text).parse()
-        player_encoded = anime_page['player_js_encoded']
-        player_js_url = anime_page['player_js_url']
+        player_encoded = anime_page["player_js_encoded"]
+        player_js_url = anime_page["player_js_url"]
 
         player_js_packed_response = httpx.get(player_js_url).text
         return extract_playlist(player_js_packed_response, player_encoded)

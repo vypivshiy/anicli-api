@@ -20,29 +20,41 @@ from __future__ import annotations
 import re
 from typing import TypedDict, Union, Optional
 from contextlib import suppress
+import sys
+
+if sys.version_info >= (3, 10):
+    from types import NoneType
+else:
+    NoneType = type(None)
 
 from parsel import Selector, SelectorList
 
 T_AnimePage = TypedDict(
     "T_AnimePage",
-    {"title": str, "description": Optional[str], "thumbnail": str, "player_js_encoded": str, "player_js_url": str},
+    {
+        "title": str,
+        "description": Optional[str],
+        "thumbnail": str,
+        "player_js_encoded": str,
+        "player_js_url": str,
+    },
 )
 
 
 class AnimePage:
     """
 
-        Usage example:
+    Usage example:
 
-        GET https://dreamerscast.com/home/release/323-tensei-kizoku-kantei-skill-de-nariagaru-2
+    GET https://dreamerscast.com/home/release/323-tensei-kizoku-kantei-skill-de-nariagaru-2
 
-        Encoding (24.12.24 actual step-by-step)
+    Encoding (24.12.24 actual step-by-step)
 
-        decoding and extract playlist:
+    decoding and extract playlist:
 
-        - GET <player_js_url>
-        - unpack, extract encoded symbols
-        - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original source code)
+    - GET <player_js_url>
+    - unpack, extract encoded symbols
+    - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original source code)
 
 
     {

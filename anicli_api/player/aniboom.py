@@ -3,7 +3,6 @@ import warnings
 from typing import List
 
 from httpx import Response
-from parsel import Selector
 
 from .base import BaseVideoExtractor, Video, url_validator
 from .parsers.aniboom_parser import AniboomPage

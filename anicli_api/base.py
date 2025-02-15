@@ -185,7 +185,7 @@ class BaseAnime(HttpMixin):
 
     def __str__(self):
         if len(self.title + self.description) > 80:
-            return f"{self.title} {self.description[:(80 - len(self.title) - 3)]}..."
+            return f"{self.title} {self.description[: (80 - len(self.title) - 3)]}..."
         return f"{self.title} {self.description}"
 
     def __hash__(self):

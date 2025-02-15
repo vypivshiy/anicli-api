@@ -63,7 +63,6 @@ class Extractor(BaseExtractor):
     API = VostAPI()
 
     def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
-
         super().__init__(http_client=http_client, http_async_client=http_async_client)
         self._api = VostAPI(**self._kwargs_http)
 

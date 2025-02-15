@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Sequence, TypeVar
 from anicli_api.base import BaseSource
+
 if TYPE_CHECKING:
     from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
     from anicli_api.player.base import Video
@@ -106,10 +107,10 @@ def main(extractor: "BaseExtractor"):
                 _search_entry(extractor, comma.lstrip("s "))
             elif comma == "o":
                 _ongoing_entry(extractor)
-            elif comma.startswith('p '):
-                url = comma.lstrip('p ')
-                videos = BaseSource(title='_', url=url).get_videos()
-                print(*[f'{v.url} {v.quality} {v.headers}' for v in videos], sep="\n")
+            elif comma.startswith("p "):
+                url = comma.lstrip("p ")
+                videos = BaseSource(title="_", url=url).get_videos()
+                print(*[f"{v.url} {v.quality} {v.headers}" for v in videos], sep="\n")
         except (KeyboardInterrupt, EOFError):
             exit(0)
 

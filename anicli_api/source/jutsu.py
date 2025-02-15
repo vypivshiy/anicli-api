@@ -10,7 +10,7 @@ from anicli_api.player.base import Video
 from anicli_api.source.parsers.jutsu_parser import AnimePage, OngoingPage, SearchPage, SourcePage
 
 if TYPE_CHECKING:
-    from httpx import AsyncClient, Client
+    pass
 
 
 class Extractor(BaseExtractor):

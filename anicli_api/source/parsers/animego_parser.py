@@ -3,32 +3,82 @@ from __future__ import annotations
 import re
 from typing import List, Dict, TypedDict, Union
 from contextlib import suppress
+import sys
+
+if sys.version_info >= (3, 10):
+    from types import NoneType
+else:
+    NoneType = type(None)
 
 from parsel import Selector, SelectorList
 
-T_OngoingPage_ITEM = TypedDict(
-    "T_OngoingPage_ITEM", {"url": str, "title": str, "thumbnail": str, "episode": str, "dub": str}
+T_OngoingPage = TypedDict(
+    "T_OngoingPage",
+    {
+        "url": str,
+        "title": str,
+        "thumbnail": str,
+        "episode": str,
+        "dub": str,
+    },
 )
-T_OngoingPage = List[T_OngoingPage_ITEM]
-T_SearchPage_ITEM = TypedDict("T_SearchPage_ITEM", {"title": str, "thumbnail": str, "url": str})
-T_SearchPage = List[T_SearchPage_ITEM]
-T_AnimePage = TypedDict("T_AnimePage", {"title": str, "description": str, "thumbnail": str, "id": str, "raw_json": str})
+T_SearchPage = TypedDict(
+    "T_SearchPage",
+    {
+        "title": str,
+        "thumbnail": str,
+        "url": str,
+    },
+)
+T_AnimePage = TypedDict(
+    "T_AnimePage",
+    {
+        "title": str,
+        "description": str,
+        "thumbnail": str,
+        "id": str,
+        "raw_json": str,
+    },
+)
 T_EpisodeDubbersView = Dict[str, str]
-T_EpisodesView_ITEM = TypedDict("T_EpisodesView_ITEM", {"num": str, "title": str, "id": str})
-T_EpisodesView = List[T_EpisodesView_ITEM]
-T_EpisodePage = TypedDict("T_EpisodePage", {"dubbers": T_EpisodeDubbersView, "episodes": T_EpisodesView})
-T_SourceVideoView_ITEM = TypedDict(
-    "T_SourceVideoView_ITEM", {"title": str, "url": str, "data_provider": str, "data_provide_dubbing": str}
+T_EpisodesView = TypedDict(
+    "T_EpisodesView",
+    {
+        "num": str,
+        "title": str,
+        "id": str,
+    },
 )
-T_SourceVideoView = List[T_SourceVideoView_ITEM]
+T_EpisodePage = TypedDict(
+    "T_EpisodePage",
+    {
+        "dubbers": T_EpisodeDubbersView,
+        "episodes": List[T_EpisodesView],
+    },
+)
+T_SourceVideoView = TypedDict(
+    "T_SourceVideoView",
+    {
+        "title": str,
+        "url": str,
+        "data_provider": str,
+        "data_provide_dubbing": str,
+    },
+)
 T_SourceDubbersView = Dict[str, str]
-T_SourcePage = TypedDict("T_SourcePage", {"dubbers": T_SourceDubbersView, "videos": T_SourceVideoView})
+T_SourcePage = TypedDict(
+    "T_SourcePage",
+    {
+        "dubbers": T_SourceDubbersView,
+        "videos": List[T_SourceVideoView],
+    },
+)
 
 
 class OngoingPage:
     """Get all available ongoings from the main page
 
-        GET https://animego.me
+    GET https://animego.ong
 
 
     [
@@ -53,7 +103,7 @@ class OngoingPage:
         value1 = value.attrib["onclick"]
         value2 = value1.lstrip("location.href=")
         value3 = value2.strip("'")
-        value4 = "https://animego.me{}".format(value3) if value3 else value3
+        value4 = "https://animego.ong{}".format(value3) if value3 else value3
         return value4
 
     def _parse_title(self, value: Selector) -> str:
@@ -81,7 +131,7 @@ class OngoingPage:
         value4 = value3.replace("(", "")
         return value4
 
-    def parse(self) -> T_OngoingPage:
+    def parse(self) -> List[T_OngoingPage]:
         return [
             {
                 "url": self._parse_url(e),
@@ -97,14 +147,14 @@ class OngoingPage:
 class SearchPage:
     """Get all search results by query
 
-        USAGE:
+    USAGE:
 
-            GET https://animego.me/search/anime
-            q={QUERY}
+        GET https://animego.ong/search/anime
+        q={QUERY}
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.me/search/anime?q=LAIN
+        GET https://animego.ong/search/anime?q=LAIN
 
 
     [
@@ -138,7 +188,7 @@ class SearchPage:
         value2 = value1.attrib["href"]
         return value2
 
-    def parse(self) -> T_SearchPage:
+    def parse(self) -> List[T_SearchPage]:
         return [
             {"title": self._parse_title(e), "thumbnail": self._parse_thumbnail(e), "url": self._parse_url(e)}
             for e in self._split_doc(self._doc)
@@ -148,16 +198,16 @@ class SearchPage:
 class AnimePage:
     """Anime page information. anime path contains in SearchView.url or Ongoing.url
 
-        - id needed for next API requests
-        - raw_json used for extract extra metadata (unescape required)
+    - id needed for next API requests
+    - raw_json used for extract extra metadata (unescape required)
 
-        USAGE:
+    USAGE:
 
-            GET https://animego.me/anime/<ANIME_PATH>
+        GET https://animego.ong/anime/<ANIME_PATH>
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.me/anime/eksperimenty-leyn-1114
+        GET https://animego.ong/anime/eksperimenty-leyn-1114
 
 
     {
@@ -272,7 +322,7 @@ class EpisodesView:
         value1 = value.attrib["data-id"]
         return value1
 
-    def parse(self) -> T_EpisodesView:
+    def parse(self) -> List[T_EpisodesView]:
         return [
             {"num": self._parse_num(e), "title": self._parse_title(e), "id": self._parse_id(e)}
             for e in self._split_doc(self._doc)
@@ -282,15 +332,15 @@ class EpisodesView:
 class EpisodePage:
     """Representation episodes
 
-        Prepare:
-          1. get id from Anime object
-          2. GET 'https://animego.me/anime/{Anime.id}/player?_allow=true'
-          3. extract html from json by ['content'] key
-          4. OPTIONAL: unescape HTML
+    Prepare:
+      1. get id from Anime object
+      2. GET 'https://animego.ong/anime/{Anime.id}/player?_allow=true'
+      3. extract html from json by ['content'] key
+      4. OPTIONAL: unescape HTML
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.me/anime/anime/1114//player?_allow=true
+        GET https://animego.ong/anime/anime/1114//player?_allow=true
 
 
     {
@@ -315,7 +365,7 @@ class EpisodePage:
         value1 = EpisodeDubbersView(value).parse()
         return value1
 
-    def _parse_episodes(self, value: Selector) -> T_EpisodesView:
+    def _parse_episodes(self, value: Selector) -> List[T_EpisodesView]:
         value1 = EpisodesView(value).parse()
         return value1
 
@@ -360,7 +410,7 @@ class SourceVideoView:
         value1 = value.attrib["data-provide-dubbing"]
         return value1
 
-    def parse(self) -> T_SourceVideoView:
+    def parse(self) -> List[T_SourceVideoView]:
         return [
             {
                 "title": self._parse_title(e),
@@ -404,21 +454,21 @@ class SourceDubbersView:
 class SourcePage:
     """representation player urls
 
-        Prepare:
-          1. get num and id from Episode
+    Prepare:
+      1. get num and id from Episode
 
-          2.
+      2.
 
-          GET https://animego.me/anime/series
-          dubbing=2&provider=24&episode={Episode.num}id={Episode.id}
+      GET https://animego.ong/anime/series
+      dubbing=2&provider=24&episode={Episode.num}id={Episode.id}
 
-          3. extract html from json by ["content"] key
+      3. extract html from json by ["content"] key
 
-          4. OPTIONAL: unescape document
+      4. OPTIONAL: unescape document
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.me/anime/series?dubbing=2&provider=24&episode=2&id=15837
+        GET https://animego.ong/anime/series?dubbing=2&provider=24&episode=2&id=15837
 
 
     {
@@ -444,7 +494,7 @@ class SourcePage:
         value1 = SourceDubbersView(value).parse()
         return value1
 
-    def _parse_videos(self, value: Selector) -> T_SourceVideoView:
+    def _parse_videos(self, value: Selector) -> List[T_SourceVideoView]:
         value1 = SourceVideoView(value).parse()
         return value1
 

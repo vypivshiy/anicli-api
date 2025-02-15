@@ -2,49 +2,62 @@
 from __future__ import annotations
 import re
 from typing import TypedDict, Union
+import sys
+
+if sys.version_info >= (3, 10):
+    from types import NoneType
+else:
+    NoneType = type(None)
 
 from parsel import Selector, SelectorList
 
-T_AniboomPage = TypedDict("T_AniboomPage", {"data_parameters": str, "hls": str, "dash": str})
+T_AniboomPage = TypedDict(
+    "T_AniboomPage",
+    {
+        "data_parameters": str,
+        "hls": str,
+        "dash": str,
+    },
+)
 
 
 class AniboomPage:
     """Extract MPD and M3U8 urls
 
-        Required `referer="https://animego.org/` HEADER
+    Required `referer="https://animego.org/` HEADER
 
-        USAGE:
-            1. GET <PLAYER_LINK> (e.g. https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30)
-            2. PARSE. If pre-unescape response before parse - css selector may not find attribute
-            3. For video playing, url required next headers:
+    USAGE:
+        1. GET <PLAYER_LINK> (e.g. https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30)
+        2. PARSE. If pre-unescape response before parse - css selector may not find attribute
+        3. For video playing, url required next headers:
 
-            - Referer="https://aniboom.one/"
-            - Accept-Language="ru-RU"  # INCREASE DOWNLOAD SPEED with this static value
-            - Origin="https://aniboom.one"
-        ISSUES:
-            - 403 Forbidden if request sent not from CIS region
-            - KEYS SHOULD BE STARTED IN Title case else hls/mpd links returns 403 error
-            - Sometimes, aniboom backend missing MPD key and returns M3U8 url. Check this value before usage:
+        - Referer="https://aniboom.one/"
+        - Accept-Language="ru-RU"  # INCREASE DOWNLOAD SPEED with this static value
+        - Origin="https://aniboom.one"
+    ISSUES:
+        - 403 Forbidden if request sent not from CIS region
+        - KEYS SHOULD BE STARTED IN Title case else hls/mpd links returns 403 error
+        - Sometimes, aniboom backend missing MPD key and returns M3U8 url. Check this value before usage:
 
-            https://github.com/vypivshiy/ani-cli-ru/issues/29
+        https://github.com/vypivshiy/ani-cli-ru/issues/29
 
-            Expected json signature (LOOK at dash.src and hls.src keys):
+        Expected json signature (LOOK at dash.src and hls.src keys):
 
-            { ...
-            "dash":"{"src":"https:.../abcdef.mpd",        "type":"application\\/dash+xml"}",
-            "hls":"{"src":"https:...\\/master_device.m3u8",
-            "type":"application\\/x-mpegURL"}"
+        { ...
+        "dash":"{"src":"https:.../abcdef.mpd",        "type":"application\\/dash+xml"}",
+        "hls":"{"src":"https:...\\/master_device.m3u8",
+        "type":"application\\/x-mpegURL"}"
 
-            ... }
+        ... }
 
-            MAYBE returns this:
+        MAYBE returns this:
 
-             { ...
-            "dash":"{"src":"https:...master_device.m3u8",        "type":"application\\/dash+xml"}",
-            "hls":"{"src":"https:...master_device.m3u8",
-            "type":"application\\/x-mpegURL"}"
+         { ...
+        "dash":"{"src":"https:...master_device.m3u8",        "type":"application\\/dash+xml"}",
+        "hls":"{"src":"https:...master_device.m3u8",
+        "type":"application\\/x-mpegURL"}"
 
-            ... }
+        ... }
 
 
 
