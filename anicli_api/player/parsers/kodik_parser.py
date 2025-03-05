@@ -13,6 +13,7 @@ else:
     NoneType = type(None)
 
 from parsel import Selector, SelectorList
+from parsel.selector import _SelectorType  # noqa
 
 J_UrlParams = TypedDict(
     "J_UrlParams",
@@ -150,53 +151,44 @@ class KodikAPIPayload:
         "id": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_d(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("var\\s*domain\\s+=\\s+['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("var\s*domain\s+=\s+['\"](.*?)['\"];", value1)[1]
 
     def _parse_d_sign(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("var\\s*d_sign\\s+=\\s+['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("var\s*d_sign\s+=\s+['\"](.*?)['\"];", value1)[1]
 
     def _parse_pd(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("var\\s*pd\\s+=\\s+['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("var\s*pd\s+=\s+['\"](.*?)['\"];", value1)[1]
 
     def _parse_pd_sign(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("var\\s*pd_sign\\s+=\\s+['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("var\s*pd_sign\s+=\s+['\"](.*?)['\"];", value1)[1]
 
     def _parse_ref(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("var\\s*ref\\s+=\\s+['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("var\s*ref\s+=\s+['\"](.*?)['\"];", value1)[1]
 
     def _parse_ref_sign(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("var\\s*ref_sign\\s+=\\s+['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("var\s*ref_sign\s+=\s+['\"](.*?)['\"];", value1)[1]
 
     def _parse_type(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("videoInfo\\.type\\s*=\\s*['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("videoInfo\.type\s*=\s*['\"](.*?)['\"];", value1)[1]
 
     def _parse_hash(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("videoInfo\\.hash\\s*=\\s*['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("videoInfo\.hash\s*=\s*['\"](.*?)['\"];", value1)[1]
 
     def _parse_id(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("videoInfo\\.id\\s*=\\s*['\"](.*?)['\"];", value1)[1]
-        return value2
+        return re.search("videoInfo\.id\s*=\s*['\"](.*?)['\"];", value1)[1]
 
     def parse(self) -> T_KodikAPIPayload:
         return {
@@ -226,32 +218,26 @@ class SeasonBox:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("option")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("option")
 
     def _parse_value(self, value: Selector) -> str:
-        value1 = value.attrib["value"]
-        return value1
+        return value.attrib["value"]
 
     def _parse_data_serial_id(self, value: Selector) -> str:
-        value1 = value.attrib["data-serial-id"]
-        return value1
+        return value.attrib["data-serial-id"]
 
     def _parse_data_serial_hash(self, value: Selector) -> str:
-        value1 = value.attrib["data-serial-hash"]
-        return value1
+        return value.attrib["data-serial-hash"]
 
     def _parse_data_title(self, value: Selector) -> str:
-        value1 = value.attrib["data-title"]
-        return value1
+        return value.attrib["data-title"]
 
     def _parse_data_translation_title(self, value: Selector) -> str:
-        value1 = value.attrib["data-translation-title"]
-        return value1
+        return value.attrib["data-translation-title"]
 
     def parse(self) -> List[T_SeasonBox]:
         return [
@@ -279,28 +265,23 @@ class SeriesBox:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("option")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("option")
 
     def _parse_value(self, value: Selector) -> str:
-        value1 = value.attrib["value"]
-        return value1
+        return value.attrib["value"]
 
     def _parse_data_id(self, value: Selector) -> str:
-        value1 = value.attrib["data-id"]
-        return value1
+        return value.attrib["data-id"]
 
     def _parse_data_hash(self, value: Selector) -> str:
-        value1 = value.attrib["data-hash"]
-        return value1
+        return value.attrib["data-hash"]
 
     def _parse_data_title(self, value: Selector) -> str:
-        value1 = value.attrib["data-title"]
-        return value1
+        return value.attrib["data-title"]
 
     def parse(self) -> List[T_SeriesBox]:
         return [
@@ -327,28 +308,23 @@ class SeriesOptionItem:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("option")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("option")
 
     def _parse_value(self, value: Selector) -> str:
-        value1 = value.attrib["value"]
-        return value1
+        return value.attrib["value"]
 
     def _parse_data_id(self, value: Selector) -> str:
-        value1 = value.attrib["data-id"]
-        return value1
+        return value.attrib["data-id"]
 
     def _parse_data_hash(self, value: Selector) -> str:
-        value1 = value.attrib["data-hash"]
-        return value1
+        return value.attrib["data-hash"]
 
     def _parse_data_title(self, value: Selector) -> str:
-        value1 = value.attrib["data-title"]
-        return value1
+        return value.attrib["data-title"]
 
     def parse(self) -> List[T_SeriesOptionItem]:
         return [
@@ -378,20 +354,17 @@ class SeriesOptions:
         "<KN>": "..."
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("div")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("div")
 
     def _parse_key(self, value: Selector) -> str:
-        value1 = value.attrib["class"]
-        return value1
+        return value.attrib["class"]
 
     def _parse_value(self, value: Selector) -> List[T_SeriesOptionItem]:
-        value1 = SeriesOptionItem(value).parse()
-        return value1
+        return SeriesOptionItem(value).parse()
 
     def parse(self) -> T_SeriesOptions:
         return {self._parse_key(e): self._parse_value(e) for e in self._split_doc(self._doc)}
@@ -414,45 +387,36 @@ class TranslationsBox:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("option")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("option")
 
     def _parse_value(self, value: Selector) -> str:
-        value1 = value.attrib["value"]
-        return value1
+        return value.attrib["value"]
 
     def _parse_data_id(self, value: Selector) -> str:
-        value1 = value.attrib["data-id"]
-        return value1
+        return value.attrib["data-id"]
 
     def _parse_data_translation_type(self, value: Selector) -> str:
-        value1 = value.attrib["data-translation-type"]
-        return value1
+        return value.attrib["data-translation-type"]
 
     def _parse_data_media_id(self, value: Selector) -> str:
-        value1 = value.attrib["data-media-id"]
-        return value1
+        return value.attrib["data-media-id"]
 
     def _parse_data_media_hash(self, value: Selector) -> str:
-        value1 = value.attrib["data-media-hash"]
-        return value1
+        return value.attrib["data-media-hash"]
 
     def _parse_data_media_type(self, value: Selector) -> str:
-        value1 = value.attrib["data-media-type"]
-        return value1
+        return value.attrib["data-media-type"]
 
     def _parse_data_title(self, value: Selector) -> str:
-        value1 = value.attrib["data-title"]
-        return value1
+        return value.attrib["data-title"]
 
     def _parse_data_episode_count(self, value: Selector) -> str:
         value1 = value.attrib["data-episode-count"]
-        value2 = re.search("(\\d+)$", value1)[1]
-        return value2
+        return re.search("(\d+)$", value1)[1]
 
     def parse(self) -> List[T_TranslationsBox]:
         return [
@@ -473,38 +437,38 @@ class TranslationsBox:
 class MainKodikMin:
     """parser for extract only minimal data for next API reuqest
 
-    for extract full detailed information use MainKodikSerialPage and MainKodikVideoPage
+        for extract full detailed information use MainKodikSerialPage and MainKodikVideoPage
 
-    USAGE:
+        USAGE:
 
-        1. GET <kodik-page-player>
-        2. add base_url to <player_js_path>
-        3. extract API (<API_PATH>) path from javascript file (use MainKodikAPIPath)
-        3.1 decode <API_PATH> path (base64 cipher)
-        4. <api_payload> required extra constant keys
-            - bad_user = (true or false)
-            - cdn_is_working = true
-            - info "{}"
-        4.1 required headers:
-            - origin="https://<NETLOC>" // player page
-            - referer=<PLAYER_LINK> // FIRST URL player entrypoint
-            - accept= "application/json, text/javascript, */*; q=0.01"
-        4.2 POST <kodik-base-url> + /<API_PATH>
-           data=<api_payload> (<JSON>) + headers
-        5. extract urls from ['links'] key
-        6. video urls encoded in ROT_13 + BASE64 ciphers
+            1. GET <kodik-page-player>
+            2. add base_url to <player_js_path>
+            3. extract API (<API_PATH>) path from javascript file (use MainKodikAPIPath)
+            3.1 decode <API_PATH> path (base64 cipher)
+            4. <api_payload> required extra constant keys
+                - bad_user = (true or false)
+                - cdn_is_working = true
+                - info "{}"
+            4.1 required headers:
+                - origin="https://<NETLOC>" // player page
+                - referer=<PLAYER_LINK> // FIRST URL player entrypoint
+                - accept= "application/json, text/javascript, */*; q=0.01"
+            4.2 POST <kodik-base-url> + /<API_PATH>
+               data=<api_payload> (<JSON>) + headers
+            5. extract urls from ['links'] key
+            6. video urls encoded in ROT_13 + BASE64 ciphers
 
-    EXAMPLE:
+        EXAMPLE:
 
-        - GET https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
-        - GET https://aniqit.com/video/72755/dc966c03a7cb719dac577d8004a9b091/720p
-        - GET https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p
+            - GET https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
+            - GET https://aniqit.com/video/72755/dc966c03a7cb719dac577d8004a9b091/720p
+            - GET https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p
 
-     ISSUES:
-        - kodik maybe have another netloc (e.g.: anivod)
-        - 403 Forbidden if request sent not from CIS region
-        - 404 DELETED: eg: https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p
-        - 500 Internal server error: eg: https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p ('Cyberpunk: Edgerunners' ep5 Anilibria dub)
+         ISSUES:
+            - kodik maybe have another netloc (e.g.: anivod)
+            - 403 Forbidden if request sent not from CIS region
+            - 404 DELETED: eg: https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p
+            - 500 Internal server error: eg: https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p ('Cyberpunk: Edgerunners' ep5 Anilibria dub)
 
 
 
@@ -535,23 +499,20 @@ class MainKodikMin:
         "player_js_path": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_url_params(self, value: Selector) -> J_UrlParams:
         value1 = value.get()
         value2 = re.search("var\\s*urlParams\\s*=\\s*['\"](\\{.*\\})['\"]", value1)[1]
-        value3 = json.loads(value2)
-        return value3
+        return json.loads(value2)
 
     def _parse_api_payload(self, value: Selector) -> T_KodikAPIPayload:
-        value1 = KodikAPIPayload(value).parse()
-        return value1
+        return KodikAPIPayload(value).parse()
 
     def _parse_player_js_path(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search('<script\\s*type="text/javascript"\\s*src="(/assets/js/app\\..*?)">', value1)[1]
-        return value2
+        return re.search('<script\s*type="text/javascript"\s*src="(/assets/js/app\..*?)">', value1)[1]
 
     def parse(self) -> T_MainKodikMin:
         return {
@@ -635,7 +596,7 @@ class MainKodikSerialPage:
         "player_js_path": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_thumbnails(self, value: Selector) -> List[str]:
@@ -644,43 +605,35 @@ class MainKodikSerialPage:
         value3 = value2.replace('"', "")
         value4 = value3.split(",")
         value5 = [e.strip(" ") for e in value4]
-        value6 = ["https:{}".format(e) for e in value5 if e]
-        return value6
+        return [f"https:{e}" for e in value5 if e]
 
     def _parse_season_box(self, value: Selector) -> List[T_SeasonBox]:
         value1 = value.css(".serial-panel > .serial-seasons-box")
-        value2 = SeasonBox(value1).parse()
-        return value2
+        return SeasonBox(value1).parse()
 
     def _parse_series_box(self, value: Selector) -> List[T_SeriesBox]:
         value1 = value.css(".serial-panel > .serial-series-box")
-        value2 = SeriesBox(value1).parse()
-        return value2
+        return SeriesBox(value1).parse()
 
     def _parse_series_options(self, value: Selector) -> T_SeriesOptions:
         value1 = value.css(".serial-panel > .series-options")
-        value2 = SeriesOptions(value1).parse()
-        return value2
+        return SeriesOptions(value1).parse()
 
     def _parse_translations_box(self, value: Selector) -> List[T_TranslationsBox]:
         value1 = value.css(".serial-panel > .serial-translations-box")
-        value2 = TranslationsBox(value1).parse()
-        return value2
+        return TranslationsBox(value1).parse()
 
     def _parse_url_params(self, value: Selector) -> J_UrlParams:
         value1 = value.get()
         value2 = re.search("var\\s*urlParams\\s*=\\s*['\"](\\{.*\\})['\"]", value1)[1]
-        value3 = json.loads(value2)
-        return value3
+        return json.loads(value2)
 
     def _parse_api_payload(self, value: Selector) -> T_KodikAPIPayload:
-        value1 = KodikAPIPayload(value).parse()
-        return value1
+        return KodikAPIPayload(value).parse()
 
     def _parse_player_js_path(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search('<script\\s*type="text/javascript"\\s*src="(/assets/js/app\\..*?)">', value1)[1]
-        return value2
+        return re.search('<script\s*type="text/javascript"\s*src="(/assets/js/app\..*?)">', value1)[1]
 
     def parse(self) -> T_MainKodikSerialPage:
         return {
@@ -711,40 +664,32 @@ class MovieTranslationBox:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("option")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("option")
 
     def _parse_value(self, value: Selector) -> str:
-        value1 = value.attrib["value"]
-        return value1
+        return value.attrib["value"]
 
     def _parse_data_id(self, value: Selector) -> str:
-        value1 = value.attrib["data-id"]
-        return value1
+        return value.attrib["data-id"]
 
     def _parse_data_translation_type(self, value: Selector) -> str:
-        value1 = value.attrib["data-translation-type"]
-        return value1
+        return value.attrib["data-translation-type"]
 
     def _parse_data_media_id(self, value: Selector) -> str:
-        value1 = value.attrib["data-media-id"]
-        return value1
+        return value.attrib["data-media-id"]
 
     def _parse_data_media_hash(self, value: Selector) -> str:
-        value1 = value.attrib["data-media-hash"]
-        return value1
+        return value.attrib["data-media-hash"]
 
     def _parse_data_media_type(self, value: Selector) -> str:
-        value1 = value.attrib["data-media-type"]
-        return value1
+        return value.attrib["data-media-type"]
 
     def _parse_data_title(self, value: Selector) -> str:
-        value1 = value.attrib["data-title"]
-        return value1
+        return value.attrib["data-title"]
 
     def parse(self) -> List[T_MovieTranslationBox]:
         return [
@@ -764,7 +709,7 @@ class MovieTranslationBox:
 class MainKodikVideoPage:
     """first extract data entrypoint for kodik.../video/ entrypoint path
 
-    required for extract videos via kodik API
+        required for extract videos via kodik API
 
 
     {
@@ -806,7 +751,7 @@ class MainKodikVideoPage:
         "player_js_path": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_thumbnails(self, value: Selector) -> List[str]:
@@ -815,28 +760,23 @@ class MainKodikVideoPage:
         value3 = value2.replace('"', "")
         value4 = value3.split(",")
         value5 = [e.strip(" ") for e in value4]
-        value6 = ["https:{}".format(e) for e in value5 if e]
-        return value6
+        return [f"https:{e}" for e in value5 if e]
 
     def _parse_translation_box(self, value: Selector) -> List[T_MovieTranslationBox]:
         value1 = value.css(".movie-panel > .movie-translations-box")
-        value2 = MovieTranslationBox(value1).parse()
-        return value2
+        return MovieTranslationBox(value1).parse()
 
     def _parse_url_params(self, value: Selector) -> J_UrlParams:
         value1 = value.get()
         value2 = re.search("var\\s*urlParams\\s*=\\s*['\"](\\{.*\\})['\"]", value1)[1]
-        value3 = json.loads(value2)
-        return value3
+        return json.loads(value2)
 
     def _parse_api_payload(self, value: Selector) -> T_KodikAPIPayload:
-        value1 = KodikAPIPayload(value).parse()
-        return value1
+        return KodikAPIPayload(value).parse()
 
     def _parse_player_js_path(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search('<script\\s*type="text/javascript"\\s*src="(/assets/js/app\\..*?)">', value1)[1]
-        return value2
+        return re.search('<script\s*type="text/javascript"\s*src="(/assets/js/app\..*?)">', value1)[1]
 
     def parse(self) -> T_MainKodikVideoPage:
         return {
@@ -851,14 +791,14 @@ class MainKodikVideoPage:
 class MainKodikAPIPath:
     """extract actual API path from kodik js script
 
-    USAGE:
+        USAGE:
 
-        GET MainKodikPage.player_js_path, MainKodikSerialPage.player_js_path
+            GET MainKodikPage.player_js_path, MainKodikSerialPage.player_js_path
 
-    EXAMPLE:
+        EXAMPLE:
 
-        - GET https://kodik.info/assets/js/app.serial.6721f2dd68501a625a518ea935006bd8f5cf5f4d037f2648a97a02dfd0fe5b85.js
-        - GET https://aniqit.com/assets/js/app.player_single.3e2f9f0ae45d18b06cfd8b01181f85bab47fb9867cd1e73568c84dbe44ba7a44.js
+            - GET https://kodik.info/assets/js/app.serial.6721f2dd68501a625a518ea935006bd8f5cf5f4d037f2648a97a02dfd0fe5b85.js
+            - GET https://aniqit.com/assets/js/app.player_single.3e2f9f0ae45d18b06cfd8b01181f85bab47fb9867cd1e73568c84dbe44ba7a44.js
 
 
 
@@ -866,13 +806,12 @@ class MainKodikAPIPath:
         "api_path": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_api_path(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search("\\$\\.ajax\\([^>]+,url:\\s*atob\\([\"']([\\w=]+)[\"']\\)", value1)[1]
-        return value2
+        return re.search("\$\.ajax\([^>]+,url:\s*atob\([\"']([\w=]+)[\"']\)", value1)[1]
 
     def parse(self) -> T_MainKodikAPIPath:
         return {"api_path": self._parse_api_path(self._doc)}

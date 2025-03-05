@@ -11,6 +11,7 @@ else:
     NoneType = type(None)
 
 from parsel import Selector, SelectorList
+from parsel.selector import _SelectorType  # noqa
 
 T_OngoingPage = TypedDict(
     "T_OngoingPage",
@@ -58,8 +59,8 @@ T_SourcePage = TypedDict(
 class OngoingPage:
     """usage:
 
-    POST https://jut.su/anime/ongoing/
-    ajax_load=yes&start_from_page=1&show_search=&anime_of_user=
+        POST https://jut.su/anime/ongoing/
+        ajax_load=yes&start_from_page=1&show_search=&anime_of_user=
 
 
 
@@ -73,36 +74,31 @@ class OngoingPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css(".all_anime_global")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css(".all_anime_global")
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.css("a")
         value2 = value1.attrib["href"]
-        value3 = "https://jut.su{}".format(value2) if value2 else value2
-        return value3
+        return f"https://jut.su{value2}" if value2 else value2
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".aaname")
-        value2 = "".join(value1.css("::text").getall())
-        return value2
+        return "".join(value1.css("::text").getall())
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".all_anime_image")
         value2 = value1.attrib["style"]
-        value3 = re.search("'(https?://.*?)'", value2)[1]
-        return value3
+        return re.search("'(https?://.*?)'", value2)[1]
 
     def _parse_counts(self, value: Selector) -> str:
         value1 = value.css(".aailines")
         value2 = value1.css("::text").getall()
         value3 = [e.strip("\r\n") for e in value2]
-        value4 = " ".join(value3)
-        return value4
+        return " ".join(value3)
 
     def parse(self) -> List[T_OngoingPage]:
         return [
@@ -118,12 +114,12 @@ class OngoingPage:
 
 class SearchPage:
     """
-    POST https://jut.su/anime/
-    ajax_load=yes&start_from_page=1&show_search=<QUERY>&anime_of_user=
-
-    EXAMPLE:
         POST https://jut.su/anime/
-        ajax_load=yes&start_from_page=1&show_search=LA&anime_of_user=
+        ajax_load=yes&start_from_page=1&show_search=<QUERY>&anime_of_user=
+
+        EXAMPLE:
+            POST https://jut.su/anime/
+            ajax_load=yes&start_from_page=1&show_search=LA&anime_of_user=
 
 
     [
@@ -136,36 +132,31 @@ class SearchPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css(".all_anime_global")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css(".all_anime_global")
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.css("a")
         value2 = value1.attrib["href"]
-        value3 = "https://jut.su{}".format(value2) if value2 else value2
-        return value3
+        return f"https://jut.su{value2}" if value2 else value2
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".aaname")
-        value2 = "".join(value1.css("::text").getall())
-        return value2
+        return "".join(value1.css("::text").getall())
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".all_anime_image")
         value2 = value1.attrib["style"]
-        value3 = re.search("'(https?://.*?)'", value2)[1]
-        return value3
+        return re.search("'(https?://.*?)'", value2)[1]
 
     def _parse_counts(self, value: Selector) -> str:
         value1 = value.css(".aailines")
         value2 = value1.css("::text").getall()
         value3 = [e.strip("\r\n") for e in value2]
-        value4 = " ".join(value3)
-        return value4
+        return " ".join(value3)
 
     def parse(self) -> List[T_SearchPage]:
         return [
@@ -190,22 +181,19 @@ class EpisodesView:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css(".video")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css(".video")
 
     def _parse_title(self, value: Selector) -> str:
         value1 = "".join(value.css("::text").getall())
-        value2 = value1.strip(" ")
-        return value2
+        return value1.strip(" ")
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.attrib["href"]
-        value2 = "https://jut.su{}".format(value1) if value1 else value1
-        return value2
+        return f"https://jut.su{value1}" if value1 else value1
 
     def parse(self) -> List[T_EpisodesView]:
         return [{"title": self._parse_title(e), "url": self._parse_url(e)} for e in self._split_doc(self._doc)]
@@ -213,10 +201,10 @@ class EpisodesView:
 
 class AnimePage:
     """
-    GET https://jut.su/<ANIME PATH>
+        GET https://jut.su/<ANIME PATH>
 
-    EXAMPLE:
-        GET https://jut.su/kime-no-yaiba/
+        EXAMPLE:
+            GET https://jut.su/kime-no-yaiba/
 
 
     {
@@ -232,30 +220,26 @@ class AnimePage:
         ]
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".anime_padding_for_title")
         value2 = "".join(value1.css("::text").getall())
-        value3 = re.search("Смотреть (.*?) все", value2)[1]
-        return value3
+        return re.search("Смотреть (.*?) все", value2)[1]
 
     def _parse_description(self, value: Selector) -> str:
         value1 = value.css(".uv_rounded_bottom span")
         value2 = value1.css("::text").getall()
-        value3 = " ".join(value2)
-        return value3
+        return " ".join(value2)
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".all_anime_title")
         value2 = value1.attrib["style"]
-        value3 = re.search("'(https?://.*?)'", value2)[1]
-        return value3
+        return re.search("'(https?://.*?)'", value2)[1]
 
     def _parse_episodes(self, value: Selector) -> List[T_EpisodesView]:
-        value1 = EpisodesView(value).parse()
-        return value1
+        return EpisodesView(value).parse()
 
     def parse(self) -> T_AnimePage:
         return {
@@ -273,25 +257,22 @@ class SourceView:
         "QUALITY": "URL"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("#my-player > source")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("#my-player > source")
 
     def _parse_key(self, value: Selector) -> str:
         value1 = value
         with suppress(Exception):
-            value2 = value1.attrib["res"]
-            return value2
+            return value1.attrib["res"]
         return "null"
 
     def _parse_value(self, value: Selector) -> Optional[str]:
         value1 = value
         with suppress(Exception):
-            value2 = value1.attrib["src"]
-            return value2
+            return value1.attrib["src"]
         return None
 
     def parse(self) -> T_SourceView:
@@ -300,34 +281,34 @@ class SourceView:
 
 class SourcePage:
     """
-    GET https://jut.su/<ANIME PATH>/<SEASON?>/episode-<NUM>.html
+        GET https://jut.su/<ANIME PATH>/<SEASON?>/episode-<NUM>.html
 
-    NOTE: VIDEO PLAY REQUEST SHOULD HAVE THE SAME USER-AGENT AS AN API CLIENT
+        NOTE: VIDEO PLAY REQUEST SHOULD HAVE THE SAME USER-AGENT AS AN API CLIENT
 
-    eg:
+        eg:
 
-    cl = Client(headers={"user-agent": "X"})
+        cl = Client(headers={"user-agent": "X"})
 
-    ...
+        ...
 
-    s = SourcePage(doc).parse()
+        s = SourcePage(doc).parse()
 
-    mpv s["url_1080"] # 403, FORBIDDEN
+        mpv s["url_1080"] # 403, FORBIDDEN
 
-    mpv s["url_1080"] --user-agent="Y" # 403, FORBIDDEN
+        mpv s["url_1080"] --user-agent="Y" # 403, FORBIDDEN
 
-    mpv s["url_1080"] --user-agent="X" # 200, OK
+        mpv s["url_1080"] --user-agent="X" # 200, OK
 
-    EXAMPLE:
-        GET https://jut.su/kime-no-yaiba/season-1/episode-1.html
+        EXAMPLE:
+            GET https://jut.su/kime-no-yaiba/season-1/episode-1.html
 
-    ISSUES:
-        CHECK 'null' KEY in 'video'. if it contains - videos not available
+        ISSUES:
+            CHECK 'null' KEY in 'video'. if it contains - videos not available
 
-        check block reasons regex patterns:
+            check block reasons regex patterns:
 
-        - 'block_video_text_str_everywhere\\+' - К сожалению, это видео недоступно.
-        - 'block_video_text_str\\+' - К сожалению, в России это видео недоступно.
+            - 'block_video_text_str_everywhere\\+' - К сожалению, это видео недоступно.
+            - 'block_video_text_str\\+' - К сожалению, в России это видео недоступно.
 
 
     {
@@ -336,12 +317,11 @@ class SourcePage:
         }
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_videos(self, value: Selector) -> T_SourceView:
-        value1 = SourceView(value).parse()
-        return value1
+        return SourceView(value).parse()
 
     def parse(self) -> T_SourcePage:
         return {"videos": self._parse_videos(self._doc)}

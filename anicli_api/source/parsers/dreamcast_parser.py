@@ -27,7 +27,8 @@ if sys.version_info >= (3, 10):
 else:
     NoneType = type(None)
 
-from parsel import Selector, SelectorList
+from parsel import Selector
+from parsel.selector import _SelectorType  # noqa
 
 T_AnimePage = TypedDict(
     "T_AnimePage",
@@ -44,17 +45,17 @@ T_AnimePage = TypedDict(
 class AnimePage:
     """
 
-    Usage example:
+        Usage example:
 
-    GET https://dreamerscast.com/home/release/323-tensei-kizoku-kantei-skill-de-nariagaru-2
+        GET https://dreamerscast.com/home/release/323-tensei-kizoku-kantei-skill-de-nariagaru-2
 
-    Encoding (24.12.24 actual step-by-step)
+        Encoding (24.12.24 actual step-by-step)
 
-    decoding and extract playlist:
+        decoding and extract playlist:
 
-    - GET <player_js_url>
-    - unpack, extract encoded symbols
-    - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original source code)
+        - GET <player_js_url>
+        - unpack, extract encoded symbols
+        - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original source code)
 
 
     {
@@ -65,38 +66,33 @@ class AnimePage:
         "player_js_url": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css("h3")
-        value2 = "".join(value1.css("::text").getall())
-        return value2
+        return "".join(value1.css("::text").getall())
 
     def _parse_description(self, value: Selector) -> Optional[str]:
         value1 = value
         with suppress(Exception):
             value2 = value1.css(".postDesc")
-            value3 = "".join(value2.css("::text").getall())
-            return value3
+            return "".join(value2.css("::text").getall())
         return None
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".details_poster img")
         value2 = value1.attrib["src"]
-        value3 = "https:{}".format(value2) if value2 else value2
-        return value3
+        return f"https:{value2}" if value2 else value2
 
     def _parse_player_js_encoded(self, value: Selector) -> str:
         value1 = value.get()
-        value2 = re.search('new Playerjs\\("(.*?)"\\)', value1)[1]
-        return value2
+        return re.search('new Playerjs\("(.*?)"\)', value1)[1]
 
     def _parse_player_js_url(self, value: Selector) -> str:
         value1 = value.get()
         value2 = re.search('<script[^>]+src="(/js/playerjs.*?)"', value1)[1]
-        value3 = "https://dreamerscast.com{}".format(value2) if value2 else value2
-        return value3
+        return f"https://dreamerscast.com{value2}" if value2 else value2
 
     def parse(self) -> T_AnimePage:
         return {

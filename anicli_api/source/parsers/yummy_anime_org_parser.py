@@ -11,6 +11,7 @@ else:
     NoneType = type(None)
 
 from parsel import Selector, SelectorList
+from parsel.selector import _SelectorType  # noqa
 
 T_OngoingPage = TypedDict(
     "T_OngoingPage",
@@ -44,9 +45,9 @@ T_AnimePage = TypedDict(
 class OngoingPage:
     """Get all available ongoings from the main page
 
-    USAGE:
+        USAGE:
 
-        GET https://yummy-anime.org/
+            GET https://yummy-anime.org/
 
 
 
@@ -60,35 +61,30 @@ class OngoingPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css(".ksupdate_block a")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css(".ksupdate_block a")
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".xfieldimage")
         value2 = value1.attrib["src"]
-        value3 = "https://yummy-anime.org{}".format(value2) if value2 else value2
-        return value3
+        return f"https://yummy-anime.org{value2}" if value2 else value2
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.attrib["href"]
-        value2 = "https://yummy-anime.org{}".format(value1) if value1 else value1
-        return value2
+        return f"https://yummy-anime.org{value1}" if value1 else value1
 
     def _parse_episode(self, value: Selector) -> int:
         value1 = value.css(".cell-2")
         value2 = "".join(value1.css("::text").getall())
         value3 = re.search("(\\d+)\\s", value2)[1]
-        value4 = int(value3)
-        return value4
+        return int(value3)
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".xfieldimage")
-        value2 = value1.attrib["alt"]
-        return value2
+        return value1.attrib["alt"]
 
     def parse(self) -> List[T_OngoingPage]:
         return [
@@ -105,15 +101,15 @@ class OngoingPage:
 class SearchPage:
     """Get search results
 
-    USAGE:
+        USAGE:
 
-        POST https://yummy-anime.org
-        do=search&subaction=search&story=<QUERY>
+            POST https://yummy-anime.org
+            do=search&subaction=search&story=<QUERY>
 
-    EXAMPLE:
+        EXAMPLE:
 
-        POST https://yummy-anime.org/index.php
-        do=search&subaction=search=from_page=0story=ван-пис
+            POST https://yummy-anime.org/index.php
+            do=search&subaction=search=from_page=0story=ван-пис
 
 
     [
@@ -125,27 +121,23 @@ class SearchPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css("a.has-overlay")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css("a.has-overlay")
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".poster__title")
-        value2 = "".join(value1.css("::text").getall())
-        return value2
+        return "".join(value1.css("::text").getall())
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".xfieldimage")
         value2 = value1.attrib["data-src"]
-        value3 = "https://yummy-anime.org{}".format(value2) if value2 else value2
-        return value3
+        return f"https://yummy-anime.org{value2}" if value2 else value2
 
     def _parse_url(self, value: Selector) -> str:
-        value1 = value.attrib["href"]
-        return value1
+        return value.attrib["href"]
 
     def parse(self) -> List[T_SearchPage]:
         return [
@@ -157,13 +149,13 @@ class SearchPage:
 class AnimePage:
     """get anime page
 
-    USAGE:
+        USAGE:
 
-        GET https://yummy-anime.org/<...>.html
+            GET https://yummy-anime.org/<...>.html
 
-    EXAMPLE:
+        EXAMPLE:
 
-        GET https://yummy-anime.org/4790-vedma-i-chudovische.html
+            GET https://yummy-anime.org/4790-vedma-i-chudovische.html
 
 
 
@@ -175,20 +167,18 @@ class AnimePage:
         "player_url": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".anime__title h1")
-        value2 = "".join(value1.css("::text").getall())
-        return value2
+        return "".join(value1.css("::text").getall())
 
     def _parse_alt_title(self, value: Selector) -> Optional[str]:
         value1 = value
         with suppress(Exception):
             value2 = value1.css(".anime__title .pmovie__original-title")
-            value3 = "".join(value2.css("::text").getall())
-            return value3
+            return "".join(value2.css("::text").getall())
         return None
 
     def _parse_description(self, value: Selector) -> str:
@@ -196,23 +186,20 @@ class AnimePage:
         with suppress(Exception):
             value2 = value1.css(".page__text p")
             value3 = value2.css("::text").getall()
-            value4 = "".join(value3)
-            return value4
+            return "".join(value3)
         return ""
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".pmovie__poster .xfieldimage")
         value2 = value1.attrib["data-src"]
-        value3 = "https://yummy-anime.org{}".format(value2) if value2 else value2
-        return value3
+        return f"https://yummy-anime.org{value2}" if value2 else value2
 
     def _parse_player_url(self, value: Selector) -> Optional[str]:
         value1 = value
         with suppress(Exception):
             value2 = value1.css(".pmovie__player iframe")
             value3 = value2.attrib["src"]
-            value4 = "https:{}".format(value3) if value3 else value3
-            return value4
+            return f"https:{value3}" if value3 else value3
         return None
 
     def parse(self) -> T_AnimePage:

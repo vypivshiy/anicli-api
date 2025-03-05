@@ -10,6 +10,7 @@ else:
     NoneType = type(None)
 
 from parsel import Selector, SelectorList
+from parsel.selector import _SelectorType  # noqa
 
 T_OngoingPage = TypedDict(
     "T_OngoingPage",
@@ -57,28 +58,24 @@ class OngoingPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css(".col-auto")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css(".col-auto")
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.css("a")
-        value2 = value1.attrib["href"]
-        return value2
+        return value1.attrib["href"]
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".col-auto .poster")
-        value2 = value1.attrib["title"]
-        return value2
+        return value1.attrib["title"]
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css("img.swiper-lazy")
         value2 = value1.attrib["src"]
-        value3 = "https://sameband.studio{}".format(value2) if value2 else value2
-        return value3
+        return f"https://sameband.studio{value2}" if value2 else value2
 
     def parse(self) -> List[T_OngoingPage]:
         return [
@@ -89,15 +86,15 @@ class OngoingPage:
 
 class SearchPage:
     """
-    POST https://sameband.studio/index.php?do=search
-    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
-
-    NOTE:
-        search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
-
-    EXAMPLE:
         POST https://sameband.studio/index.php?do=search
-    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
+        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
+
+        NOTE:
+            search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
+
+        EXAMPLE:
+            POST https://sameband.studio/index.php?do=search
+        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
 
 
     [
@@ -109,28 +106,24 @@ class SearchPage:
         "..."
     ]"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
-    def _split_doc(self, value: Selector) -> SelectorList:
-        value1 = value.css(".col-auto")
-        return value1
+    def _split_doc(self, value: _SelectorType) -> SelectorList:
+        return value.css(".col-auto")
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css(".col-auto .poster")
-        value2 = value1.attrib["title"]
-        return value2
+        return value1.attrib["title"]
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css("img.swiper-lazy")
         value2 = value1.attrib["src"]
-        value3 = "https://sameband.studio{}".format(value2) if value2 else value2
-        return value3
+        return f"https://sameband.studio{value2}" if value2 else value2
 
     def _parse_url(self, value: Selector) -> str:
         value1 = value.css(".image")
-        value2 = value1.attrib["href"]
-        return value2
+        return value1.attrib["href"]
 
     def parse(self) -> List[T_SearchPage]:
         return [
@@ -141,11 +134,11 @@ class SearchPage:
 
 class AnimePage:
     """
-    GET https://sameband.studio/anime/<ANIME PATH>.html
+        GET https://sameband.studio/anime/<ANIME PATH>.html
 
-    EXAMPLE:
-        # https://sameband.studio/anime/20-госпожа-кагуя-3.html
-        GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
+        EXAMPLE:
+            # https://sameband.studio/anime/20-госпожа-кагуя-3.html
+            GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
 
 
     {
@@ -156,36 +149,31 @@ class AnimePage:
         "player_url": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_title(self, value: Selector) -> str:
         value1 = value.css("h1.m-0")
-        value2 = "".join(value1.css("::text").getall())
-        return value2
+        return "".join(value1.css("::text").getall())
 
     def _parse_alt_title(self, value: Selector) -> str:
         value1 = value.css(".help")
-        value2 = "".join(value1.css("::text").getall())
-        return value2
+        return "".join(value1.css("::text").getall())
 
     def _parse_description(self, value: Selector) -> str:
         value1 = value.css(".limiter span")
         value2 = value1.css("::text").getall()
-        value3 = " ".join(value2)
-        return value3
+        return " ".join(value2)
 
     def _parse_thumbnail(self, value: Selector) -> str:
         value1 = value.css(".image > img")
         value2 = value1.attrib["src"]
-        value3 = "https://sameband.studio{}".format(value2) if value2 else value2
-        return value3
+        return f"https://sameband.studio{value2}" if value2 else value2
 
     def _parse_player_url(self, value: Selector) -> str:
         value1 = value.css(".player > .player-content > iframe")
         value2 = value1.attrib["src"]
-        value3 = "https://sameband.studio{}".format(value2) if value2 else value2
-        return value3
+        return f"https://sameband.studio{value2}" if value2 else value2
 
     def parse(self) -> T_AnimePage:
         return {
@@ -200,23 +188,22 @@ class AnimePage:
 class PlaylistURLPage:
     """GET https://sameband.studio/pl/a/<PLAYLIST NAME>.html
 
-    EXAMPLE:
-        GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
+        EXAMPLE:
+            GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
 
 
     {
         "playlist_url": "String"
     }"""
 
-    def __init__(self, document: Union[str, SelectorList, Selector]) -> None:
+    def __init__(self, document: Union[str, _SelectorType]) -> None:
         self._doc = Selector(document) if isinstance(document, str) else document
 
     def _parse_playlist_url(self, value: Selector) -> str:
         value1 = value.get()
         value2 = re.search("Playerjs[^>]+file:\\s*[\\\"']([^>]+)[\\\"']", value1)[1]
         value3 = value2.replace(" ", "_")
-        value4 = "https://sameband.studio{}".format(value3) if value3 else value3
-        return value4
+        return f"https://sameband.studio{value3}" if value3 else value3
 
     def parse(self) -> T_PlaylistURLPage:
         return {"playlist_url": self._parse_playlist_url(self._doc)}
