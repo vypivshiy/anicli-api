@@ -7,13 +7,22 @@ from httpx import Response
 from parsel import Selector
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.animego_parser import AnimePage, EpisodePage, OngoingPage, SearchPage, SourcePage
+from anicli_api.source.parsers.animego_parser import (
+    AnimePage,
+    EpisodePage,
+    OngoingPage,
+    SearchPage,
+    SourcePage,
+    J_Content,
+    EpisodeVideoPage,
+    T_EpisodeVideoPlayersView,
+)
 
 _logger = logging.getLogger("anicli-api")  # type: ignore
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://animego.me"
+    BASE_URL = "https://animego.club"
 
     def _extract_search(self, resp: str):
         return [Search(**d, **self._kwargs_http) for d in SearchPage(resp).parse()]
@@ -43,11 +52,11 @@ class Extractor(BaseExtractor):
         return self._extract_search(resp.text)
 
     def ongoing(self):
-        resp = self.http.get(self.BASE_URL + "/index")
+        resp = self.http.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
     async def a_ongoing(self):
-        resp = await self.http_async.get(self.BASE_URL + "/index")
+        resp = await self.http_async.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
 
@@ -67,7 +76,7 @@ class Search(BaseSearch):
     @staticmethod
     def _is_valid_page(resp: Response):
         # RKN blocks issues eg:
-        # https://animego.me/anime/ya-predpochitayu-zlodeyku-2413
+        # https://animego.club/anime/ya-predpochitayu-zlodeyku-2413
         # but API requests MAYBE still work.
         if resp.is_success:
             return True
@@ -90,7 +99,7 @@ class Search(BaseSearch):
             description="",
             # id for API requests contains in url
             id=self.url.split("-")[-1],
-            raw_json="{}",
+            raw_json={}, # type: ignore
             **self._kwargs_http,
         )
 
@@ -106,7 +115,7 @@ class Ongoing(BaseOngoing):
     @staticmethod
     def _is_valid_page(resp: Response):
         # RKN blocks issues eg:
-        # https://animego.me/anime/ya-predpochitayu-zlodeyku-2413
+        # https://animego.club/anime/ya-predpochitayu-zlodeyku-2413
         # but API requests MAYBE still work.
         if resp.is_success:
             return True
@@ -128,7 +137,7 @@ class Ongoing(BaseOngoing):
             thumbnail=self.thumbnail,
             description="",
             id=self.url.split("-")[-1],
-            raw_json="{}",
+            raw_json={},  # type: ignore
             **self._kwargs_http,
         )
 
@@ -147,18 +156,43 @@ class Ongoing(BaseOngoing):
 @define(kw_only=True)
 class Anime(BaseAnime):
     id: str
-    _raw_json: str
+    raw_json: J_Content
 
     def _extract(self, resp: str):
+        # magic string:
+        # carousel implemented only for episodes
+        # film, OVA not exists this feature
+        if 'id="video-carousel"' not in resp:
+            film_data = EpisodeVideoPage(resp).parse()
+            return [
+                Episode(
+                    title=self.title,
+                    num="1",
+                    id=self.id,  # STUB
+                    dubbers=film_data["dubbers"],
+                    videos=film_data["videos"],
+                    is_film=True,
+                    **self._kwargs_http,
+                ),
+            ]
+
         episodes_data = EpisodePage(resp).parse()
-        return [Episode(**d, dubbers=episodes_data["dubbers"], **self._kwargs_http) for d in episodes_data["episodes"]]
+        return [
+            Episode(
+                **d,
+                dubbers=episodes_data["dubbers"],
+                videos=[],  # stub
+                **self._kwargs_http,
+            )
+            for d in episodes_data["episodes"]
+        ]
 
     @staticmethod
     def _episodes_is_available(response: str):
         sel = Selector(response)
         # RKN issue: maybe title not available in your country
         # eg:
-        # https://animego.me/anime/vtorzhenie-gigantov-2-17
+        # https://animego.club/anime/vtorzhenie-gigantov-2-17
         # this title API request don't work in RU ip
         # TODO: drop selector, rewrite in regex
         if sel.css("div.player-blocked").get():
@@ -167,11 +201,11 @@ class Anime(BaseAnime):
         return True
 
     def get_episodes(self):
-        resp = self.http.get(f"https://animego.me/anime/{self.id}/player?_allow=true").json()["content"]
+        resp = self.http.get(f"https://animego.club/anime/{self.id}/player?_allow=true").json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
     async def a_get_episodes(self):
-        resp = await self.http_async.get(f"https://animego.me/anime/{self.id}/player?_allow=true")
+        resp = await self.http_async.get(f"https://animego.club/anime/{self.id}/player?_allow=true")
         resp = resp.json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
@@ -180,6 +214,8 @@ class Anime(BaseAnime):
 class Episode(BaseEpisode):
     dubbers: Dict[str, str]
     id: str  # episode id (for extract videos required)
+    _is_film: bool = False
+    _videos: List[T_EpisodeVideoPlayersView]
 
     def _extract(self, resp: str):
         data = SourcePage(resp).parse()
@@ -189,17 +225,31 @@ class Episode(BaseEpisode):
         ]
         return [Source(**d, **self._kwargs_http) for d in data_source]
 
+    def _extract_film(self):
+        return [
+            Source(
+                # FIXME: sideeffect: dubber name duplicate
+                title=self.dubbers.get(v["data_provide_dubbing"], "???").split()[0],
+                url=v["player"],
+                **self._kwargs_http)
+            for v in self._videos
+        ]
+
     def get_sources(self):
+        if self._is_film:
+            return self._extract_film()
         resp = self.http.get(
-            "https://animego.me/anime/series",
+            "https://animego.club/anime/series",
             params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
         ).json()["content"]
         return self._extract(resp)
 
     async def a_get_sources(self):
+        if self._is_film:
+            return self._extract_film()
         resp = (
             await self.http_async.get(
-                "https://animego.me/anime/series",
+                "https://animego.club/anime/series",
                 params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
             )
         ).json()["content"]
