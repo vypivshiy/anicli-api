@@ -106,6 +106,7 @@ class Search(_SearchOrOngoing, BaseSearch):
     thumbnail: str
     url: str
 
+
 @define(kw_only=True)
 class Anime(BaseAnime):
     # required decode, contains episodes

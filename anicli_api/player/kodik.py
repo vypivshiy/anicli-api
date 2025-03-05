@@ -148,7 +148,7 @@ class Kodik(BaseVideoExtractor):
         response = response.text
         page = MainKodikMin(response).parse()
         payload = page["api_payload"]
-        payload.update(self.API_CONSTS_PAYLOAD) # type: ignore
+        payload.update(self.API_CONSTS_PAYLOAD)  # type: ignore
         return page, payload
 
     def _extract(self, response_api: Dict) -> List[Video]:
