@@ -21,10 +21,10 @@ def _pretty_print(items: Sequence[T]):
         print(f"[{i + 1}] {item}")
 
 
-def _choice(items: Sequence[T]) -> T:
+def _choice(items: Sequence[T], input_state:str="") -> T:
     _pretty_print(items)
     while True:
-        ch = input("> ")
+        ch = input(f"{input_state})> ")
         if ch.isdigit() and len(items) > int(ch) - 1:
             return items[int(ch) - 1]
 
@@ -47,7 +47,7 @@ def _search_entry(e: "BaseExtractor", q: str):
     if not _is_empty(res):
         return
     print("choice title")
-    item: "BaseSearch" = _choice(res)
+    item: "BaseSearch" = _choice(res, "SEARCH")
     return _anime_entry(item.get_anime())
 
 
@@ -56,7 +56,7 @@ def _ongoing_entry(e: "BaseExtractor"):
     if not _is_empty(res):
         return
     print("choice title")
-    item: "BaseOngoing" = _choice(res)
+    item: "BaseOngoing" = _choice(res, "ONGOING")
     return _anime_entry(item.get_anime())
 
 
@@ -73,20 +73,20 @@ def _anime_entry(a: "BaseAnime"):
         return
     print(a)
     print("choice episode")
-    item: "BaseEpisode" = _choice(eps)
+    item: "BaseEpisode" = _choice(eps, "EPISODE")
 
     s = item.get_sources()
     if not _is_empty(s):
         return
 
     print("choice source")
-    item: "BaseSource" = _choice(s)
+    item: "BaseSource" = _choice(s, "SOURCE")
     vids = item.get_videos()
     if not _is_empty(vids):
         return
 
     print("choice vids")
-    vid: "Video" = _choice(vids)
+    vid: "Video" = _choice(vids, "VIDEO")
     print("QUALITY, HEADERS, URL")
     print(f"[{vid.quality}]", ", ".join([f"{k}={v}" for k, v in vid.headers.items()]) or None, vid.url)
     print("MPV DEBUG COMMAND:")
