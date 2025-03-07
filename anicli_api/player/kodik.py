@@ -90,7 +90,7 @@ class Kodik(BaseVideoExtractor):
         """decode video url (ROT13 + base64)"""
         # 7.03.25 kodik remove encoding urls
         if url_encoded.endswith('.m3u8'):
-            return url_encoded
+            return url_encoded if url_encoded.startswith('https') else f"https:{url_encoded}"
 
         base64_url = codecs.decode(url_encoded, "rot_13")
         if not base64_url.endswith("=="):
