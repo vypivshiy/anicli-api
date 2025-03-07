@@ -504,7 +504,7 @@ class MainKodikMin:
 
     def _parse_url_params(self, value: Selector) -> J_UrlParams:
         value1 = value.get()
-        value2 = re.search("var\\s*urlParams\\s*=\\s*['\"](\\{.*\\})['\"]", value1)[1]
+        value2 = re.search("var\\s*urlParams\\s*=\\s*['\\\"](\\{.*\\})['\\\"]", value1)[1]
         return json.loads(value2)
 
     def _parse_api_payload(self, value: Selector) -> T_KodikAPIPayload:
@@ -625,7 +625,7 @@ class MainKodikSerialPage:
 
     def _parse_url_params(self, value: Selector) -> J_UrlParams:
         value1 = value.get()
-        value2 = re.search("var\\s*urlParams\\s*=\\s*['\"](\\{.*\\})['\"]", value1)[1]
+        value2 = re.search("var\\s*urlParams\\s*=\\s*['\\\"](\\{.*\\})['\\\"]", value1)[1]
         return json.loads(value2)
 
     def _parse_api_payload(self, value: Selector) -> T_KodikAPIPayload:
@@ -768,7 +768,7 @@ class MainKodikVideoPage:
 
     def _parse_url_params(self, value: Selector) -> J_UrlParams:
         value1 = value.get()
-        value2 = re.search("var\\s*urlParams\\s*=\\s*['\"](\\{.*\\})['\"]", value1)[1]
+        value2 = re.search("var\\s*urlParams\\s*=\\s*['\\\"](\\{.*\\})['\\\"]", value1)[1]
         return json.loads(value2)
 
     def _parse_api_payload(self, value: Selector) -> T_KodikAPIPayload:
