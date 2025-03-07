@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Callable, Generator, Tuple
+from typing import TYPE_CHECKING, List, Callable, Generator, Tuple, AsyncGenerator
 from urllib.parse import urlsplit
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ def video_picker_iterator(
     anime: "BaseAnime",
     episodes: List["BaseEpisode"],
     title_cb: Callable[["BaseAnime", "BaseEpisode", "BaseSource"], str] = title_callback,
-) -> Generator[None, None, Tuple["Video", str]]:
+) -> Generator[Tuple["Video", str], None, None]:
     """video picker generator. compare by start_source hash function
 
     useful, for implementation playlists features.
@@ -90,7 +90,7 @@ async def async_video_picker_iterator(
     start_source: "BaseSource",
     start_video: "Video",
     title_cb: Callable[["BaseAnime", "BaseEpisode", "BaseSource"], str] = title_callback,
-) -> Generator[Tuple["Video", str], None, None]:
+) -> AsyncGenerator[Tuple["Video", str], None]:
     """video picker generator. compare by start_source hash function
 
     useful, for implementation playlists features.
