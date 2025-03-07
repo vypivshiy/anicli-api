@@ -2,8 +2,6 @@
 
 from typing import NamedTuple, Optional, Sequence, Union
 
-import tqdm
-
 from anicli_api.base import BaseSource
 from anicli_api.player.base import Video
 
@@ -77,7 +75,8 @@ def generate_playlist_from_sources(
         _is_empty_names = True
     videos = []
 
-    for i, source in enumerate(tqdm.tqdm(sources)):
+    for i, source in enumerate(sources):
+        print(f"Parse source: {i + 1}/{len(sources)}", end="\r")
         videos = source.get_videos()
         video = _get_preferred_video_quality(videos, quality)
         videos.append(video)
@@ -103,7 +102,8 @@ async def generate_playlist_from_async_sources(
         _is_empty_names = True
     videos = []
 
-    for i, source in enumerate(tqdm.tqdm(target)):
+    for i, source in enumerate(target):
+        print(f"Parse source: {i + 1}/{len(target)}", end="\r")
         videos = await source.a_get_videos()
         video = _get_preferred_video_quality(videos, quality)
         videos.append(video)

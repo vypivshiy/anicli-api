@@ -1,12 +1,10 @@
-[tool.poetry]
+[project]
 name = "anicli_api"
-version = "0.7.4"
+version = "0.7.5"
 description = "Anime extractors api implementation"
-authors = ["vypivshiy"]
 license = "MIT"
 readme = "README.MD"
-packages = [{include = "anicli_api"}]
-exclude = ["tests/", 'scripts/', 'libanime_schema/', 'dev/']
+requires-python = ">=3.8"
 keywords = [
     "anime",
     "api",
@@ -30,35 +28,38 @@ classifiers = [
   "Topic :: Software Development :: Quality Assurance",
   "Typing :: Typed"
 ]
+dependencies = [
+    "attrs>=25.1.0",
+    "httpx[http2,socks]>=0.28.1",
+    "parsel>=1.9.1",
+]
 
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/vypivshiy/anicli-api/issues"
+[project.urls]
+Issues = "https://github.com/vypivshiy/anicli-api/issues"
+Source = "https://github.com/vypivshiy/anicli-api"
 "Cli app" = "https://github.com/vypivshiy/ani-cli-ru"
 
-[tool.poetry.dependencies]
-python = "^3.8"
-httpx = {extras = ["http2", "socks"], version = "^0.25.2"}
-parsel = "^1.8.1"
-attrs = "^23.2.0"
-tqdm = "^4.66.2"
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = {extras = ["coverage"], version = "^7.2.0"}
-pytest-cov = "^4.0.0"
-mypy = "*"
-isort = "*"
-ruff = "*"
-black = "*"
-pytest-asyncio = "^0.23.5"
-
-
-[tool.poetry.group.codegen.dependencies]
-jinja2 = "^3.1.2"
+[dependency-groups]
+dev = [
+    "mypy>=1.14.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.9.9",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "anicli_api"
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "anicli_api"
+]
 
 [tool.mypy]
 python_version = 3.8
@@ -66,17 +67,15 @@ pretty = true
 explicit_package_bases = true  # anicli_api.player issue
 ignore_missing_imports = true
 exclude = [
-    "env",
     ".env",
-    "venv",
     "__pycache__",
     "examples",
     "__template__.py",
-    "^anicli_api/source/parsers/[a-z]+_parser.py$",  # auto generated files
-    "^anicli_api/players/parsers/[a-z]+_parser.py$",  # auto generated files
+    # auto generated files
+    "^anicli_api/source/parsers/[a-z]+_parser.py$",
+    "^anicli_api/players/parsers/[a-z]+_parser.py$"
 ]
 files=["anicli_api/*"]
-
 
 [tool.ruff]
 target-version = "py38"
