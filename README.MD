@@ -169,6 +169,8 @@ if __name__ == '__main__':
 | jutsu                          | https://jut.su             | NO           | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
 | sameband                       | https://sameband.studio    | NO           | author            |                                                                                                                                                  |
 | animego.pro                    | https://animego.pro        | NO           | many              | Нестабильный uptime сайта (могут быть проблемы с доступом)                                                                                       |
+| yummy-anime.org                | https://yummy-anime.org    | NO           | many              |                                                                                                                                                  |
+| yummy-anime.ru                 | https://yummy-anime.ru     | YES          | many              |                                                                                                                                                  |
 
 
 # players description
