@@ -12,7 +12,7 @@ from .parsers.kodik_parser import MainKodikMin
 from .parsers.kodik_parser import MainKodikAPIPath
 
 __all__ = ["Kodik"]
-_URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:serial?|video|film)/\d+/\w+/\d{3,4}p")
+_URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:serial?|season|video|film)/\d+/\w+/\d{3,4}p")
 kodik_validator = url_validator(_URL_EQ)
 
 
