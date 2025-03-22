@@ -46,13 +46,11 @@ class Extractor(BaseExtractor):
         return [Ongoing(**i, **self._kwargs_http) for i in data]
 
     def search(self, query: str):
-        resp = self.http.post("https://yummy-anime.org", data={"do": "search", "subaction": "search", "story": query})
+        resp = self.http.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
         return self._extract_search(resp.text)
 
     async def a_search(self, query: str):
-        resp = await self.http_async.post(
-            "https://yummy-anime.org", data={"do": "search", "subaction": "search", "story": query}
-        )
+        resp = await self.http_async.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
         return self._extract_search(resp.text)
 
     def ongoing(self):
@@ -160,7 +158,7 @@ class Episode(BaseEpisode):
     _url: str
 
     def _build_episode_url(self, translation: T_TranslationLike) -> str:
-        """make url to target episode or fiml"""
+        """make url to target episode or film"""
         base_url = f"https://{urlsplit(self._url).netloc}"
         if self._is_film:
             url_params = self._kodik_video_data["url_params"].copy()

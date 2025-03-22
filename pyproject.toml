@@ -16,17 +16,17 @@ keywords = [
     "dev"
 ]
 classifiers = [
-  "Environment :: Console",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Topic :: Software Development :: Libraries :: Python Modules",
-  "Topic :: Software Development :: Quality Assurance",
-  "Typing :: Typed"
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed"
 ]
 dependencies = [
     "attrs>=25.1.0",
@@ -81,11 +81,11 @@ files=["anicli_api/*"]
 target-version = "py38"
 line-length = 120
 exclude = [
-  "examples",
-  "venv",
-  "__init__.py",
-  "__template__.py",  # templates
-  "tests",
+    "examples",
+    "venv",
+    "__init__.py",
+    "__template__.py",  # templates
+    "tests",
 ]
 
 [tool.pytest.ini_options]
