@@ -86,7 +86,7 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
             try:
                 resp = super().handle_request(request)
                 if have_ddos_protect(resp):
-                    msg = f"'{resp.headers.get('Server')}' detected"
+                    msg = f"'{resp.headers.get('Server')}': {request.url} returns code {resp.status_code}"
                     raise DDOSServerDetectError(msg)
                 logger.debug("%s -> %s", repr(request), repr(resp))
                 return resp
@@ -121,7 +121,7 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
             try:
                 resp = await super().handle_async_request(request)
                 if have_ddos_protect(resp):
-                    msg = f"'{resp.headers.get('Server')}' detected"
+                    msg = f"'{resp.headers.get('Server')}': {request.url} returns code {resp.status_code}"
                     raise DDOSServerDetectError(msg)
                 logger.debug(
                     "%s -> %s",
