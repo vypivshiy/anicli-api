@@ -21,7 +21,7 @@ def _pretty_print(items: Sequence[T]):
         print(f"[{i + 1}] {item}")
 
 
-def _choice(items: Sequence[T], input_state:str="") -> T:
+def _choice(items: Sequence[T], input_state: str = "") -> T:
     _pretty_print(items)
     while True:
         ch = input(f"{input_state})> ")
