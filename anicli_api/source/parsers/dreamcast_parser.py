@@ -16,19 +16,12 @@ POST https://dreamerscast.com/"
 {'search': "<QUERY>", "status": "", "pageSize": 16, 'pageNumber': 1}
 """
 
-from __future__ import annotations
 import re
 from typing import TypedDict, Union, Optional
 from contextlib import suppress
-import sys
 
-if sys.version_info >= (3, 10):
-    from types import NoneType
-else:
-    NoneType = type(None)
 
-from parsel import Selector
-from parsel.selector import _SelectorType  # noqa
+from parsel import Selector, SelectorList
 
 T_AnimePage = TypedDict(
     "T_AnimePage",
@@ -66,39 +59,39 @@ class AnimePage:
         "player_js_url": "String"
     }"""
 
-    def __init__(self, document: Union[str, _SelectorType]) -> None:
-        self._doc = Selector(document) if isinstance(document, str) else document
+    def __init__(self, document: Union[str, Selector, SelectorList]) -> None:
+        self._document = Selector(document) if isinstance(document, str) else document
 
-    def _parse_title(self, value: Selector) -> str:
-        value1 = value.css("h3")
-        return "".join(value1.css("::text").getall())
+    def _parse_title(self, v: Union[Selector, SelectorList]) -> str:
+        v0 = v.css("h3")
+        return "".join(v0.css("::text").getall())
 
-    def _parse_description(self, value: Selector) -> Optional[str]:
-        value1 = value
+    def _parse_description(self, v: Union[Selector, SelectorList]) -> Optional[str]:
+        v0 = v
         with suppress(Exception):
-            value2 = value1.css(".postDesc")
-            return "".join(value2.css("::text").getall())
+            v1 = v0.css(".postDesc")
+            return "".join(v1.css("::text").getall())
         return None
 
-    def _parse_thumbnail(self, value: Selector) -> str:
-        value1 = value.css(".details_poster img")
-        value2 = value1.attrib["src"]
-        return f"https:{value2}" if value2 else value2
+    def _parse_thumbnail(self, v: Union[Selector, SelectorList]) -> str:
+        v0 = v.css(".details_poster img")
+        v1 = v0.attrib["src"]
+        return f"https:{v1}"
 
-    def _parse_player_js_encoded(self, value: Selector) -> str:
-        value1 = value.get()
-        return re.search('new Playerjs\("(.*?)"\)', value1)[1]
+    def _parse_player_js_encoded(self, v: Union[Selector, SelectorList]) -> str:
+        v0 = v.get()
+        return re.search(r'new Playerjs\("(.*?)"\)', v0)[1]
 
-    def _parse_player_js_url(self, value: Selector) -> str:
-        value1 = value.get()
-        value2 = re.search('<script[^>]+src="(/js/playerjs.*?)"', value1)[1]
-        return f"https://dreamerscast.com{value2}" if value2 else value2
+    def _parse_player_js_url(self, v: Union[Selector, SelectorList]) -> str:
+        v0 = v.get()
+        v1 = re.search('<script[^>]+src="(/js/playerjs.*?)"', v0)[1]
+        return f"https://dreamerscast.com{v1}"
 
     def parse(self) -> T_AnimePage:
         return {
-            "title": self._parse_title(self._doc),
-            "description": self._parse_description(self._doc),
-            "thumbnail": self._parse_thumbnail(self._doc),
-            "player_js_encoded": self._parse_player_js_encoded(self._doc),
-            "player_js_url": self._parse_player_js_url(self._doc),
+            "title": self._parse_title(self._document),
+            "description": self._parse_description(self._document),
+            "thumbnail": self._parse_thumbnail(self._document),
+            "player_js_encoded": self._parse_player_js_encoded(self._document),
+            "player_js_url": self._parse_player_js_url(self._document),
         }
