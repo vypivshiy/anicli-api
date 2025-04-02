@@ -161,14 +161,12 @@ if __name__ == '__main__':
 
 | name                           | url                        | official api | dubbers           | note                                                                                                                                             |
 |--------------------------------|----------------------------|--------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| animego                        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ и стран прибалтики                                                                   |
-| animania DROP (dead)           | https://animania.online    | NO           | many              | источник kodik, не работает на IP отличных от СНГ и стран прибалтики                                                                             |
+| animego                        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ и стран прибалтики. Часто попадает под РКН блокировки                                |
 | sovetromantica                 | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                       |
 | anilibria                      | https://anilibria.tv       | YES          | author            |                                                                                                                                                  |
 | animevost                      | https://animevost.org      | YES          | author            |                                                                                                                                                  |
 | jutsu                          | https://jut.su             | NO           | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
 | sameband                       | https://sameband.studio    | NO           | author            |                                                                                                                                                  |
-| animego.pro                    | https://animego.pro        | NO           | many              | Нестабильный uptime сайта (могут быть проблемы с доступом)                                                                                       |
 | yummy-anime.org                | https://yummy-anime.org    | NO           | many              |                                                                                                                                                  |
 | yummy-anime.ru                 | https://yummy-anime.ru     | YES          | many              |                                                                                                                                                  |
 
@@ -186,14 +184,12 @@ if __name__ == '__main__':
 | kodik          | 720 (на старых тайтлах (ранние One Peace, Evangelion) - 480) | **работает только на IP СНГ и стран прибалтики**                                           |
 | aniboom        | 1080                                                         | **работает только на IP СНГ и стран прибалтики**. Иногда не возвращает mpd ссылку на видео |
 | sibnet         | 480                                                          |                                                                                            |
-| animejoy       | 1080                                                         | только актуальные ongoing, потом видео удаляются с серверов                                |
 | csst           | 1080                                                         |                                                                                            |
 | dzen           | 1080                                                         |                                                                                            |
 | mailru         |                                                              |                                                                                            |
 | okru           |                                                              |                                                                                            |
 | sovetromantica | 1080                                                         | не на все тайтлы присутствуют видео                                                        |
 | vkcom          | 1080 (какого качества автор зальет видео)                    | CDN сервера в РФ, в других странах загружается медленнее                                   |
-| nuum           | 1080                                                         | проект от wasd.tv                                                                          |
 | anilibria      | 1080                                                         |                                                                                            |
 | jutsu          | 1080                                                         |                                                                                            |
 | sameband       | 1080                                                         |                                                                                            |
@@ -207,6 +203,133 @@ import logging
 logger = logging.getLogger('anicli-api')
 ```
 
+## Tools
+
+Наборы вспомогательных модулей
+
+### cookies.py
+
+Опциональная зависимость для извлечения cookie данных из браузера для последующего использования в httpx.
+Реализована при помощи библиотеки [rookiepy](https://github.com/thewh1teagle/rookie)
+
+```bash
+pip install anicli-api[browser-cookies]
+```
+
+```python
+import httpx
+from anicli_api.tools.cookies import get_raw_cookies_from_browser, raw_cookies_to_httpx_cookiejar
+
+# по умолчанию извлекает все cookies
+raw_cookies = get_raw_cookies_from_browser("firefox")
+cookies = raw_cookies_to_httpx_cookiejar(raw_cookies)
+# опциональный фильтр по host:
+# raw_cookies = get_raw_cookies_from_browser("firefox", ["example.com"])
+httpx.get("https://example.com", cookies=cookies)
+
+# update cookies in extractors:
+from anicli_api.source.yummy_anime_org import Extractor
+ex = Extractor()
+ex.http.cookies.update(cookies)
+ex.http_async.cookies.update(cookies)
+```
+
+### dummy_cli.py
+
+Простой cli-клиент для ручных тестов и имитации клиента
+
+```python
+from anicli_api.tools.dummy_cli import cli
+from anicli_api.source.yummy_anime_org import Extractor
+
+cli(Extractor())
+```
+
+### helpers.py
+
+Наборы вспомогательных функций для взаимодействия с экстракторами
+
+```python
+from anicli_api.source.yummy_anime_org import Extractor
+from anicli_api.tools.helpers import get_video_by_quality, video_picker_iterator, async_video_picker_iterator
+
+ex = Extractor()
+result = ex.search('lain')[0]
+anime = result.get_anime()
+episodes = anime.get_episodes()
+sources = episodes[0].get_sources()
+videos = sources[0].get_videos()
+
+# извлечь ближайшее доступное по качеству видео
+# 1080 or linear quality: 720 -> 480 -> 360 -> 240...
+video = get_video_by_quality(videos, 1080)
+
+# итератор видео и заголовка
+# извлекает выбранное видео по разрешению и озвучке
+for video_and_title in video_picker_iterator(
+        start_source=sources[0],
+        start_video=videos[0],
+        anime=anime,
+        episodes=episodes[3:]):  # limit episodes to 3
+    v, title = video_and_title
+    print(title, v)
+
+# async реализация итератора
+async def main():
+    async for vid_and_title in async_video_picker_iterator(
+      start_source=sources[0],
+        start_video=videos[0],
+        anime=anime,
+        episodes=episodes[3:]  # limit episodes to 3
+    ):
+        v, title = vid_and_title
+        print(title, v)
+
+import asyncio
+asyncio.run(main())
+```
+
+### m3u.py
+
+Реализация создания m3u плейлиста из объектов экстрактора
+
+```python
+from anicli_api.source.yummy_anime_org import Extractor
+
+from anicli_api.tools.m3u import generate_playlist, generate_asyncio_playlist
+from anicli_api.tools.helpers import video_picker_iterator, async_video_picker_iterator
+
+ex = Extractor()
+result = ex.search('lain')[0]
+anime = result.get_anime()
+episodes = anime.get_episodes()
+# get first source for first 3 episodes
+sources =  [e.get_sources()[0] for e in episodes[:3]]
+videos = sources[0].get_videos()
+
+# generate playlist from sources
+playlist_sources = generate_playlist(sources)
+
+# generate playlist from video_picker
+video_objs, titles_objs = [],[]
+for video_and_title in video_picker_iterator(
+        start_source=sources[0],
+        start_video=videos[0],
+        anime=anime,
+        episodes=episodes[3:]):  # limit episodes to 3
+    v, title = video_and_title
+    video_objs.append(v)
+    titles_objs.append(title)
+playlist = generate_playlist(video_objs, titles_objs)
+
+
+# asyncio
+# if target not Source object - you can use sync variant
+import asyncio
+playlist_async = asyncio.run(generate_asyncio_playlist(sources))
+```
+
+
 ## http path
 
 ### source
@@ -219,8 +342,8 @@ from anicli_api.source.animego import Extractor
 import httpx
 # не обязательно настраивать все клиенты, зависит от режима использования
 # например, если вы будете использовать только asyncio - настраивайте только http_async_client 
-my_client = httpx.Client(headers={"user-agent": "007"}, proxies="http://127.0.0.1:8080")
-my_async_client = httpx.AsyncClient(headers={"user-agent": "007"}, proxies="http://127.0.0.1:8080")
+my_client = httpx.Client(headers={"user-agent": "007"}, proxy="http://127.0.0.1:8080")
+my_async_client = httpx.AsyncClient(headers={"user-agent": "007"}, proxy="http://127.0.0.1:8080")
 
 # настройки клиентов будут передаваться всем объектам кроме методов Source.get_videos() 
 # и Source.a_get_videos()
