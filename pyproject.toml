@@ -1,6 +1,6 @@
 [project]
 name = "anicli_api"
-version = "0.7.8"
+version = "0.7.9"
 description = "Anime extractors api implementation"
 license = "MIT"
 readme = "README.MD"
@@ -30,8 +30,10 @@ classifiers = [
 ]
 dependencies = [
     "attrs>=25.1.0",
+
     "httpx[http2,socks]>=0.28.1",
     "parsel>=1.9.1",
+
 ]
 
 [project.urls]
@@ -39,13 +41,18 @@ Issues = "https://github.com/vypivshiy/anicli-api/issues"
 Source = "https://github.com/vypivshiy/anicli-api"
 "Cli app" = "https://github.com/vypivshiy/ani-cli-ru"
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "mypy>=1.14.1",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.24.0",
     "ruff>=0.9.9",
 ]
+# optional dep libs for extract cookies from browser
+browser-cookies = [
+    "rookiepy>=0.5.6",
+]
+
 
 [build-system]
 requires = ["hatchling"]
@@ -90,3 +97,9 @@ exclude = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[dependency-groups]
+browser-cookies = [
+    "rookiepy>=0.5.6",
+]
+
