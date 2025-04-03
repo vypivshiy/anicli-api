@@ -14,12 +14,21 @@ class SovietRomanticaEmbed(SovietRomanticaPlayer):
 
     @player_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
-        resp = self.http.get(url)
-        url = re.search(r'"file":"(.+?)"', resp.text)[1]
-        return self._extract(url)
+        print(f"⚡🐍 {url=}")
+        response = self.http.get(url)
+        return self._extract(response.text)
 
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> List[Video]:
-        resp = await self.a_http.get(url)
-        url = re.search(r'"file":"(.+?)"', resp.text)[1]
-        return self._extract(url)
+        async with self.a_http as client:
+            response = await client.get(url)
+            return self._extract(response.text)
+
+    def _extract(self, response: str) -> List[Video]:
+        if url := re.search(r'"file":"(.+?)"', response):
+            return super()._extract(url[1])
+        return []
+
+
+if __name__ == "__main__":
+    SovietRomanticaEmbed().parse("https://sovetromantica.com/embed/episode_1475_1-subtitles")
