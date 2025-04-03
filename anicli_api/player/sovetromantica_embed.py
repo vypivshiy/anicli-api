@@ -14,7 +14,6 @@ class SovietRomanticaEmbed(SovietRomanticaPlayer):
 
     @player_validator
     def parse(self, url: str, **kwargs) -> List[Video]:
-        print(f"⚡🐍 {url=}")
         response = self.http.get(url)
         return self._extract(response.text)
 
