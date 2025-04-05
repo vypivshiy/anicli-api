@@ -1,15 +1,16 @@
 import re
 from typing import List
 
-from anicli_api.player.base import Video, url_validator
-from anicli_api.player.sovetromantica import SovietRomanticaPlayer
+from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
-__all__ = ["SovietRomanticaEmbed"]
-_URL_EQ = re.compile(r"https?://(www\.)?sovetromantica\.com/embed/.*")
+__all__ = ["Askor"]
+# url validator pattern
+_URL_EQ = re.compile(r"https?://(www\.)?aksor\.(yani\.)?tv/.*")
+# url validate decorator
 player_validator = url_validator(_URL_EQ)
 
 
-class SovietRomanticaEmbed(SovietRomanticaPlayer):
+class Askor(BaseVideoExtractor):
     URL_RULE = _URL_EQ
 
     @player_validator
@@ -24,10 +25,10 @@ class SovietRomanticaEmbed(SovietRomanticaPlayer):
             return self._extract(response.text)
 
     def _extract(self, response: str) -> List[Video]:
-        if url := re.search(r'"file":"(.+?)"', response):
-            return super()._extract(url[1])
+        if url := re.search(r'var videoUrl = "(.+?)";', response):
+            return [Video(type="mpd", quality=1080, url=url[1])]
         return []
 
 
 if __name__ == "__main__":
-    SovietRomanticaEmbed().parse("https://sovetromantica.com/embed/episode_1475_1-subtitles")
+    Askor().parse("https://aksor.yani.tv/anime/a10374/AniLibria/01/1080")
