@@ -71,10 +71,13 @@ class OngoingPage:
         return f"https://yummy-anime.org{v0}"
 
     def _parse_episode(self, v: Union[Selector, SelectorList]) -> int:
-        v0 = v.css(".cell-2")
-        v1 = "".join(v0.css("::text").getall())
-        v2 = re.search("(\\d+)\\s", v1)[1]
-        return int(v2)
+        v0 = v
+        with suppress(Exception):
+            v1 = v0.css(".cell-2")
+            v2 = "".join(v1.css("::text").getall())
+            v3 = re.search("(\\d+)\\s", v2)[1]
+            return int(v3)
+        return 1
 
     def _parse_title(self, v: Union[Selector, SelectorList]) -> str:
         v0 = v.css(".xfieldimage[alt]")
