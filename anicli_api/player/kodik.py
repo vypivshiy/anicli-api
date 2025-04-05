@@ -84,20 +84,32 @@ class Kodik(BaseVideoExtractor):
                 response_api = await client.post(url_api, data=payload, headers=headers)
 
             return self._extract(response_api.json()["links"])
-
+    
     @staticmethod
-    def _decode(url_encoded: str) -> str:
-        """decode video url (ROT13 + base64)"""
+    def _decrypt_url(encoded_str: str) -> str:
+        """Decrypt string with custom ROT cipher"""
+        string = ''
+        for char in encoded_str:
+            if char.isupper():
+                string += chr((ord(char) - 65 + 18) % 26 + 65)
+            elif char.islower():
+                string += chr((ord(char) - 97 + 18) % 26 + 97)
+            else:
+                string += char
+        return string
+    
+    def _decode(self, url_encoded: str) -> str:
+        """decode video url (custom ROT cipher + base64)"""
         # 7.03.25 kodik remove encoding urls
         if url_encoded.endswith(".m3u8"):
             return url_encoded if url_encoded.startswith("https") else f"https:{url_encoded}"
 
-        base64_url = codecs.decode(url_encoded, "rot_13")
+        base64_url = self._decrypt_url(url_encoded)
         if not base64_url.endswith("=="):
             base64_url += "=="
         decoded_url = b64decode(base64_url).decode()
         return decoded_url if decoded_url.startswith("https") else f"https:{b64decode(base64_url).decode()}"
-
+        
     @staticmethod
     def _get_netloc(url: str) -> str:
         # Its maybe kodik, anivod or other providers
