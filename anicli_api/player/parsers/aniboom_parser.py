@@ -58,6 +58,8 @@ T_AniboomPage = TypedDict(
 class AniboomPage:
     """Extract MPD and M3U8 urls
 
+        NOTE: use data_parameters instead hls and dash keys for get urls
+
         Required `referer="https://animego.org/` HEADER (.me, .club?)
 
         USAGE:
@@ -92,9 +94,6 @@ class AniboomPage:
             "type":"application\\/x-mpegURL"}"
 
             ... }
-
-
-
 
 
     {
