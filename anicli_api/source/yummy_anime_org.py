@@ -1,5 +1,5 @@
 import warnings
-from typing import List, TypedDict
+from typing import List, TypedDict, Union
 from urllib.parse import urlsplit, urlencode
 
 from attrs import define
@@ -157,9 +157,10 @@ class Episode(BaseEpisode):
     # orig kodik player url. later required, for replace hashes for needed translation option
     _url: str
 
-    def _build_episode_url(self, translation: T_TranslationLike) -> str:
+    def _build_episode_url(self, translation: Union[T_TranslationLike, dict]) -> str:
         """make url to target episode or film"""
         base_url = f"https://{urlsplit(self._url).netloc}"
+
         if self._is_film:
             url_params = self._kodik_video_data["url_params"].copy()
         else:
@@ -171,6 +172,12 @@ class Episode(BaseEpisode):
                 {"season": int(self._kodik_serial_data["season_box"][0]["value"]), "episode": int(self.num)}
             )
         url_params_encoded = urlencode(url_params)
+
+        # maybe exclude translations choice
+        # https://yummy-anime.org/5046-miru-moe-buduschee.html
+        if not self._is_film and not translation:
+            return self._url + "?" + url_params_encoded
+
         return (
             base_url
             + f"/{translation['data_media_type']}"
@@ -194,7 +201,17 @@ class Episode(BaseEpisode):
         available_translations = [
             i for i in self._kodik_serial_data["translations_box"] if int(self.num) <= int(i["data_episode_count"])
         ]
-
+        # maybe have single dub:
+        # https://yummy-anime.org/5046-miru-moe-buduschee.html
+        if not available_translations:
+            return [
+                # don't know what to call it when only one voice dubbing is available
+                Source(
+                    title="ORIGINAL (single dub)",
+                    url=self._build_episode_url({}),
+                    **self._kwargs_http,
+                )
+            ]
         return [
             Source(
                 title=f"{i['data_title']} ({urlsplit(self._url).netloc})",
