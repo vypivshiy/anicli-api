@@ -14,7 +14,9 @@ _O_Y = "xx???x=xx?x??="  # maybe dynamic
 _ABC = "ABCDEFGHIJKLMabcdefghijklmNOPQRSTUVWXYZnopqrstuvwxyz"
 _SALT_ABC_STRING = f"{_ABC}0123456789+/="
 
-_RE_O_U1 = re.compile(r"""u:\\['"](#1[^>]+==)\\['"]""")  # for extract ciphered data from player js
+_RE_O_U1 = re.compile(r"u:\s*\\\s*['\"]([^=]+=[\\]+)\s*['\"]")
+"""js script encoded"""
+
 _BASE36_STRING = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 # search anchors
