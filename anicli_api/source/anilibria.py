@@ -215,6 +215,7 @@ class Anime(BaseAnime):
                 fhd=f"https://{host}{item['hls']['fhd']}" if item["hls"].get("fhd") else None,
                 hd=f"https://{host}{item['hls']['hd']}",
                 sd=f"https://{host}{item['hls']['sd']}",
+                **self._kwargs_http
             )
             for num, item in self.player["list"].items()
         ]
@@ -233,7 +234,8 @@ class Episode(BaseEpisode):
     _sd: str
 
     def get_sources(self) -> List["Source"]:
-        return [Source(title="Anilibria", url="https://api.anilibria.tv", fhd=self._fhd, hd=self._hd, sd=self._sd)]
+        return [Source(title="Anilibria", url="https://api.anilibria.tv", fhd=self._fhd, hd=self._hd, sd=self._sd,
+                       **self._kwargs_http)]
 
     async def a_get_sources(self) -> List["Source"]:
         return self.get_sources()
