@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Optional, TYPE_CHECKING, Union
+from typing import List, Dict, Any, TYPE_CHECKING, Union
 
 from attr import define
 

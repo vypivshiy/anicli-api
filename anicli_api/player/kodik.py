@@ -1,10 +1,8 @@
-import codecs
 import re
 import warnings
 from base64 import b64decode
-from typing import Any, Dict, List
+from typing import Dict, List
 from urllib.parse import urlsplit
-
 from httpx import Response
 
 from .base import BaseVideoExtractor, Video, url_validator
