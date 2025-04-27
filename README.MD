@@ -159,16 +159,17 @@ if __name__ == '__main__':
   - once - один вид (случайный)
   - author - своя
 
-| name                           | url                        | official api | dubbers           | note                                                                                                                                             |
-|--------------------------------|----------------------------|--------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
-| animego                        | https://animego.org        | NO           | many              | источники kodik, animego, не работает на IP отличных от СНГ и стран прибалтики. Часто попадает под РКН блокировки                                |
-| sovetromantica                 | https://sovetromantica.com | NO           | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                       |
-| anilibria                      | https://anilibria.tv       | YES          | author            |                                                                                                                                                  |
-| animevost                      | https://animevost.org      | YES          | author            |                                                                                                                                                  |
-| jutsu                          | https://jut.su             | NO           | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
-| sameband                       | https://sameband.studio    | NO           | author            |                                                                                                                                                  |
-| yummy-anime.org                | https://yummy-anime.org    | NO           | many              |                                                                                                                                                  |
-| yummy-anime.ru                 | https://yummy-anime.ru     | YES          | many              |                                                                                                                                                  |
+| name            | url                        | type | dubbers           | note                                                                                                                                             |
+|-----------------|----------------------------|------|-------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| animego         | https://animego.org        | NO   | many              | источники kodik, animego, не работает на IP отличных от СНГ и стран прибалтики. Часто попадает под РКН блокировки                                |
+| sovetromantica  | https://sovetromantica.com | NO   | subtitles, author | не на все тайтлы есть видео, у себя хостят                                                                                                       |
+| anilibria       | https://anilibria.tv       | YES  | author            |                                                                                                                                                  |
+| animevost       | https://animevost.org      | YES  | author            |                                                                                                                                                  |
+| jutsu           | https://jut.su             | NO   | once              | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ |
+| sameband        | https://sameband.studio    | NO   | author            |                                                                                                                                                  |
+| yummy_anime_org | https://yummy-anime.org    | NO   | many              |                                                                                                                                                  |
+| yummy_anime_ru  | https://yummy-anime.ru     | YES  | many              |                                                                                                                                                  |
+| anilib.me       | https://anilib.me          | YES  | many              |                                                                                                                                                  |
 
 
 # players description
@@ -186,11 +187,7 @@ if __name__ == '__main__':
 | askor          | 1080                                                         |                                                                                            |
 | sibnet         | 480                                                          |                                                                                            |
 | csst           | 1080                                                         |                                                                                            |
-| dzen           | 1080                                                         |                                                                                            |
-| mailru         |                                                              |                                                                                            |
-| okru           |                                                              |                                                                                            |
 | sovetromantica | 1080                                                         | не на все тайтлы присутствуют видео                                                        |
-| vkcom          | 1080 (какого качества автор зальет видео)                    | CDN сервера в РФ, в других странах загружается медленнее                                   |
 | anilibria      | 1080                                                         |                                                                                            |
 | jutsu          | 1080                                                         |                                                                                            |
 | sameband       | 1080                                                         |                                                                                            |
