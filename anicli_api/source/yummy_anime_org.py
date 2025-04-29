@@ -140,13 +140,22 @@ class Anime(BaseAnime):
             warnings.warn(msg, category=Warning)
             return []
 
+    def _is_valid_player_url(self):
+        # not exists player url
+        # https://yummy-anime.org/3467-tokijskij-gul-pinto.html
+        return bool(urlsplit(self._player_url).netloc)
+
     def get_episodes(self):
-        resp = self.http.get(self._player_url)
-        return self._extract(resp.text)
+        if self._is_valid_player_url():
+            resp = self.http.get(self._player_url)
+            return self._extract(resp.text)
+        return []
 
     async def a_get_episodes(self):
-        resp = await self.http_async.get(self._player_url)
-        return self._extract(resp.text)
+        if self._is_valid_player_url():
+            resp = await self.http_async.get(self._player_url)
+            return self._extract(resp.text)
+        return []
 
 
 @define(kw_only=True)
