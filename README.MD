@@ -191,6 +191,7 @@ if __name__ == '__main__':
 | anilibria      | 1080                                                         |                                                                                            |
 | jutsu          | 1080                                                         |                                                                                            |
 | sameband       | 1080                                                         |                                                                                            |
+| anilib         | 2060 (4k)                                                    | требуется авторизация, добавить заголовок `Authorization: Bearer ...`                      |
   
 ## logging
 
