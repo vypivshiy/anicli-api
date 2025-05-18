@@ -30,15 +30,19 @@ def _choice(items: Sequence[T], input_state: str = "") -> T:
 
 
 def _generate_mpv_cmd(vid: "Video"):
-    def _headers_to_str(headers: dict):
+    def _headers_to_mpv_opts(headers: dict):
         result = []
+        referrer = "--referrer=" + '"' + headers.pop("Referrer") + '"' if headers.get("Referrer") else ""
+        user_agent = "--user-agent=" + '"' + headers.pop("User-Agent") + '"' if headers.get("User-Agent") else ""
         for k, v in headers.items():
             v = v.replace('"', '\\"')
             result.append(f'"{k}: {v}"')
-        return ",".join(result)
+        if result:
+            return f"{user_agent} {referrer} --http-header-fields={','.join(result)}"
+        return f"{user_agent} {referrer}"
 
     if vid.headers:
-        return f'mpv "{vid.url}" --http-header-fields={_headers_to_str(vid.headers)}'
+        return f'mpv "{vid.url}" {_headers_to_mpv_opts(vid.headers)}'
     return f'mpv "{vid.url}"'
 
 
@@ -88,6 +92,7 @@ def _anime_entry(a: "BaseAnime"):
     print("choice vids")
     vid: "Video" = _choice(vids, "VIDEO")
     print("QUALITY, HEADERS, URL")
+
     print(f"[{vid.quality}]", ", ".join([f"{k}={v}" for k, v in vid.headers.items()]) or None, vid.url)
     print("MPV DEBUG COMMAND:")
     print(_generate_mpv_cmd(vid))
