@@ -1,9 +1,11 @@
+import warnings
 from typing import TYPE_CHECKING, Dict, List, Union, Any, Optional
 
 from attrs import define
 
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
+from anicli_api.player.base import Video
 
 if TYPE_CHECKING:
     from httpx import AsyncClient, Client
@@ -118,6 +120,8 @@ class Extractor(BaseExtractor):
 
     def search(self, query: str) -> List["Search"]:
         resp = self.api.anime_search(query=query)
+        if self._is_server_error_return(resp):
+            return []
         return [
             Search(
                 thumbnail=kw["cover"]["default"],
@@ -131,6 +135,8 @@ class Extractor(BaseExtractor):
 
     async def a_search(self, query: str) -> List["Search"]:
         resp = await self.api.a_anime_search(query=query)
+        if self._is_server_error_return(resp):
+            return []
         return [
             Search(
                 thumbnail=kw["cover"]["default"],
@@ -144,11 +150,14 @@ class Extractor(BaseExtractor):
 
     def ongoing(self) -> List["Ongoing"]:
         resp = self.api.anime_ongoing()
-        # drop [links], [meta] keys, impl minimal features
+        if self._is_server_error_return(resp):
+            return []
         return [
             Ongoing(
                 thumbnail=kw["cover"]["default"],
-                title=kw["rus_name"] if kw.get("rus_name") else kw["eng_name"],
+                # pokemon with title == None
+                # https://anilib.me/ru/anime/25446--araiguma-calcal-dan-anime?ui=10678079
+                title=kw["rus_name"] if kw.get("rus_name") else kw["name"],
                 url=self.BASE_URL + "anime/" + kw["slug_url"],
                 # stubs
                 **kw,
@@ -159,11 +168,14 @@ class Extractor(BaseExtractor):
 
     async def a_ongoing(self) -> List["Ongoing"]:
         resp = await self.api.a_anime_ongoings()
-        # drop [links], [meta] keys, impl minimal features
+        if self._is_server_error_return(resp):
+            return []
         return [
             Ongoing(
                 thumbnail=kw["cover"]["default"],
-                title=kw["rus_name"] if kw.get("rus_name") else kw["eng_name"],
+                # pokemon with title == None
+                # https://anilib.me/ru/anime/25446--araiguma-calcal-dan-anime?ui=10678079
+                title=kw["rus_name"] if kw.get("rus_name") else kw["name"],
                 url=self.BASE_URL + "anime/" + kw["slug_url"],
                 # stubs
                 **kw,
@@ -171,6 +183,14 @@ class Extractor(BaseExtractor):
             )
             for kw in resp["data"]
         ]
+
+    @staticmethod
+    def _is_server_error_return(resp: dict[str, Any]) -> bool:
+        if resp.get("message") and resp["message"] == "Server Error":
+            msg = f"server returns msg '{resp}'"
+            warnings.warn(msg, category=RuntimeWarning)
+            return True
+        return False
 
 
 class _SearchOrOngoing:
@@ -260,6 +280,9 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
     status: Dict[str, Any]
     type: Dict[str, Any]
 
+    # extra fields after auth
+    userBookmark: Any = None
+
 
 @define(kw_only=True)
 class Anime(BaseAnime):
@@ -342,27 +365,36 @@ class Episode(BaseEpisode):
 
     def get_sources(self) -> List["Source"]:
         resp = self.http.get(f"https://api.cdnlibs.org/api/episodes/{self.id}").json()
-        return [
-            Source(
-                url=kw["src"] if kw["src"].startswith("http") else f"https:{kw['src']}",
-                title=kw["team"]["name"],
-                **kw,
-                **self._kwargs_http,
-            )
-            for kw in resp["data"]["players"]
-        ]
+        return self._parse_anilib_response(resp)
+
+    def _parse_anilib_response(self, resp):
+        sources = []
+        for data in resp["data"]["players"]:
+            if data["player"].lower() == "kodik":
+                sources.append(
+                    Source(
+                        url=data["src"] if data["src"].startswith("http") else f"https:{data['src']}",
+                        title=data["team"]["name"],
+                        **data,
+                        **self._kwargs_http,
+                    )
+                )
+            elif data["player"].lower() == "animelib":
+                sources.append(
+                    AnilibMeSource(
+                        # hardcoded url
+                        # original encoded path: .%D0%B0s/
+                        url="https://video1.anilib.me/.аs/",
+                        title=data["team"]["name"],
+                        # later parse source by data['video'] key
+                        anilib_data=data,
+                    )
+                )
+        return sources
 
     async def a_get_sources(self) -> List["Source"]:
         resp = await self.http_async.get(f"https://api.cdnlibs.org/api/episodes/{self.id}").json()
-        return [
-            Source(
-                url=kw["src"] if kw["src"].startswith("http") else f"https:{kw['src']}",
-                title=kw["team"]["name"],
-                **kw,
-                **self._kwargs_http,
-            )
-            for kw in resp["data"]["players"]
-        ]
+        return self._parse_anilib_response(resp)
 
 
 @define(kw_only=True)
@@ -378,9 +410,43 @@ class Source(BaseSource):
     created_at: str
     views: int
     src: str
+    # extra fields after auth
+    is_viewed: bool = False
+    timecode: Any = None
+
+
+@define(kw_only=True)
+class AnilibMeSource(BaseSource):
+    url: str
+    title: str
+    # corner case: anilib impl after auth
+    _anilib_data: dict
+
+    def get_videos(self, **httpx_kwargs) -> List["Video"]:
+        videos = []
+        for data in self._anilib_data["video"]["quality"]:
+            videos.append(
+                Video(
+                    type="mp4",
+                    quality=data["quality"],  # literal 360, 720, 1080, 2160
+                    url=self.url + data["href"],
+                    headers={"Referrer": "https://www.anilib.me/", "User-Agent": self.http.headers["User-Agent"]},
+                )
+            )
+        return videos
+
+    async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
+        return self.get_videos()
 
 
 if __name__ == "__main__":
     from anicli_api.tools import cli
 
+    # allow extract anilib sources if pass auth token
+    # you can auth and find token in devtools->XHR->rest-api request
+    # headers requests, Authorization key
+    # HEADER = {"Authorization": "Bearer ..."}
+    # EXTRACTOR = Extractor()
+    # EXTRACTOR.http.headers.update(HEADER)
+    # cli(EXTRACTOR)
     cli(Extractor())
