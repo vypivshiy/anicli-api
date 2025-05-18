@@ -24,11 +24,8 @@ from pathlib import Path
 try:
     import rookiepy
 except ImportError:
-    msg = (
-        "Extract cookies from browser required 'rookiepy' dependency. "
-        "For install it use `pip install anicli-api[browser-cookies]` command."
-    )
-    raise ImportError(msg)
+    # we don't throw an error because it is still possible to load from netscape format string/file
+    rookiepy = None
 from typing import Literal, List, Optional, Any, Dict, Union
 from httpx import Cookies
 
@@ -87,10 +84,25 @@ else:
     ]
 
 
+def __is_installed_rookiepy() -> None:
+    if not rookiepy:
+        msg = (
+            "Extract cookies from browser required 'rookiepy' dependency. "
+            "For install it use `pip install anicli-api[browser-cookies]` command."
+        )
+        raise ImportError(msg)
+
+
 def get_raw_cookies_from_browser(
     browser: BROWSER_LITERAL = "any_browser", domains: Optional[List[str]] = None
 ) -> List[Dict[str, Any]]:
     """extract cookies from browser. Optional, can be filtered by list of domains."""
+    if not rookiepy:
+        msg = (
+            "Extract cookies from browser required 'rookiepy' dependency. "
+            "For install it use `pip install anicli-api[browser-cookies]` command."
+        )
+        raise ImportError(msg)
     try:
         func_extract = getattr(rookiepy, browser)
     except AttributeError:
@@ -101,12 +113,14 @@ def get_raw_cookies_from_browser(
 
 def raw_cookies_to_httpx_cookiejar(raw_cookies: List[Dict[str, Any]]) -> Cookies:
     """convert raw cookies to httpx.Cookies format"""
+    __is_installed_rookiepy()
     cookie_jar = rookiepy.to_cookiejar(raw_cookies)
     return Cookies(cookie_jar)
 
 
 def raw_cookies_to_netscape(raw_cookies: List[Dict[str, Any]]) -> str:
     """convert list of cookies to netscape format"""
+    __is_installed_rookiepy()
     return rookiepy.to_netscape(raw_cookies)
 
 
