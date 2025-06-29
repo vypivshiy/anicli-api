@@ -155,7 +155,10 @@ class Kodik(BaseVideoExtractor):
         return False
 
     def _update_api_path(self, response_player) -> None:
-        path = MainKodikAPIPath(response_player.text).parse()["api_path"]
+        # codegen currently broken logic in anicli-ru app (returns NoneType)
+        # but native regex still works???
+        # MainKodikAPIPath(response_player.text).parse()["api_path"]
+        path = re.search(r"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)", response_player.text)[1] 
         self._CACHED_API_PATH = b64decode(path).decode()
 
     def _extract_api_payload(self, response):
