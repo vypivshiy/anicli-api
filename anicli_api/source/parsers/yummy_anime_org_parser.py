@@ -41,7 +41,7 @@ class OngoingPage:
 
         USAGE:
 
-            GET https://yummy-anime.org/
+            GET https://yummyanime.in/
 
 
 
@@ -64,11 +64,11 @@ class OngoingPage:
     def _parse_thumbnail(self, v: Union[Selector, SelectorList]) -> str:
         v0 = v.css(".xfieldimage[src]")
         v1 = v0.attrib["src"]
-        return f"https://yummy-anime.org{v1}"
+        return f"https://yummyanime.in{v1}"
 
     def _parse_url(self, v: Union[Selector, SelectorList]) -> str:
         v0 = v.attrib["href"]
-        return f"https://yummy-anime.org{v0}"
+        return f"https://yummyanime.in{v0}"
 
     def _parse_episode(self, v: Union[Selector, SelectorList]) -> int:
         v0 = v
@@ -100,12 +100,12 @@ class SearchPage:
 
         USAGE:
 
-            POST https://yummy-anime.org
+            POST https://yummyanime.in
             do=search&subaction=search&story=<QUERY>
 
         EXAMPLE:
 
-            POST https://yummy-anime.org/index.php
+            POST https://yummyanime.in/index.php
             do=search&subaction=search=from_page=0story=ван-пис
 
 
@@ -131,7 +131,7 @@ class SearchPage:
     def _parse_thumbnail(self, v: Union[Selector, SelectorList]) -> str:
         v0 = v.css(".xfieldimage[data-src]")
         v1 = v0.attrib["data-src"]
-        return f"https://yummy-anime.org{v1}"
+        return f"https://yummyanime.in{v1}"
 
     def _parse_url(self, v: Union[Selector, SelectorList]) -> str:
         return v.attrib["href"]
@@ -152,11 +152,11 @@ class AnimePage:
 
         USAGE:
 
-            GET https://yummy-anime.org/<...>.html
+            GET https://yummyanime.in/<...>.html
 
         EXAMPLE:
 
-            GET https://yummy-anime.org/4790-vedma-i-chudovische.html
+            GET https://yummyanime.in/4790-vedma-i-chudovische.html
 
 
 
@@ -193,7 +193,7 @@ class AnimePage:
     def _parse_thumbnail(self, v: Union[Selector, SelectorList]) -> str:
         v0 = v.css(".pmovie__poster .xfieldimage[data-src]")
         v1 = v0.attrib["data-src"]
-        return f"https://yummy-anime.org{v1}"
+        return f"https://yummyanime.in{v1}"
 
     def _parse_player_url(self, v: Union[Selector, SelectorList]) -> Optional[str]:
         v0 = v

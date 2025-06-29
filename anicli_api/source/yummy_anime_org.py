@@ -35,7 +35,7 @@ T_TranslationLike = TypedDict(
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://yummy-anime.org"
+    BASE_URL = "https://yummyanime.in"
 
     def _extract_search(self, resp: str) -> List["Search"]:
         data = SearchPage(resp).parse()
@@ -142,7 +142,7 @@ class Anime(BaseAnime):
 
     def _is_valid_player_url(self):
         # not exists player url
-        # https://yummy-anime.org/3467-tokijskij-gul-pinto.html
+        # https://yummyanime.in/3467-tokijskij-gul-pinto.html
         return bool(urlsplit(self._player_url).netloc)
 
     def get_episodes(self):
@@ -183,7 +183,7 @@ class Episode(BaseEpisode):
         url_params_encoded = urlencode(url_params)
 
         # maybe exclude translations choice
-        # https://yummy-anime.org/5046-miru-moe-buduschee.html
+        # https://yummyanime.in/5046-miru-moe-buduschee.html
         if not self._is_film and not translation:
             return self._url + "?" + url_params_encoded
 
@@ -211,7 +211,7 @@ class Episode(BaseEpisode):
             i for i in self._kodik_serial_data["translations_box"] if int(self.num) <= int(i["data_episode_count"])
         ]
         # maybe have single dub:
-        # https://yummy-anime.org/5046-miru-moe-buduschee.html
+        # https://yummyanime.in/5046-miru-moe-buduschee.html
         if not available_translations:
             return [
                 # don't know what to call it when only one voice dubbing is available
