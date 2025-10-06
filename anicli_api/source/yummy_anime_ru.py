@@ -12,10 +12,10 @@ if TYPE_CHECKING:
 
 class YummyAnimeRuAPI:
     """Dummmy API interface
-    Browser version of https://yummy-anime.ru/api/swagger#/
+    Browser version of https://site.yummyani.me/api/swagger#/
     """
-
-    BASE_URL = "https://yummy-anime.ru/api/"
+    
+    BASE_URL = "https://site.yummyani.me/api/"
 
     def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         self.http = http_client
@@ -79,7 +79,7 @@ class APIMixin(HttpMixin):
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://yummy-anime.ru/catalog/item/"
+    BASE_URL = "https://site.yummyani.me/catalog/item"
 
     def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         super().__init__(http_client=http_client, http_async_client=http_async_client)
@@ -176,11 +176,13 @@ class Search(_SearchOrOngoing, BaseSearch):
     remote_ids: Dict[str, Union[int, str]]
 
     # API
+    # Fixed TypeError with blocked_in
     anime_id: int
     anime_url: str
     title: str
     description: str
     poster: Dict[str, str]
+    blocked_in: list
 
 
 @define(kw_only=True)
