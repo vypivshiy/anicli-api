@@ -1,61 +1,28 @@
-from typing import TYPE_CHECKING, Dict, List, Union
+"""actual source name - aniliberty:
 
-from attrs import define
+saved old extractor name for backport support purposes
+"""
+
+from re import S
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, TypedDict
+
+from attrs import define, field
 
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video  # direct make this object
+from anicli_api.source.apis.aniliberty import (
+    AniLibertySync,
+    AniLibertyAsync,
+    T_ModelsAnimeReleasesV1Release,
+    T_ModelsAnimeReleasesV1ReleaseEpisode,
+)
 
 if TYPE_CHECKING:
     from httpx import AsyncClient, Client
 
 
-class AnilibriaAPI:
-    """Dummmy API interface
-    https://github.com/anilibria/docs/blob/master/api_v2.md
-    """
-
-    BASE_URL = "https://api.anilibria.tv/v3/"
-
-    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
-        self.http = http_client
-        self.http_async = http_async_client
-
-    def api_request(self, method: str = "GET", *, api_method: str, **kwargs) -> dict:
-        response = self.http.request(method=method, url=f"{self.BASE_URL}{api_method}", **kwargs)
-        return response.json()
-
-    async def a_api_request(self, method: str = "GET", *, api_method: str, **kwargs) -> dict:
-        response = await self.http_async.request(method, self.BASE_URL + api_method, **kwargs)
-        return response.json()
-
-    @staticmethod
-    def _kwargs_pop_params(kwargs, **params) -> dict:
-        data = kwargs.pop("params") if kwargs.get("params") else {}
-        data.update(params)
-        return data
-
-    def search_titles(self, *, search: str, limit: int = -1, **kwargs) -> dict:
-        params = self._kwargs_pop_params(kwargs, search=search, limit=limit)
-        return self.api_request(api_method="title/search", params=params, **kwargs)["list"]
-
-    async def a_search_titles(self, *, search: str, limit: int = -1, **kwargs) -> dict:
-        params = self._kwargs_pop_params(kwargs, limit=limit)
-        return (await self.a_api_request(api_method="title/search", params=params, **kwargs))["list"]
-
-    def get_updates(self, *, limit: int = -1, **kwargs) -> dict:
-        """getUpdates method
-        :param limit:
-        :param kwargs:
-        :return:
-        """
-        params = self._kwargs_pop_params(kwargs, limit=limit)
-        resp = self.api_request(api_method="title/updates", data=params, **kwargs)
-        return resp["list"]
-
-    async def a_get_updates(self, *, limit: int = -1, **kwargs) -> dict:
-        params = self._kwargs_pop_params(kwargs, limit=limit)
-        return (await self.a_api_request(api_method="title/updates", data=params, **kwargs))["list"]
+T_KW_APIS = TypedDict("T_KW_APIS", {"sync_api": AniLibertySync, "async_api": AniLibertyAsync})
 
 
 class Extractor(BaseExtractor):
@@ -63,185 +30,215 @@ class Extractor(BaseExtractor):
 
     def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         super().__init__(http_client=http_client, http_async_client=http_async_client)
-        self._api = AnilibriaAPI(http_client=http_client, http_async_client=http_async_client)
+        self._sync_api = AniLibertySync(client=self.http, raise_on_error=True)
+        self._async_api = AniLibertyAsync(client=self.http_async, raise_on_error=True)
 
     @property
-    def api(self):
-        return self._api
+    def sync_api(self) -> AniLibertySync:
+        return self._sync_api
 
-    @classmethod
-    def _extract_meta_data(cls, kw: dict) -> dict:
-        """extract response data for anicli application"""
-        return dict(
-            **kw,
-            # STUB values for API interface
-            title=kw["names"]["ru"],
-            thumbnail=kw["posters"]["original"],
-            url="",
-        )
+    @property
+    def async_api(self) -> AniLibertyAsync:
+        return self._async_api
+
+    @property
+    def _kwargs_api(self) -> T_KW_APIS:
+        """shortcut for pass API objects arguments in kwargs style"""
+        return {"sync_api": self.sync_api, "async_api": self.async_api}
 
     def search(self, query: str) -> List["Search"]:
-        return [
-            Search(**self._extract_meta_data(kw), **self._kwargs_http) for kw in self.api.search_titles(search=query)
-        ]
+        # https://anilibria.top/api/docs/v1#/Аниме.Каталог
+        result = self.sync_api.get_anime_catalog_releases(search=query)
+        searches = []
+        if result.success and result.data:
+            for data in result.data["data"]:
+                searches.append(
+                    Search(
+                        title=data["name"]["main"],
+                        thumbnail=data["poster"]["thumbnail"],
+                        url="_",  # STUB
+                        data=data,
+                        **self._kwargs_api,
+                        **self._kwargs_http,
+                    )
+                )
+        return searches
 
     async def a_search(self, query: str) -> List["Search"]:
-        return [
-            Search(**self._extract_meta_data(kw), **self._kwargs_http)
-            for kw in (await self.api.a_search_titles(search=query))
-        ]
+        # https://anilibria.top/api/docs/v1#/Аниме.Каталог
+        result = await self.async_api.get_anime_catalog_releases(search=query)
+        searches = []
+        if result.success and result.data:
+            for data in result.data["data"]:
+                searches.append(
+                    Search(
+                        title=data["name"]["main"],
+                        thumbnail=data["poster"]["thumbnail"],
+                        url="_",  # STUB
+                        data=data,
+                        **self._kwargs_api,
+                        **self._kwargs_http,
+                    )
+                )
+        return searches
 
     def ongoing(self) -> List["Ongoing"]:
-        return [Ongoing(**self._extract_meta_data(kw), **self._kwargs_http) for kw in self.api.get_updates()]
+        # https://anilibria.top/api/docs/v1#/Аниме.Каталог
+        result = self.sync_api.get_anime_catalog_releases()
+        ongoings = []
+        if result.success and result.data:
+            for data in result.data["data"]:
+                ongoings.append(
+                    Ongoing(
+                        title=data["name"]["main"],
+                        thumbnail=data["poster"]["thumbnail"],
+                        url="_",  # STUB
+                        data=data,
+                        **self._kwargs_api,
+                        **self._kwargs_http,
+                    )
+                )
+        return ongoings
 
     async def a_ongoing(self) -> List["Ongoing"]:
-        return [Ongoing(**self._extract_meta_data(kw), **self._kwargs_http) for kw in (await self.api.a_get_updates())]
+        # https://anilibria.top/api/docs/v1#/Аниме.Каталог
+        result = await self.async_api.get_anime_catalog_releases()
+        ongoings = []
+        if result.success and result.data:
+            for data in result.data["data"]:
+                ongoings.append(
+                    Ongoing(
+                        title=data["name"]["main"],
+                        thumbnail=data["poster"]["thumbnail"],
+                        url="_",  # STUB
+                        data=data,
+                        **self._kwargs_api,
+                        **self._kwargs_http,
+                    )
+                )
+        return ongoings
 
 
-# without @attrs.define decorator to avoid
-# TypeError: multiple bases have instance lay-out conflict error
-# (__slots__ magic method and attrs hooks issue)
-class _SearchOrOngoing:
-    # stubs
-    thumbnail: str
-    url: str
-    title: str
-    _kwargs_http: Dict[str, Union["Client", "AsyncClient"]]
+class _ApiInstancesMixin:
+    _sync_api: AniLibertySync
+    _async_api: AniLibertyAsync
 
-    # API
-    id: int
-    code: str
-    names: Dict[str, str]
-    franchises: List[str]
-    announce: str
-    status: Dict[str, str]
-    posters: Dict[str, Dict[str, str]]
-    updated: int
-    last_change: int
-    type: Dict[str, str]
-    genres: List[str]
-    team: Dict[str, List[str]]
-    season: Dict[str, Union[int, str]]
-    description: str
-    in_favorites: int
-    blocked: Dict[str, bool]
-    player: Dict[str, str]
-    torrents: Dict[str, str]
+    @property
+    def _kwargs_apis(self):
+        return {"sync_api": self.sync_api, "async_api": self.async_api}
 
-    async def a_get_anime(self) -> "Anime":
-        return self.get_anime()
+    @property
+    def sync_api(self) -> AniLibertySync:
+        return self._sync_api
+
+    @property
+    def async_api(self) -> AniLibertyAsync:
+        return self._async_api
+
+
+@define(kw_only=True)
+class Search(_ApiInstancesMixin, BaseSearch):
+    data: T_ModelsAnimeReleasesV1Release
+    _sync_api: AniLibertySync = field(alias="sync_api")
+    _async_api: AniLibertyAsync = field(alias="async_api")
 
     def get_anime(self) -> "Anime":
         return Anime(
             title=self.title,
-            alt_title=self.names["en"],
-            description=self.description,
             thumbnail=self.thumbnail,
-            genres=self.genres,
-            player=self.player,
+            description=self.data["description"],
+            data=self.data,
             **self._kwargs_http,
+            **self._kwargs_apis,
         )
 
-    def __str__(self):
-        return self.title
+    async def a_get_anime(self) -> "Anime":
+        return self.get_anime()
 
 
 @define(kw_only=True)
-class Search(_SearchOrOngoing, BaseSearch):
-    # API
-    id: int
-    code: str
-    names: Dict[str, str]
-    franchises: List[str]
-    announce: str
-    status: Dict[str, str]
-    posters: Dict[str, Dict[str, str]]
-    updated: int
-    last_change: int
-    type: Dict[str, str]
-    genres: List[str]
-    team: Dict[str, List[str]]
-    season: Dict[str, Union[int, str]]
-    description: str
-    in_favorites: int
-    blocked: Dict[str, bool]
-    player: Dict[str, str]
-    torrents: Dict[str, str]
+class Ongoing(_ApiInstancesMixin, BaseOngoing):
+    data: T_ModelsAnimeReleasesV1Release
+    _sync_api: AniLibertySync = field(alias="sync_api")
+    _async_api: AniLibertyAsync = field(alias="async_api")
+
+    def get_anime(self) -> "Anime":
+        return Anime(
+            title=self.title,
+            thumbnail=self.thumbnail,
+            description=self.data["description"],
+            data=self.data,
+            **self._kwargs_http,
+            **self._kwargs_apis,
+        )
+
+    async def a_get_anime(self) -> "Anime":
+        return self.get_anime()
 
 
 @define(kw_only=True)
-class Ongoing(_SearchOrOngoing, BaseOngoing):
-    # API
-    id: int
-    code: str
-    names: Dict[str, str]
-    franchises: List[str]
-    announce: str
-    status: Dict[str, str]
-    posters: Dict[str, Dict[str, str]]
-    updated: int
-    last_change: int
-    type: Dict[str, str]
-    genres: List[str]
-    team: Dict[str, List[str]]
-    season: Dict[str, Union[int, str]]
-    description: str
-    in_favorites: int
-    blocked: Dict[str, bool]
-    player: Dict[str, str]
-    torrents: Dict[str, str]
-
-
-@define(kw_only=True)
-class Anime(BaseAnime):
-    title: str
-    alt_title: str
-    description: str
-    thumbnail: str
-    genres: List[str]
-    player: Dict
+class Anime(_ApiInstancesMixin, BaseAnime):
+    data: T_ModelsAnimeReleasesV1Release
+    _sync_api: AniLibertySync = field(alias="sync_api")
+    _async_api: AniLibertyAsync = field(alias="async_api")
 
     def __str__(self):
         return self.title
 
     def get_episodes(self) -> List["Episode"]:
-        host = self.player["host"]
-        # TODO validate fhd key
-        return [
-            Episode(
-                title=item["name"] or "Episode",  # maybe return None
-                num=num,
-                # maybe dont exist 1080p
-                fhd=f"https://{host}{item['hls']['fhd']}" if item["hls"].get("fhd") else None,
-                hd=f"https://{host}{item['hls']['hd']}",
-                sd=f"https://{host}{item['hls']['sd']}",
-                **self._kwargs_http,
-            )
-            for num, item in self.player["list"].items()
-        ]
+        # https://anilibria.top/api/docs/v1#/Аниме.Релизы/1a04f3ab108f6960aacb815ecabe29d2
+        release_id = self.data["id"]
+        result = self.sync_api.get_anime_release(id_or_alias=str(release_id), include="id,episodes")
+        episodes = []
+        if result.success and result.data:
+            for data in result.data["episodes"]:
+                episodes.append(
+                    Episode(
+                        # swagger schema says, contains string, but can be null
+                        title=data["name"] or "Episode",
+                        ordinal=int(data["ordinal"]),
+                        data=data,
+                        **self._kwargs_http,
+                        **self._kwargs_apis,
+                    )
+                )
+        return episodes
 
     async def a_get_episodes(self) -> List["Episode"]:
-        return self.get_episodes()
+        # https://anilibria.top/api/docs/v1#/Аниме.Релизы/1a04f3ab108f6960aacb815ecabe29d2
+        release_id = self.data["id"]
+        result = await self.async_api.get_anime_release(id_or_alias=str(release_id), include="id,episodes")
+        episodes = []
+        if result.success and result.data:
+            for data in result.data["episodes"]:
+                episodes.append(
+                    Episode(
+                        title=data["name"],
+                        ordinal=int(data["ordinal"]),
+                        data=data,
+                        **self._kwargs_http,
+                        **self._kwargs_apis,
+                    )
+                )
+        return episodes
 
 
 @define(kw_only=True)
-class Episode(BaseEpisode):
-    title: str
-    num: Union[int, str]  # type: ignore
-    # video meta
-    _fhd: str
-    _hd: str
-    _sd: str
+class Episode(_ApiInstancesMixin, BaseEpisode):
+    data: T_ModelsAnimeReleasesV1ReleaseEpisode
+    _sync_api: AniLibertySync = field(alias="sync_api")
+    _async_api: AniLibertyAsync = field(alias="async_api")
 
     def get_sources(self) -> List["Source"]:
         return [
             Source(
-                title="Anilibria",
-                url="https://api.anilibria.tv",
-                fhd=self._fhd,
-                hd=self._hd,
-                sd=self._sd,
+                title="Aniliberty",
+                url="_",  # STUB
+                hls_480=self.data["hls_480"],
+                hls_720=self.data["hls_720"],
+                hls_1080=self.data["hls_1080"],
                 **self._kwargs_http,
+                **self._kwargs_apis,
             )
         ]
 
@@ -250,24 +247,29 @@ class Episode(BaseEpisode):
 
 
 @define(kw_only=True)
-class Source(BaseSource):
+class Source(_ApiInstancesMixin, BaseSource):
     url: str
     title: str
-    _fhd: str
-    _hd: str
-    _sd: str
+
+    # actual swagger model allow null
+    _hls_480: Optional[str] = field(alias="hls_480")
+    _hls_720: Optional[str] = field(alias="hls_720")
+    _hls_1080: Optional[str] = field(alias="hls_1080")
+
+    _sync_api: AniLibertySync = field(alias="sync_api")
+    _async_api: AniLibertyAsync = field(alias="async_api")
 
     def get_videos(self, **_) -> List["Video"]:
-        if self._fhd:
-            return [
-                Video(type="m3u8", quality=480, url=self._sd),
-                Video(type="m3u8", quality=720, url=self._hd),
-                Video(type="m3u8", quality=1080, url=self._fhd),
-            ]
-        return [
-            Video(type="m3u8", quality=480, url=self._sd),
-            Video(type="m3u8", quality=720, url=self._hd),
-        ]
+        videos = []
+        if self._hls_480:
+            videos.append(Video(type="m3u8", quality=480, url=self._hls_480))
+
+        if self._hls_720:
+            videos.append(Video(type="m3u8", quality=720, url=self._hls_720))
+
+        if self._hls_1080:
+            videos.append(Video(type="m3u8", quality=1080, url=self._hls_1080))
+        return videos
 
     async def a_get_videos(self, **_) -> List["Video"]:
         return self.get_videos()
