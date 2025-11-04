@@ -1,0 +1,363 @@
+from typing import List, Optional, Any, Dict, Tuple, Generic, TypeVar, Union
+from typing_extensions import TypedDict, NamedTuple
+import httpx
+
+# Type Variables
+T = TypeVar("T")
+
+
+# Exception Classes
+class ApiError(Exception):
+    """Exception raised for API errors"""
+
+    pass
+
+
+# API Response Class
+class APIResponse(NamedTuple, Generic[T]):
+    """Monad-like response wrapper"""
+
+    success: bool
+    data: T
+    status_code: int
+    headers: Dict[str, str]
+    error: Optional[Exception]  # populated if success=False AND raise_on_error=False
+
+    def raise_for_status(self) -> None:
+        if not self.success and self.error:
+            raise self.error
+
+
+# TypedDict Models
+T_State = TypedDict(
+    "T_State",
+    {
+        "status": str,  # Статус запроса
+        "rek": int,  # Рек
+        "page": int,  # Текущая страница
+        "count": int,  # Количество результатов
+    },
+)
+
+T_Item = TypedDict(
+    "T_Item",
+    {
+        "id": int,
+        "title": str,
+        "description": str,
+        "genre": str,
+        "year": str,
+        "urlImagePreview": str,
+        "screenImage": List[str],
+        "isFavorite": int,  # 0/1
+        "isLikes": int,  # 0/1
+        "rating": float,
+        "votes": int,
+        "timer": float,
+        "type": str,
+        "director": str,
+        "series": str,
+    },
+)
+
+T_SearchData = TypedDict(
+    "T_SearchData",
+    {
+        "state": T_State,
+        "data": List[T_Item],
+    },
+)
+
+T_ErrorResponse = TypedDict(
+    "T_ErrorResponse",
+    {
+        "error": str,
+    },
+)
+
+T_PlaylistResponseError = TypedDict(
+    "T_PlaylistResponseError",
+    {
+        "status": str,
+        "error": str,
+    },
+)
+
+T_PlaylistResponse = TypedDict(
+    "T_PlaylistResponse",
+    {
+        "name": str,  # "1 серия",
+        "hd": str,  # "http://video.animetop.info/720/....mp4",
+        "std": str,  # "http://video.animetop.info/....mp4",
+        "preview": str,  # "http://media.aniland.org/img/....jpg"
+    },
+)
+
+
+# Sync Client
+class AnimeVostSync:
+    def __init__(
+        self,
+        base_url: str = "https://api.animevost.org",
+        *,
+        api_key: Optional[str] = None,
+        bearer_token: Optional[str] = None,
+        basic_auth: Optional[Tuple[str, str]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[float] = None,
+        client: Optional[httpx.Client] = None,
+        raise_on_error: bool = False,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self._api_key = api_key
+        self._bearer = bearer_token
+        self._basic = basic_auth
+        self._headers = headers or {}
+        self._timeout = timeout
+        self.raise_on_error = raise_on_error
+        self._client = client or httpx.Client(timeout=self._timeout)
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        json: Optional[Any] = None,
+        files: Optional[Dict[str, Any]] = None,
+        data: Optional[Any] = None,
+    ) -> APIResponse[Any]:
+        """Internal method to make HTTP requests"""
+        request_headers = self._headers.copy()
+        if headers:
+            request_headers.update(headers)
+
+        if self._api_key:
+            request_headers["X-API-Key"] = self._api_key
+
+        if self._bearer:
+            request_headers["Authorization"] = f"Bearer {self._bearer}"
+
+        try:
+            response = self._client.request(
+                method=method,
+                url=f"{self.base_url}{path}",
+                params=params,
+                headers=request_headers,
+                json=json,
+                files=files,
+                data=data,
+                auth=self._basic,
+            )
+
+            if response.status_code >= 400:
+                if self.raise_on_error:
+                    raise ApiError(f"API request failed with status {response.status_code}: {response.text}")
+                return APIResponse(
+                    success=False,
+                    data=None,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    error=ApiError(f"API request failed with status {response.status_code}: {response.text}"),
+                )
+
+            try:
+                response_data = response.json()
+            except Exception:
+                response_data = response.text
+
+            return APIResponse(
+                success=True,
+                data=response_data,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                error=None,
+            )
+        except Exception as e:
+            if self.raise_on_error:
+                raise
+            return APIResponse(success=False, data=None, status_code=0, headers={}, error=e)
+
+    def search(self, name: str) -> APIResponse[T_SearchData]:
+        """POST search
+
+        Args:
+            name: Name to search for
+
+        Returns:
+            APIResponse[T_SearchData]: Search results
+
+        Raises:
+            ApiError: If raise_on_error=True and the request fails
+        """
+        return self._request(method="POST", path="/v1/search", data={"name": name})
+
+    def last(self, page: Optional[int] = None, quantity: Optional[int] = None) -> APIResponse[T_SearchData]:
+        """GET last
+
+        Args:
+            page: Page number
+            quantity: Number of items per page
+
+        Returns:
+            APIResponse[T_SearchData]: Last items
+
+        Raises:
+            ApiError: If raise_on_error=True and the request fails
+        """
+        params = {}
+        if page is not None:
+            params["page"] = page
+        if quantity is not None:
+            params["quantity"] = quantity
+
+        return self._request(method="GET", path="/v1/last", params=params)
+
+    def playlist(self, id: str) -> APIResponse[Union[List[T_PlaylistResponse], T_PlaylistResponseError]]:
+        """POST playlist
+
+        Args:
+            id: ID of the playlist
+
+        Returns:
+            APIResponse[List[T_PlaylistResponse]]: Playlist data if id valid
+            APIResponse[T_PlaylistResponseError]: err dict if failed
+        Raises:
+            ApiError: If raise_on_error=True and the request fails
+        """
+        return self._request(method="POST", path="/v1/playlist", data={"id": id})
+
+
+# Async Client
+class AnimeVostAsync:
+    def __init__(
+        self,
+        base_url: str = "https://api.animevost.org",
+        *,
+        api_key: Optional[str] = None,
+        bearer_token: Optional[str] = None,
+        basic_auth: Optional[Tuple[str, str]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: Optional[float] = None,
+        client: Optional[httpx.AsyncClient] = None,
+        raise_on_error: bool = False,
+    ):
+        self.base_url = base_url.rstrip("/")
+        self._api_key = api_key
+        self._bearer = bearer_token
+        self._basic = basic_auth
+        self._headers = headers or {}
+        self._timeout = timeout
+        self.raise_on_error = raise_on_error
+        self._client = client or httpx.AsyncClient(timeout=self._timeout)
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        json: Optional[Any] = None,
+        files: Optional[Dict[str, Any]] = None,
+        data: Optional[Any] = None,
+    ) -> APIResponse[Any]:
+        """Internal method to make HTTP requests"""
+        request_headers = self._headers.copy()
+        if headers:
+            request_headers.update(headers)
+
+        if self._api_key:
+            request_headers["X-API-Key"] = self._api_key
+
+        if self._bearer:
+            request_headers["Authorization"] = f"Bearer {self._bearer}"
+
+        try:
+            response = await self._client.request(
+                method=method,
+                url=f"{self.base_url}{path}",
+                params=params,
+                headers=request_headers,
+                json=json,
+                files=files,
+                data=data,
+                auth=self._basic,
+            )
+
+            if response.status_code >= 400:
+                if self.raise_on_error:
+                    raise ApiError(f"API request failed with status {response.status_code}: {response.text}")
+                return APIResponse(
+                    success=False,
+                    data=None,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    error=ApiError(f"API request failed with status {response.status_code}: {response.text}"),
+                )
+
+            try:
+                response_data = response.json()
+            except Exception:
+                response_data = response.text
+
+            return APIResponse(
+                success=True,
+                data=response_data,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                error=None,
+            )
+        except Exception as e:
+            if self.raise_on_error:
+                raise
+            return APIResponse(success=False, data=None, status_code=0, headers={}, error=e)
+
+    async def search(self, name: str) -> APIResponse[T_SearchData]:
+        """POST search
+
+        Args:
+            name: Name to search for
+
+        Returns:
+            APIResponse[T_SearchData]: Search results
+
+        Raises:
+            ApiError: If raise_on_error=True and the request fails
+        """
+        return await self._request(method="POST", path="/v1/search", data={"name": name})
+
+    async def last(self, page: Optional[int] = None, quantity: Optional[int] = None) -> APIResponse[T_SearchData]:
+        """GET last
+
+        Args:
+            page: Page number
+            quantity: Number of items per page
+
+        Returns:
+            APIResponse[T_SearchData]: Last items
+
+        Raises:
+            ApiError: If raise_on_error=True and the request fails
+        """
+        params = {}
+        if page is not None:
+            params["page"] = page
+        if quantity is not None:
+            params["quantity"] = quantity
+
+        return await self._request(method="GET", path="/v1/last", params=params)
+
+    async def playlist(self, id: str) -> APIResponse[Union[List[T_PlaylistResponse], T_PlaylistResponseError]]:
+        """POST playlist
+
+        Args:
+            id: ID of the playlist
+
+        Returns:
+            APIResponse[List[T_PlaylistResponse]]: Playlist data if id valid
+            APIResponse[T_PlaylistResponseError]: err dict if failed
+
+        Raises:
+            ApiError: If raise_on_error=True and the request fails
+        """
+        return await self._request(method="POST", path="/v1/playlist", data={"id": id})
