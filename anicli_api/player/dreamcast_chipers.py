@@ -4,10 +4,50 @@ import base64
 import json
 import re
 import urllib.parse
-from typing import Tuple, List, Dict, Any
+from typing import Any, Tuple, List, Dict
+from typing_extensions import TypedDict
+
+
+# parsed result type
+class T_Vars(TypedDict, total=False):
+    vlc: str  # '0','1',...
+
+
+class T_FileItem(TypedDict):
+    label: str
+    title: str
+    file: str
+    thumbnails: str
+    embed: str
+    id: str
+    vars: T_Vars
+
+
+class T_Buffer(TypedDict):
+    fastSwitchEnabled: str
+    flushBufferAtTrackSwitch: str
+
+
+class T_Streaming(TypedDict):
+    buffer: T_Buffer
+
+
+class T_DashSettings(TypedDict):
+    streaming: T_Streaming
+
+
+class T_PlayerPlaylist(TypedDict):
+    id: str
+    file: List[T_FileItem]
+    poster: str
+    url: str
+    cuid: str
+    dashsettings: T_DashSettings
+
 
 NoneType = type(None)  # py3.8 backport type
 T_PACKED = Tuple[str, int, int, List[str], NoneType, Dict[str, str]]
+
 
 # consts from playerjs
 _O_Y = "xx???x=xx?x??="  # maybe dynamic
@@ -48,7 +88,9 @@ def parse_params_to_unpack(packed: str) -> T_PACKED:
     return p, a, c, k, _, d
 
 
-def unpack_playerjs(p: str, a: int, c: int, k: List[str], _: NoneType, d: Dict[str, str]) -> str:
+# '_': NoneType 
+# (in 3.9) will be added in types module 
+def unpack_playerjs(p: str, a: int, c: int, k: List[str], _: Any, d: Dict[str, str]) -> str:
     """Playerjs unpacker"""
 
     def e(c: int):
@@ -66,7 +108,7 @@ def get_crypt_codes(playerjs_packed_script):
     packed_params = parse_params_to_unpack(playerjs_packed_script)
     playerjs_script = unpack_playerjs(*packed_params)
 
-    return _RE_O_U1.search(playerjs_script)[1]
+    return _RE_O_U1.search(playerjs_script)[1]  # type: ignore
 
 
 # region playerjs crypto
@@ -159,7 +201,7 @@ def b64d_url_params(s):
     return urllib.parse.unquote(base64.b64decode(s).decode())
 
 
-def extract_playlist(player_js_packed_response: str, player_encoded: str) -> Dict[str, Any]:
+def extract_playlist(player_js_packed_response: str, player_encoded: str) -> T_PlayerPlaylist:
     """extract and decode playlist from dreamcast player
 
     :param player_js_packed_response: raw dreamcast playerjs response
@@ -183,7 +225,7 @@ if __name__ == "__main__":
 
     from anicli_api.source.parsers.dreamcast_parser import AnimePage
 
-    def main(anime_url: str) -> dict:
+    def main(anime_url: str) -> T_PlayerPlaylist:
         anime_resp = httpx.get(anime_url)
         anime_page = AnimePage(anime_resp.text).parse()
         player_encoded = anime_page["player_js_encoded"]
