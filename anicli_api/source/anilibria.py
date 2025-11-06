@@ -3,8 +3,7 @@
 saved old extractor name for backport support purposes
 """
 
-from re import S
-from typing import TYPE_CHECKING, Dict, List, Optional, Union, TypedDict
+from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from attrs import define, field
 
@@ -124,7 +123,7 @@ class _ApiInstancesMixin:
     _async_api: AniLibertyAsync
 
     @property
-    def _kwargs_apis(self):
+    def _kwargs_apis(self) -> T_KW_APIS:
         return {"sync_api": self.sync_api, "async_api": self.async_api}
 
     @property
