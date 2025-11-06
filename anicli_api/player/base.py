@@ -52,7 +52,7 @@ class Video:
 
     - type - video format type ["mp4", "m3u8", "mpd", "audio", "webm"]
 
-    - quality - video quality [0, 144, 240, 360, 480, 720, 1080] 0 - audio
+    - quality - video quality [0, 144, 240, 360, 480, 720, 1080, 2160] 0 - audio
 
     - url - direct video link
 
@@ -60,7 +60,7 @@ class Video:
     """
 
     type: Literal["mp4", "m3u8", "mpd", "audio", "webm"]
-    quality: Literal[0, 144, 240, 360, 480, 720, 1080, 2160]
+    quality: int  # real signature: Literal[0, 144, 240, 360, 480, 720, 1080, 2160]
     url: str
     headers: Dict[str, str] = Factory(dict)
 
