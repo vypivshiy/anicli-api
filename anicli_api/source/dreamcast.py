@@ -1,5 +1,4 @@
-import re
-from typing import List, Dict, Any, TYPE_CHECKING, TypedDict, Union
+from typing import List, TYPE_CHECKING, TypedDict
 
 from attr import define, field
 from httpx import AsyncClient, Client
@@ -8,7 +7,7 @@ from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
 from anicli_api.player.dreamcast_chipers import extract_playlist, T_FileItem
-from anicli_api.source.parsers.dreamcast_parser import AnimePage
+from anicli_api.source.parsers.dreamerscast_parser import PageAnime
 from anicli_api.source.apis.dreamerscast import DreamerscastSync, DreamerscastAsync, T_Release
 
 
@@ -171,7 +170,7 @@ class Ongoing(_ApiInstancesMixin, BaseOngoing):
 
     def get_anime(self) -> "Anime":
         resp = self.http.get(self.url)
-        data = AnimePage(resp.text).parse()
+        data = PageAnime(resp.text).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -184,7 +183,7 @@ class Ongoing(_ApiInstancesMixin, BaseOngoing):
 
     async def a_get_anime(self) -> "Anime":
         resp = await self.http_async.get(self.url)
-        data = AnimePage(resp.text).parse()
+        data = PageAnime(resp.text).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
