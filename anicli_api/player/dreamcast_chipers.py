@@ -88,8 +88,8 @@ def parse_params_to_unpack(packed: str) -> T_PACKED:
     return p, a, c, k, _, d
 
 
-# '_': NoneType 
-# (in 3.9) will be added in types module 
+# '_': NoneType
+# (in 3.9) will be added in types module
 def unpack_playerjs(p: str, a: int, c: int, k: List[str], _: Any, d: Dict[str, str]) -> str:
     """Playerjs unpacker"""
 
@@ -223,11 +223,11 @@ def extract_playlist(player_js_packed_response: str, player_encoded: str) -> T_P
 if __name__ == "__main__":
     import httpx
 
-    from anicli_api.source.parsers.dreamcast_parser import AnimePage
+    from anicli_api.source.parsers.dreamerscast_parser import PageAnime
 
     def main(anime_url: str) -> T_PlayerPlaylist:
         anime_resp = httpx.get(anime_url)
-        anime_page = AnimePage(anime_resp.text).parse()
+        anime_page = PageAnime(anime_resp.text).parse()
         player_encoded = anime_page["player_js_encoded"]
         player_js_url = anime_page["player_js_url"]
 
