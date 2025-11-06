@@ -1,15 +1,12 @@
 import warnings
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING, Sequence, TypedDict
 from urllib.parse import urlsplit
 
 from attrs import define, field
 
 from anicli_api._http import (  # noqa: F401
-    DDOSServerDetectError,
     HTTPAsync,
-    HTTPRetryConnectAsyncTransport,
-    HTTPRetryConnectSyncTransport,
     HTTPSync,
 )
 from anicli_api.player import ALL_DECODERS
@@ -18,6 +15,11 @@ if TYPE_CHECKING:
     from httpx import AsyncClient, Client
 
     from anicli_api.player.base import Video
+
+
+class T_KW_HTTPS(TypedDict):
+    http: "Client"
+    http_async: "AsyncClient"
 
 
 class BaseExtractor:
@@ -50,12 +52,12 @@ class BaseExtractor:
         self._http_async = http_async_client
 
     @property
-    def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
+    def _kwargs_http(self) -> T_KW_HTTPS:
         """shortcut for pass http arguments in kwargs style"""
         return {"http": self.http, "http_async": self.http_async}
 
     @abstractmethod
-    def search(self, query: str):
+    def search(self, query: str) -> Sequence["BaseSearch"]:
         """search anime by string query
 
         :param query: string search query
@@ -63,7 +65,7 @@ class BaseExtractor:
         pass
 
     @abstractmethod
-    async def a_search(self, query: str):
+    async def a_search(self, query: str) -> Sequence["BaseSearch"]:
         """search anime by string query in async mode
 
         :param query: string search query
@@ -71,12 +73,12 @@ class BaseExtractor:
         pass
 
     @abstractmethod
-    def ongoing(self):
+    def ongoing(self) -> Sequence["BaseOngoing"]:
         """get ongoings"""
         pass
 
     @abstractmethod
-    async def a_ongoing(self):
+    async def a_ongoing(self) -> Sequence["BaseOngoing"]:
         """get ongoings in async mode"""
         pass
 
@@ -85,9 +87,9 @@ class BaseExtractor:
 class HttpMixin:
     """this dataclass provide pre-configured http clients"""
 
-    _http: "Client" = field(default=HTTPSync(), repr=False, kw_only=True, hash=False)
+    _http: "Client" = field(default=HTTPSync(), repr=False, kw_only=True, hash=False, alias="http")
     """pre-configured sync httpx Client"""
-    _http_async: "AsyncClient" = field(default=HTTPAsync(), repr=False, kw_only=True, hash=False)
+    _http_async: "AsyncClient" = field(default=HTTPAsync(), repr=False, kw_only=True, hash=False, alias="http_async")
     """pre-configured async httpx Client"""
 
     @property
@@ -107,7 +109,7 @@ class HttpMixin:
         self._http_async = http_async_client
 
     @property
-    def _kwargs_http(self) -> Dict[str, Union["Client", "AsyncClient"]]:
+    def _kwargs_http(self) -> T_KW_HTTPS:
         """shortcut for pass http arguments in kwargs style"""
         return {"http": self.http, "http_async": self.http_async}
 
@@ -122,12 +124,12 @@ class BaseSearch(HttpMixin):
     """Search item url to anime page"""
 
     @abstractmethod
-    def get_anime(self):
+    def get_anime(self) -> "BaseAnime":
         """get anime"""
         pass
 
     @abstractmethod
-    async def a_get_anime(self):
+    async def a_get_anime(self) -> "BaseAnime":
         """get anime in async mode"""
         pass
 
@@ -148,12 +150,12 @@ class BaseOngoing(HttpMixin):
     """Ongoing url to main page"""
 
     @abstractmethod
-    def get_anime(self):
+    def get_anime(self) -> "BaseAnime":
         """get anime"""
         pass
 
     @abstractmethod
-    async def a_get_anime(self):
+    async def a_get_anime(self) -> "BaseAnime":
         """get anime in async mode"""
         pass
 
@@ -174,12 +176,12 @@ class BaseAnime(HttpMixin):
     """anime description"""
 
     @abstractmethod
-    def get_episodes(self):
+    def get_episodes(self) -> Sequence["BaseEpisode"]:
         """get episodes"""
         pass
 
     @abstractmethod
-    async def a_get_episodes(self):
+    async def a_get_episodes(self) -> Sequence["BaseEpisode"]:
         """get episodes in async mode"""
         pass
 
@@ -201,16 +203,22 @@ class BaseEpisode(HttpMixin):
     - Serie {num}
     - Эпизод {num}
     - Серия {num}"""
-    num: str
+    ordinal: int
+
+    # backport old field name
+    @property
+    def num(self) -> str:
+        return str(self.ordinal)
+
     """episode number. Stars from 1"""
 
     @abstractmethod
-    def get_sources(self):
+    def get_sources(self) -> Sequence["BaseSource"]:
         """get raw source player information"""
         pass
 
     @abstractmethod
-    async def a_get_sources(self):
+    async def a_get_sources(self) -> Sequence["BaseSource"]:
         """get raw source player information in async mode"""
         pass
 
@@ -233,9 +241,10 @@ class BaseSource(HttpMixin):
 
     @property
     def _all_video_extractors(self):
+        """helper property for helps dynamic match decoder parser by player url"""
         return ALL_DECODERS
 
-    def get_videos(self, **httpx_kwargs) -> List["Video"]:
+    def get_videos(self, **httpx_kwargs) -> Sequence["Video"]:
         """get direct video information for direct play
 
         :param httpx_kwargs: httpx.Client configuration
@@ -246,14 +255,14 @@ class BaseSource(HttpMixin):
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
-    async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
+    async def a_get_videos(self, **httpx_kwargs) -> Sequence["Video"]:
         """get direct video information for direct play in async mode
 
         :param httpx_kwargs: httpx.AsyncClient configuration
         """
         for extractor in self._all_video_extractors:
             if self.url == extractor():
-                return await extractor(**httpx_kwargs).a_parse(self.url)
+                return await extractor(**httpx_kwargs).a_parse(self.url)  # type: ignore
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
