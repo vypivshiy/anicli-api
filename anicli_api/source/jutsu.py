@@ -1,16 +1,24 @@
+import logging
 import re
-import warnings
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import Any, Dict, List
 
 from attr import field
 from attrs import define
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource, HttpMixin
 from anicli_api.player.base import Video
-from anicli_api.source.parsers.jutsu_parser import AnimePage, OngoingPage, SearchPage, SourcePage
+from anicli_api.source.parsers.jutsu_parser import (
+    PageAnime,
+    PageOngoing,
+    PageSearch,
+    PageSource,
+    T_EpisodesView,
+    T_SourceView,
+)
 
-if TYPE_CHECKING:
-    pass
+
+logger = logging.getLogger("anicli-api")
+logger.warning("[Jut.su] Service has switched to a paid subscription, and this free extractor no longer works.")
 
 
 class Extractor(BaseExtractor):
@@ -19,10 +27,10 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://jut.su"
 
     def _extract_search(self, resp: str) -> List["Search"]:
-        return [Search(**kw, **self._kwargs_http) for kw in SearchPage(resp).parse()]
+        return [Search(**kw, **self._kwargs_http) for kw in PageSearch(resp).parse()]
 
     def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
-        return [Ongoing(**kw, **self._kwargs_http) for kw in OngoingPage(resp).parse()]
+        return [Ongoing(**kw, **self._kwargs_http) for kw in PageOngoing(resp).parse()]
 
     def search(self, query: str):
         resp = self.http.post(
@@ -48,14 +56,14 @@ class Extractor(BaseExtractor):
 
 
 class _SearchOrOngoing(HttpMixin):
-    def _extract(self, resp: str):
-        return Anime(**AnimePage(resp).parse(), **self._kwargs_http)
+    def _extract(self, resp: str) -> "Anime":
+        return Anime(**PageAnime(resp).parse(), **self._kwargs_http)
 
-    def get_anime(self):
+    def get_anime(self) -> "Anime":
         resp = self.http.get(self.url)  # type: ignore
         return self._extract(resp.text)  # type: ignore
 
-    async def a_get_anime(self):
+    async def a_get_anime(self) -> "Anime":
         resp = await self.http_async.get(self.url)  # type: ignore
         return self._extract(resp.text)  # type: ignore
 
@@ -73,21 +81,21 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 @define(kw_only=True)
 class Anime(BaseAnime):
     # stub attribute
-    _episodes: List[Dict[str, Any]] = field(repr=False)
+    _episodes: List[T_EpisodesView] = field(repr=False, alias="episodes")
 
-    def get_episodes(self):
-        return [Episode(num=str(n), **kw, **self._kwargs_http) for n, kw in enumerate(self._episodes, 1)]
+    def get_episodes(self) -> List["Episode"]:
+        return [Episode(ordinal=n, **kw, **self._kwargs_http) for n, kw in enumerate(self._episodes, 1)]
 
-    async def a_get_episodes(self):
+    async def a_get_episodes(self) -> List["Episode"]:
         return self.get_episodes()
 
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    _url: str = field(repr=False)
+    _url: str = field(repr=False, alias="url")
 
     @staticmethod
-    def _is_blocked(raw_videos, response: str) -> bool:
+    def _is_blocked(raw_videos: T_SourceView, response: str) -> bool:
         if not raw_videos.get("null"):
             return False
 
@@ -104,11 +112,11 @@ class Episode(BaseEpisode):
         reason = re.search(r"var block_[^>]+\s*=\s*['\"](?:<br>)?(.*?)['\"];", response)[1]  # type: ignore
 
         msg = f"Block issue. message: '{block_video} {reason}'."
-        warnings.warn(msg, stacklevel=1, category=RuntimeWarning)
+        logger.warning(msg)
         return True
 
     def _extract(self, resp: str) -> List["Source"]:
-        data = SourcePage(resp).parse()["videos"]
+        data = PageSource(resp).parse()["videos"]
         # RKN blocks (RU region)
         # eg: https://jut.su/shingekii-no-kyojin/season-1/episode-1.html
         if self._is_blocked(data, resp):
@@ -128,7 +136,7 @@ class Episode(BaseEpisode):
 
 @define(kw_only=True)
 class Source(BaseSource):
-    _source: Dict[str, Any] = field(repr=False)
+    _source: Dict[str, Any] = field(repr=False, alias="source")
 
     def get_videos(self, **_) -> List["Video"]:
         # For video playing, the user-agent MUST BE equal
