@@ -1,3 +1,4 @@
+import logging
 import re
 import warnings
 from typing import List
@@ -5,12 +6,13 @@ from typing import List
 from httpx import Response
 
 from .base import BaseVideoExtractor, Video, url_validator
-from .parsers.aniboom_parser import AniboomPage
+from .parsers.aniboom_parser import PageAniboom
 
 __all__ = ["Aniboom"]
 
 _URL_EQ = re.compile(r"https://(www.)?aniboom\.one/")
 player_validator = url_validator(_URL_EQ)
+logger = logging.getLogger("anicli-api")  # type: ignore
 
 
 class Aniboom(BaseVideoExtractor):
@@ -59,7 +61,7 @@ class Aniboom(BaseVideoExtractor):
         # \"type\":\"application\\\/x-mpegURL\"}"
         # ... }
         if dash_url.endswith(".m3u8"):
-            warnings.warn("Missing mpd link. This aniboom issue, not anicli-api", stacklevel=1, category=RuntimeWarning)
+            logger.warning("[aniboom] Missing mpd link in extracted response. This aniboom issue, not anicli-api")
             return True
         return False
 
@@ -67,14 +69,14 @@ class Aniboom(BaseVideoExtractor):
         if self._is_not_found(response):
             return []
 
-        result = AniboomPage(response.text).parse()
+        result = PageAniboom(response.text).parse()
         hls, dash = result.get("hls", None), result.get("dash", None)
 
         if not hls:
-            warnings.warn("Missing m3u8 link", stacklevel=1, category=RuntimeWarning)
+            logger.warning("[aniboom] Missing m3u8 link")
 
         if not dash:
-            warnings.warn("Missing dash link", stacklevel=1, category=RuntimeWarning)
+            logger.warning("[aniboom] Missing dash link")
 
         # backend sometimes return m3u8 link in src.dash key
         if self._is_failed_dash_key(dash):

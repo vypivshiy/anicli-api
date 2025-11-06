@@ -1,17 +1,18 @@
+import logging
 import re
-import warnings
 from base64 import b64decode
 from typing import Dict, List
 from urllib.parse import urlsplit
 from httpx import Response
 
 from .base import BaseVideoExtractor, Video, url_validator
-from .parsers.kodik_parser import MainKodikMin
-from .parsers.kodik_parser import MainKodikAPIPath
+from .parsers.kodik_parser import PageMainKodikMin
+from .parsers.kodik_parser import PageMainKodikAPIPath
 
 __all__ = ["Kodik"]
 _URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:serial?|season|video|film)/\d+/\w+/\d{3,4}p")
 kodik_validator = url_validator(_URL_EQ)
+logger = logging.getLogger("anicli-api")  # type: ignore
 
 
 class Kodik(BaseVideoExtractor):
@@ -37,7 +38,7 @@ class Kodik(BaseVideoExtractor):
             response_player = self.http.get(url_js_player)
             self._update_api_path(response_player)
 
-        url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+        url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
         headers = self._create_api_headers(url=url, netloc=netloc)
         response_api = self.http.post(url_api, data=payload, headers=headers)
 
@@ -47,7 +48,7 @@ class Kodik(BaseVideoExtractor):
             response_player = self.http.get(url_js_player)
             self._update_api_path(response_player)
 
-            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
             response_api = self.http.post(url_api, data=payload, headers=headers)
 
         return self._extract(response_api.json()["links"])
@@ -68,7 +69,7 @@ class Kodik(BaseVideoExtractor):
                 response_player = await client.get(url_js_player)
                 self._update_api_path(response_player)
 
-            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+            url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
             headers = self._create_api_headers(url=url, netloc=netloc)
             response_api = await client.post(url_api, data=payload, headers=headers)
 
@@ -78,7 +79,7 @@ class Kodik(BaseVideoExtractor):
                 response_player = await client.get(url_js_player)
                 self._update_api_path(response_player)
 
-                url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)
+                url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
                 response_api = await client.post(url_api, data=payload, headers=headers)
 
             return self._extract(response_api.json()["links"])
@@ -135,8 +136,8 @@ class Kodik(BaseVideoExtractor):
         # Violet Evergarden: Kitto "Ai" wo Shiru Hi ga Kuru no Darou
 
         if bool(re.search(r'<div class="message">Видео не найдено</div>', response.text)):
-            msg = f"Error! Video not found with {response.status_code} status code. Is kodik issue, not anicli-api."
-            warnings.warn(msg, category=RuntimeWarning, stacklevel=1)
+            msg = f"[kodik] video not found with and server returns {response.status_code} status code. It's kodik issue, not anicli-api."
+            logger.warning(msg)
             return True
         return False
 
@@ -147,23 +148,21 @@ class Kodik(BaseVideoExtractor):
         # https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p
         if response.status_code == 500 and "An unhandled lowlevel error occurred" in response.text:
             msg = (
-                f"Error! Kodik returns 'An unhandled lowlevel error occurred' with {response.status_code} status code."
-                f" Is kodik issue, not anicli-api."
+                f"[kodik] returns 'An unhandled lowlevel error occurred' with {response.status_code} status code."
+                f" It's kodik issue, not anicli-api."
             )
-            warnings.warn(msg, category=RuntimeWarning)
+            logger.warning(msg)
             return True
         return False
 
     def _update_api_path(self, response_player) -> None:
-        # codegen currently broken logic in anicli-ru app (returns NoneType)
-        # but native regex still works???
-        # MainKodikAPIPath(response_player.text).parse()["api_path"]
-        path = re.search(r"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)", response_player.text)[1] 
+        path = PageMainKodikAPIPath(response_player.text).parse()["api_path"]
+        # path = re.search(r"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)", response_player.text)[1]
         self._CACHED_API_PATH = b64decode(path).decode()
 
     def _extract_api_payload(self, response):
         response = response.text
-        page = MainKodikMin(response).parse()
+        page = PageMainKodikMin(response).parse()
         payload = page["api_payload"]
         payload.update(self.API_CONSTS_PAYLOAD)  # type: ignore
         return page, payload
