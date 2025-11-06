@@ -7,17 +7,17 @@ from httpx import Response
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
-from anicli_api.source.parsers.sameband_parser import AnimePage, OngoingPage, PlaylistURLPage, SearchPage
+from anicli_api.source.parsers.sameband_parser import PageAnime, PageOngoing, PagePlaylistURL, PageSearch
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://sameband.studio"
 
     def _extract_search(self, resp: str) -> List["Search"]:
-        return [Search(**kw, **self._kwargs_http) for kw in SearchPage(resp).parse()]
+        return [Search(**kw, **self._kwargs_http) for kw in PageSearch(resp).parse()]
 
     def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
-        return [Ongoing(**kw, **self._kwargs_http) for kw in OngoingPage(resp).parse()]
+        return [Ongoing(**kw, **self._kwargs_http) for kw in PageOngoing(resp).parse()]
 
     def search(self, query: str):
         resp = self.http.post(
@@ -59,7 +59,7 @@ class Extractor(BaseExtractor):
 @define(kw_only=True)
 class Search(BaseSearch):
     def _extract(self, resp: str) -> "Anime":
-        return Anime(**AnimePage(resp).parse(), **self._kwargs_http)
+        return Anime(**PageAnime(resp).parse(), **self._kwargs_http)
 
     def get_anime(self):
         resp = self.http.get(self.url)
@@ -73,7 +73,7 @@ class Search(BaseSearch):
 @define(kw_only=True)
 class Ongoing(BaseOngoing):
     def _extract(self, resp: str) -> "Anime":
-        return Anime(**AnimePage(resp).parse(), **self._kwargs_http)
+        return Anime(**PageAnime(resp).parse(), **self._kwargs_http)
 
     def get_anime(self):
         resp = self.http.get(self.url)
@@ -87,7 +87,7 @@ class Ongoing(BaseOngoing):
 @define(kw_only=True)
 class Anime(BaseAnime):
     alt_title: str
-    _player_url: str = field(repr=False)
+    _player_url: str = field(repr=False, alias="player_url")
 
     @staticmethod
     def _extract(resp: Response) -> List["Episode"]:
@@ -105,7 +105,7 @@ class Anime(BaseAnime):
                     }
                     for u in item["file"].split(",")
                 ],
-                num=str(i),
+                ordinal=i,
                 # TODO extract from item['title'] ???
                 title="Серия",
             )
@@ -114,20 +114,21 @@ class Anime(BaseAnime):
 
     def get_episodes(self):
         resp = self.http.get(self._player_url)
-        player_url = PlaylistURLPage(resp.text).parse()["playlist_url"]
-        resp2 = self.http.get(player_url)
+        player_data = PagePlaylistURL(resp.text).parse() 
+        playlist_url = player_data["playlist_url"]
+        resp2 = self.http.get(playlist_url)
         return self._extract(resp2)
 
     async def a_get_episodes(self):
         resp = await self.http_async.get(self._player_url)
-        player_url = PlaylistURLPage(resp.text).parse()["playlist_url"]
+        player_url = PagePlaylistURL(resp.text).parse()["playlist_url"]
         resp2 = await self.http_async.get(player_url)
         return self._extract(resp2)
 
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    _sources: List[Dict[str, Any]] = field(repr=False)
+    _sources: List[Dict[str, Any]] = field(repr=False, alias="sources")
 
     def get_sources(self):
         return [
@@ -145,7 +146,7 @@ class Episode(BaseEpisode):
 
 @define(kw_only=True)
 class Source(BaseSource):
-    _sources: List[Dict[str, Any]] = field(repr=False)
+    _sources: List[Dict[str, Any]] = field(repr=False, alias="sources")
 
     def get_videos(self, **_) -> List["Video"]:
         return [Video(**kw) for kw in self._sources]
