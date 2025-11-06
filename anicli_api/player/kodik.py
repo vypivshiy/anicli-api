@@ -7,7 +7,6 @@ from httpx import Response
 
 from .base import BaseVideoExtractor, Video, url_validator
 from .parsers.kodik_parser import PageMainKodikMin
-from .parsers.kodik_parser import PageMainKodikAPIPath
 
 __all__ = ["Kodik"]
 _URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:serial?|season|video|film)/\d+/\w+/\d{3,4}p")
@@ -156,8 +155,9 @@ class Kodik(BaseVideoExtractor):
         return False
 
     def _update_api_path(self, response_player) -> None:
-        path = PageMainKodikAPIPath(response_player.text).parse()["api_path"]
-        # path = re.search(r"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)", response_player.text)[1]
+        # currently broken translate API path extract, use direct regular expession
+        # path = PageMainKodikAPIPath(response_player.text).parse()["api_path"]
+        path = re.search(r"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)", response_player.text)[1]
         self._CACHED_API_PATH = b64decode(path).decode()
 
     def _extract_api_payload(self, response):
