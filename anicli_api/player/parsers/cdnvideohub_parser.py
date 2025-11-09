@@ -56,6 +56,16 @@ T_PageAnimegoIframe = TypedDict(
         "priority_voice": str,
     },
 )
+T_PageParseCdnVideoData = TypedDict(
+    "T_PageParseCdnVideoData",
+    {
+        "id": str,
+        "data_title_id": str,
+        "data_publisher_id": str,
+        "ident": str,
+        "data_aggregator": str,
+    },
+)
 
 
 class PageAnimegoIframe:
@@ -161,4 +171,56 @@ class PageAnimegoIframe:
             "is_show_banner": self._parse_is_show_banner(self._document),
             "episode": self._parse_episode(self._document),
             "priority_voice": self._parse_priority_voice(self._document),
+        }
+
+
+class PageParseCdnVideoData:
+    """universal extractor cdnvideohub API params
+
+        page should be contains <video-player> tag
+
+
+    {
+        "id": "String",
+        "data_title_id": "String",
+        "data_publisher_id": "String",
+        "ident": "String",
+        "data_aggregator": "String"
+    }"""
+
+    def __init__(self, document: Union[str, html.HtmlElement]) -> None:
+        self._document = html.fromstring(document) if isinstance(document, str) else document
+
+    def _parse_id(self, v: html.HtmlElement) -> str:
+        v0 = v.cssselect("video-player")[0]
+
+        return v0.get("id")
+
+    def _parse_data_title_id(self, v: html.HtmlElement) -> str:
+        v0 = v.cssselect("video-player")[0]
+
+        return v0.get("data-title-id")
+
+    def _parse_data_publisher_id(self, v: html.HtmlElement) -> str:
+        v0 = v.cssselect("video-player")[0]
+
+        return v0.get("data-publisher-id")
+
+    def _parse_ident(self, v: html.HtmlElement) -> str:
+        v0 = v.cssselect("video-player")[0]
+
+        return v0.get("ident")
+
+    def _parse_data_aggregator(self, v: html.HtmlElement) -> str:
+        v0 = v.cssselect("video-player")[0]
+
+        return v0.get("data-aggregator")
+
+    def parse(self) -> T_PageParseCdnVideoData:
+        return {
+            "id": self._parse_id(self._document),
+            "data_title_id": self._parse_data_title_id(self._document),
+            "data_publisher_id": self._parse_data_publisher_id(self._document),
+            "ident": self._parse_ident(self._document),
+            "data_aggregator": self._parse_data_aggregator(self._document),
         }
