@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List
+from typing import List, Literal, TypedDict
 
 from attr import field
 from attrs import define
@@ -19,7 +19,7 @@ class Extractor(BaseExtractor):
     def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
         return [Ongoing(**kw, **self._kwargs_http) for kw in PageOngoing(resp).parse()]
 
-    def search(self, query: str):
+    def search(self, query: str) -> List["Search"]:
         resp = self.http.post(
             f"{self.BASE_URL}/index.php?do=search",
             data={
@@ -33,7 +33,7 @@ class Extractor(BaseExtractor):
         )
         return self._extract_search(resp.text)
 
-    async def a_search(self, query: str):
+    async def a_search(self, query: str) -> List["Search"]:
         resp = await self.http_async.post(
             f"{self.BASE_URL}/index.php?do=search",
             data={
@@ -47,11 +47,11 @@ class Extractor(BaseExtractor):
         )
         return self._extract_search(resp.text)
 
-    def ongoing(self):
+    def ongoing(self) -> List["Ongoing"]:
         resp = self.http.get(f"{self.BASE_URL}/novinki")
         return self._extract_ongoing(resp.text)
 
-    async def a_ongoing(self):
+    async def a_ongoing(self) -> List["Ongoing"]:
         resp = await self.http_async.get(f"{self.BASE_URL}/novinki")
         return self._extract_ongoing(resp.text)
 
@@ -61,11 +61,11 @@ class Search(BaseSearch):
     def _extract(self, resp: str) -> "Anime":
         return Anime(**PageAnime(resp).parse(), **self._kwargs_http)
 
-    def get_anime(self):
+    def get_anime(self) -> "Anime":
         resp = self.http.get(self.url)
         return self._extract(resp.text)
 
-    async def a_get_anime(self):
+    async def a_get_anime(self) -> "Anime":
         resp = await self.http_async.get(self.url)
         return self._extract(resp.text)
 
@@ -75,11 +75,11 @@ class Ongoing(BaseOngoing):
     def _extract(self, resp: str) -> "Anime":
         return Anime(**PageAnime(resp).parse(), **self._kwargs_http)
 
-    def get_anime(self):
+    def get_anime(self) -> "Anime":
         resp = self.http.get(self.url)
         return self._extract(resp.text)
 
-    async def a_get_anime(self):
+    async def a_get_anime(self) -> "Anime":
         resp = await self.http_async.get(self.url)
         return self._extract(resp.text)
 
@@ -112,25 +112,28 @@ class Anime(BaseAnime):
             for i, item in enumerate(jsn, 1)
         ]
 
-    def get_episodes(self):
+    def get_episodes(self) -> List["Episode"]:
         resp = self.http.get(self._player_url)
-        player_data = PagePlaylistURL(resp.text).parse() 
+        player_data = PagePlaylistURL(resp.text).parse()
         playlist_url = player_data["playlist_url"]
         resp2 = self.http.get(playlist_url)
         return self._extract(resp2)
 
-    async def a_get_episodes(self):
+    async def a_get_episodes(self) -> List["Episode"]:
         resp = await self.http_async.get(self._player_url)
         player_url = PagePlaylistURL(resp.text).parse()["playlist_url"]
         resp2 = await self.http_async.get(player_url)
         return self._extract(resp2)
 
 
+T_SOURCE = TypedDict("T_SOURCE", {"url": str, "quality": int, "type": Literal["m3u8"]})
+
+
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    _sources: List[Dict[str, Any]] = field(repr=False, alias="sources")
+    _sources: List[T_SOURCE] = field(repr=False, alias="sources")
 
-    def get_sources(self):
+    def get_sources(self) -> List["Source"]:
         return [
             Source(
                 sources=self._sources,
@@ -140,16 +143,16 @@ class Episode(BaseEpisode):
             )
         ]
 
-    async def a_get_sources(self):
+    async def a_get_sources(self) -> List["Source"]:
         return self.get_sources()
 
 
 @define(kw_only=True)
 class Source(BaseSource):
-    _sources: List[Dict[str, Any]] = field(repr=False, alias="sources")
+    _sources: List[T_SOURCE] = field(repr=False, alias="sources")
 
     def get_videos(self, **_) -> List["Video"]:
-        return [Video(**kw) for kw in self._sources]
+        return [Video(type=kw["type"], url=kw["url"], quality=kw["quality"]) for kw in self._sources]
 
     async def a_get_videos(self, **_) -> List["Video"]:
         return self.get_videos()

@@ -91,23 +91,22 @@ class PageOngoing:
         self._document = html.fromstring(document) if isinstance(document, str) else document
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
-        
         return v.cssselect(".col-auto")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("a[href]")[0]
-        
+
         return v0.get("href")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".col-auto .poster[title]")[0]
-        
+
         return v0.get("title")
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("img.swiper-lazy[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def parse(self) -> List[T_PageOngoing]:
@@ -147,23 +146,22 @@ class PageSearch:
         self._document = html.fromstring(document) if isinstance(document, str) else document
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
-        
         return v.cssselect(".col-auto")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".col-auto .poster[title]")[0]
-        
+
         return v0.get("title")
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("img.swiper-lazy[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".image[href]")[0]
-        
+
         return v0.get("href")
 
     def parse(self) -> List[T_PageSearch]:
@@ -199,31 +197,31 @@ class PageAnime:
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("h1.m-0")[0]
-        
+
         return v0.text_content()
 
     def _parse_alt_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".help")[0]
         v1 = v0.text_content()
-        
+
         return re.sub("(?:^\\s+)|(?:\\s+$)", "", v1)
 
     def _parse_description(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".limiter span")
         v1 = [e.text_content() for e in v0]
-        
+
         return " ".join(v1)
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".image > img[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def _parse_player_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player > .player-content > iframe[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def parse(self) -> T_PageAnime:
@@ -279,7 +277,7 @@ class PagePlaylistURL:
     def _parse_playlist_url(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
         v1 = re.search("Playerjs[^>]+file:\\s*[\\\"']([^>]+)[\\\"']", v0)[1]
-        
+
         return f"https://sameband.studio{v1}"
 
     def parse(self) -> T_PagePlaylistURL:
