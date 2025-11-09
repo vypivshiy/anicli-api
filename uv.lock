@@ -8,7 +8,7 @@ resolution-markers = [
 
 [[package]]
 name = "anicli-api"
-version = "0.8.0"
+version = "0.8.1"
 source = { editable = "." }
 dependencies = [
     { name = "attrs" },
@@ -35,6 +35,9 @@ dev = [
 browser-cookies = [
     { name = "rookiepy" },
 ]
+dev = [
+    { name = "ruff" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -52,6 +55,7 @@ provides-extras = ["dev", "browser-cookies"]
 
 [package.metadata.requires-dev]
 browser-cookies = [{ name = "rookiepy", specifier = ">=0.5.6" }]
+dev = [{ name = "ruff", specifier = ">=0.9.9" }]
 
 [[package]]
 name = "anyio"
