@@ -1,6 +1,6 @@
 [project]
 name = "anicli_api"
-version = "0.8.0"
+version = "0.8.1"
 description = "Anime extractors api implementation"
 license = "MIT"
 readme = "README.MD"
@@ -31,6 +31,7 @@ classifiers = [
 ]
 dependencies = [
     "attrs>=25.3.0",
+    "cssselect>=1.2.0",
     "httpx[http2,socks]>=0.28.1",
     "lxml>=5.3.1",
 ]
