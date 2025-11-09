@@ -7,28 +7,77 @@ from anicli_api.player.parsers.cdnvideohub_parser import PageAnimegoIframe
 from anicli_api.player.apis.cdnvideohub import CdnVideoHubSync, CdnVideoHubAsync
 
 
-__all__ = ["CdnVideoHub"]
+__all__ = ["CdnVideoHub", "video_playlist_from_vk_id", "a_video_playlist_from_vk_id"]
 # url validator pattern
 _URL_EQ = re.compile(r"https?://(www\.)?animego\.\w+/cdn\-iframe/\d+/[\w\s]+/\d+/\d+")
 # url validate decorator
 player_validator = url_validator(_URL_EQ)
 logger = logging.getLogger("anicli-api")  # type: ignore
+_RESOLUTION_MAPPING = {
+    "mpegTinyUrl": 144,
+    "mpegLowestUrl": 240,
+    "mpegLowUrl": 360,
+    "mpegMediumUrl": 480,
+    "mpegHighUrl": 720,
+    "mpegFullHdUrl": 1080,
+    "mpegQhdUrl": 1440,  # TODO maybe wrong value ???
+    "mpeg2kUrl": 1440,  # ???
+    "mpeg4kUrl": 2160,  # ???
+}
+
+
+def video_playlist_from_vk_id(vkid: str) -> List["Video"]:
+    result = CdnVideoHubSync().get_video_by_id(id=vkid).data["sources"]
+    hls_video = result.pop("hlsUrl")
+    dash_video = result.pop("dashUrl")
+    videos = []
+    for key, video_url in result.items():
+        if not video_url:
+            continue
+        quality = _RESOLUTION_MAPPING.get(key, 0)
+        videos.append(
+            Video(
+                type="mp4",
+                quality=quality,  # type: ignore (int)
+                url=video_url,  # type: ignore (str)
+            )
+        )
+    # hls, dash - set max quality
+    if videos:
+        videos.sort(key=lambda i: i.quality)
+        max_quality = sorted(videos, key=lambda i: i.quality, reverse=True)[0].quality
+        videos.append(Video(type="m3u8", quality=max_quality, url=hls_video))  # type: ignore
+        videos.append(Video(type="mpd", quality=max_quality, url=dash_video))  # type: ignore
+    return videos
+
+
+async def a_video_playlist_from_vk_id(vkid: str) -> List["Video"]:
+    result = (await CdnVideoHubAsync().get_video_by_id(id=vkid)).data["sources"]
+    hls_video = result.pop("hlsUrl")
+    dash_video = result.pop("dashUrl")
+    videos = []
+    for key, video_url in result.items():
+        if not video_url:
+            continue
+        quality = _RESOLUTION_MAPPING.get(key, 0)
+        videos.append(
+            Video(
+                type="mp4",
+                quality=quality,  # type: ignore (int)
+                url=video_url,  # type: ignore (str)
+            )
+        )
+    # hls, dash - set max quality
+    if videos:
+        videos.sort(key=lambda i: i.quality)
+        max_quality = sorted(videos, key=lambda i: i.quality, reverse=True)[0].quality
+        videos.append(Video(type="m3u8", quality=max_quality, url=hls_video))  # type: ignore
+        videos.append(Video(type="mpd", quality=max_quality, url=dash_video))  # type: ignore
+    return videos
 
 
 class CdnVideoHub(BaseVideoExtractor):
     URL_RULE = _URL_EQ
-
-    _RESOLUTION_MAPPING = {
-        "mpegTinyUrl": 144,
-        "mpegLowestUrl": 240,
-        "mpegLowUrl": 360,
-        "mpegMediumUrl": 480,
-        "mpegHighUrl": 720,
-        "mpegFullHdUrl": 1080,
-        "mpegQhdUrl": 1440,  # TODO maybe wrong value ???
-        "mpeg2kUrl": 1440,  # ???
-        "mpeg4kUrl": 2160,  # ???
-    }
 
     def __init__(self, **httpx_kwargs):
         super().__init__(**httpx_kwargs)
@@ -53,7 +102,7 @@ class CdnVideoHub(BaseVideoExtractor):
             for key, video_url in resp3_data.data["sources"].items():
                 if not video_url:
                     continue
-                quality = self._RESOLUTION_MAPPING.get(key, 0)
+                quality = _RESOLUTION_MAPPING.get(key, 0)
                 videos.append(
                     Video(
                         type="mp4",
