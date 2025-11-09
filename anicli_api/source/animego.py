@@ -19,7 +19,7 @@ from anicli_api.source.parsers.animego_parser import (
     T_EpisodeVideoPlayersView,
 )
 
-logger = logging.getLogger("anicli-api")  # type: ignore
+logger = logging.getLogger("anicli-api")
 
 
 # test not available players in country
