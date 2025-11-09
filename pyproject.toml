@@ -1,6 +1,6 @@
 [project]
 name = "anicli_api"
-version = "0.7.17"
+version = "0.8.0"
 description = "Anime extractors api implementation"
 license = "MIT"
 readme = "README.MD"
@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Software Development :: Quality Assurance",
     "Typing :: Typed"
@@ -31,7 +32,7 @@ classifiers = [
 dependencies = [
     "attrs>=25.3.0",
     "httpx[http2,socks]>=0.28.1",
-    "parsel>=1.9.1",
+    "lxml>=5.3.1",
 ]
 
 [project.urls]
@@ -67,7 +68,7 @@ include = [
 ]
 
 [tool.mypy]
-python_version = 3.8
+python_version = "3.8"
 pretty = true
 explicit_package_bases = true  # anicli_api.player issue
 ignore_missing_imports = true
@@ -75,10 +76,11 @@ exclude = [
     ".env",
     "__pycache__",
     "examples",
-    "__template__.py",
     # auto generated files
     "^anicli_api/source/parsers/[a-z]+_parser.py$",
-    "^anicli_api/players/parsers/[a-z]+_parser.py$"
+    "^anicli_api/players/parsers/[a-z]+_parser.py$",
+    "^anicli_api/source/parsers/apis/*$",
+    "^anicli_api/players/parsers/apis/*$",
 ]
 files=["anicli_api/*"]
 
