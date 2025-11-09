@@ -305,8 +305,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
                 results.append(
                     Source(
                         title=data["team"]["name"],
-                        # original encoded path: .%D0%B0s/
-                        url="https://video1.anilib.me/.аs/",  # stub
+                        url="https://video1.cdnlibs.org/.%D0%B0s/",  # base url
                         data=data,
                         **self._kwargs_http,
                         **self._kwargs_apis,
@@ -336,8 +335,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
                 results.append(
                     Source(
                         title=data["team"]["name"],
-                        # original encoded path: .%D0%B0s/
-                        url="https://video1.anilib.me/.аs/",  # stub
+                        url="https://video1.cdnlibs.org/.%D0%B0s/",  # base url
                         data=data,
                         **self._kwargs_http,
                         **self._kwargs_apis,
@@ -366,7 +364,7 @@ class Source(_ApiInstancesMixin, BaseSource):
                         type="mp4",
                         quality=video["quality"],
                         url=self.url + video["href"],
-                        headers={"Referrer": "https://www.anilib.me/", "User-Agent": self.http.headers["User-Agent"]},
+                        headers={"Referrer": "https://v3.animelib.org", "User-Agent": self.http.headers["User-Agent"]},
                     )
                 )
             return results
@@ -385,7 +383,7 @@ class Source(_ApiInstancesMixin, BaseSource):
                         type="mp4",
                         quality=video["quality"],
                         url=self.url + video["href"],
-                        headers={"Referrer": "https://www.anilib.me/", "User-Agent": self.http.headers["User-Agent"]},
+                        headers={"Referrer": "https://v3.animelib.org", "User-Agent": self.http.headers["User-Agent"]},
                     )
                 )
             return results
