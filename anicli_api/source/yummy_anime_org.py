@@ -1,57 +1,62 @@
-import warnings
-from typing import List, TypedDict, Union
-from urllib.parse import urlsplit, urlencode
+import re
+from typing import List
 
 from attrs import define
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
 # data about anime storage in iframe kodik player page
-from anicli_api.player.parsers.kodik_parser import (
-    MainKodikVideoPage,
-    MainKodikSerialPage,
-    T_MainKodikSerialPage,
-    T_MainKodikVideoPage,
-)
-from anicli_api.source.parsers.yummy_anime_org_parser import OngoingPage, SearchPage, AnimePage
+from anicli_api.player.base import Video
+from anicli_api.source.parsers.yummy_anime_org_parser import PageOngoing, PageSearch, PageAnime, PageUtils
+from anicli_api.player.parsers.cdnvideohub_parser import PageParseCdnVideoData, T_PageParseCdnVideoData
+from anicli_api.player.apis.cdnvideohub import CdnVideoHubSync, CdnVideoHubAsync, T_PlaylistItem
+from anicli_api.player.cdnvideohub import video_playlist_from_vk_id, a_video_playlist_from_vk_id
 
-# film and episodes have simular structures, but
-# film (/video/ entrypoint) exclude "data_episode_count" key
-T_TranslationLike = TypedDict(
-    "T_TranslationLike",
-    {
-        "value": str,
-        "data_id": str,
-        "data_translation_type": str,
-        "data_media_id": str,
-        "data_media_hash": str,
-        "data_media_type": str,
-        "data_title": str,
-        "data_episode_count": str,
-        "text": str,
-    },
-    total=False,
-)
+import logging
+
+logger = logging.getLogger("anicli-api")
+RE_IS_CYRRILIC = re.compile(r"[А-Яа-яЁё]")
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://yummyanime.in"
 
     def _extract_search(self, resp: str) -> List["Search"]:
-        data = SearchPage(resp).parse()
-        return [Search(**i, **self._kwargs_http) for i in data]
+        data = PageSearch(resp).parse()
+        full_url = PageUtils(resp).parse()["url"]
+        return [
+            Search(title=i["title"], url=i["url"], thumbnail=full_url + i["thumbnail_path"], **self._kwargs_http)
+            for i in data
+        ]
 
     def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
-        data = OngoingPage(resp).parse()
-        return [Ongoing(**i, **self._kwargs_http) for i in data]
+        data = PageOngoing(resp).parse()
+        full_url = PageUtils(resp).parse()["url"]
+
+        return [
+            Ongoing(
+                title=i["title"],
+                url=full_url + i["url_path"],
+                thumbnail=full_url + i["thumbnail_path"],
+                episode=i["episode"],
+                **self._kwargs_http,
+            )
+            for i in data
+        ]
 
     def search(self, query: str):
         resp = self.http.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
-        return self._extract_search(resp.text)
+        result = self._extract_search(resp.text)
+        if not result and not (RE_IS_CYRRILIC.search(query)):
+            logger.warning("[yummyanime.in] search works only with cyrrilic query input")
+        return result
 
     async def a_search(self, query: str):
         resp = await self.http_async.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
-        return self._extract_search(resp.text)
+        result = self._extract_search(resp.text)
+        if not result and not (RE_IS_CYRRILIC.search(query)):
+            logger.warning("[yummyanime.in] search works only with cyrrilic query input")
+        return result
 
     def ongoing(self):
         resp = self.http.get(self.BASE_URL)
@@ -65,8 +70,15 @@ class Extractor(BaseExtractor):
 @define(kw_only=True)
 class Search(BaseSearch):
     def _extract(self, resp: str) -> "Anime":
-        data = AnimePage(resp).parse()
-        return Anime(**data, **self._kwargs_http)
+        data = PageAnime(resp).parse()
+        cdn_data = PageParseCdnVideoData(resp).parse()
+        return Anime(
+            title=data["title"],
+            description=data["description"],
+            thumbnail=data["thumbnail"],
+            cdn_data=cdn_data,
+            **self._kwargs_http,
+        )
 
     def get_anime(self):
         resp = self.http.get(self.url)
@@ -82,13 +94,15 @@ class Ongoing(BaseOngoing):
     episode: int
 
     def _extract(self, resp: str) -> "Anime":
-        data = AnimePage(resp).parse()
-        if not data["player_url"]:
-            warnings.warn(
-                "This title not available (player url not exists).its source issue, not anicli-api", category=Warning
-            )
-            return None
-        return Anime(**data, **self._kwargs_http)
+        data = PageAnime(resp).parse()
+        cdn_data = PageParseCdnVideoData(resp).parse()
+        return Anime(
+            title=data["title"],
+            description=data["description"],
+            thumbnail=data["thumbnail"],
+            cdn_data=cdn_data,
+            **self._kwargs_http,
+        )
 
     def get_anime(self) -> "Anime":
         resp = self.http.get(self.url)
@@ -104,142 +118,79 @@ class Ongoing(BaseOngoing):
 
 @define(kw_only=True)
 class Anime(BaseAnime):
-    alt_title: str
-    _player_url: str
+    cdn_data: T_PageParseCdnVideoData
 
-    def _extract(self, resp: str) -> List["Episode"]:
-        if "/serial/" in self._player_url:
-            data_serial = MainKodikSerialPage(resp).parse()
-            return [
-                Episode(
-                    title=i["data_title"],
-                    num=i["value"],
-                    kodik_serial_data=data_serial,
-                    kodik_video_data={},  # type: ignore
-                    url=self._player_url,
-                    **self._kwargs_http,
-                )
-                for i in data_serial["series_box"]
-            ]
-        # film / ova with single video
-        elif "/video/" in self._player_url:
-            data_video = MainKodikVideoPage(resp).parse()
-            return [
-                Episode(
-                    title=f"{self.title} ({self.alt_title})",
-                    num="1",
-                    kodik_video_data=data_video,
-                    kodik_serial_data={},  # type: ignore
-                    is_film=True,
-                    url=self._player_url,
-                    **self._kwargs_http,
-                )
-            ]
-        else:
-            msg = f"Unsupported player entrypoint url: {self._player_url}title name: {self.title} ({self.alt_title})"
-            warnings.warn(msg, category=Warning)
-            return []
+    def get_episodes(self) -> List["Episode"]:
+        result = CdnVideoHubSync().get_playlist(
+            pub=int(self.cdn_data["data_publisher_id"]),
+            aggr=self.cdn_data["data_aggregator"],
+            id=int(self.cdn_data["data_title_id"]),
+        )
+        episode_mapping = {}
+        for data in result.data["items"]:
+            if not episode_mapping.get(data["episode"]):
+                episode_mapping[data["episode"]] = []
+            episode_mapping[data["episode"]].append(data)
 
-    def _is_valid_player_url(self):
-        # not exists player url
-        # https://yummyanime.in/3467-tokijskij-gul-pinto.html
-        return bool(urlsplit(self._player_url).netloc)
+        episodes = []
+        for num, episode in episode_mapping.items():
+            episodes.append(Episode(title="Episode", ordinal=int(num), data=episode, **self._kwargs_http))
+        # playlist response not guarantee order
+        episodes.sort(key=lambda i: i.ordinal)
 
-    def get_episodes(self):
-        if self._is_valid_player_url():
-            resp = self.http.get(self._player_url)
-            return self._extract(resp.text)
-        return []
+        return episodes
 
-    async def a_get_episodes(self):
-        if self._is_valid_player_url():
-            resp = await self.http_async.get(self._player_url)
-            return self._extract(resp.text)
-        return []
+    async def a_get_episodes(self) -> List["Episode"]:
+        result = await CdnVideoHubAsync().get_playlist(
+            pub=int(self.cdn_data["data_publisher_id"]),
+            aggr=self.cdn_data["data_aggregator"],
+            id=int(self.cdn_data["data_title_id"]),
+        )
+        episode_mapping = {}
+        for data in result.data["items"]:
+            if not episode_mapping.get(data["episode"]):
+                episode_mapping[data["episode"]] = []
+            episode_mapping[data["episode"]].append(data)
+
+        episodes = []
+        for num, episode in episode_mapping.items():
+            episodes.append(Episode(title="Episode", ordinal=int(num), data=episode, **self._kwargs_http))
+        # playlist response not guarantee order
+        episodes.sort(key=lambda i: i.ordinal)
+
+        return episodes
 
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    _kodik_serial_data: T_MainKodikSerialPage
-    _kodik_video_data: T_MainKodikVideoPage
-    _is_film: bool = False
-    # orig kodik player url. later required, for replace hashes for needed translation option
-    _url: str
+    data: List[T_PlaylistItem]
 
-    def _build_episode_url(self, translation: Union[T_TranslationLike, dict]) -> str:
-        """make url to target episode or film"""
-        base_url = f"https://{urlsplit(self._url).netloc}"
-
-        if self._is_film:
-            url_params = self._kodik_video_data["url_params"].copy()
-        else:
-            url_params = self._kodik_serial_data["url_params"].copy()
-
-        # /video/ (film) don't need marks season and episode num
-        if not self._is_film:
-            url_params.update(
-                {"season": int(self._kodik_serial_data["season_box"][0]["value"]), "episode": int(self.num)}
-            )
-        url_params_encoded = urlencode(url_params)
-
-        # maybe exclude translations choice
-        # https://yummyanime.in/5046-miru-moe-buduschee.html
-        if not self._is_film and not translation:
-            return self._url + "?" + url_params_encoded
-
-        return (
-            base_url
-            + f"/{translation['data_media_type']}"
-            + f"/{translation['data_media_id']}"
-            + f"/{translation['data_media_hash']}"
-            + "/720p?"
-            + url_params_encoded
-        )
-
-    def _extract(self) -> List["Source"]:
-        if self._is_film:
-            return [
+    def get_sources(self) -> List["Source"]:
+        results = []
+        for item in self.data:
+            results.append(
                 Source(
-                    title=i["data_title"],
-                    url=self._build_episode_url(i),  # type: ignore
-                    **self._kwargs_http,
+                    title=item["voiceStudio"],
+                    url="https://plapi.cdnvideohub.com",  # stub
+                    vk_id=item["vkId"],
                 )
-                for i in self._kodik_video_data["translation_box"]
-            ]
-
-        available_translations = [
-            i for i in self._kodik_serial_data["translations_box"] if int(self.num) <= int(i["data_episode_count"])
-        ]
-        # maybe have single dub:
-        # https://yummyanime.in/5046-miru-moe-buduschee.html
-        if not available_translations:
-            return [
-                # don't know what to call it when only one voice dubbing is available
-                Source(
-                    title="ORIGINAL (single dub)",
-                    url=self._build_episode_url({}),
-                    **self._kwargs_http,
-                )
-            ]
-        return [
-            Source(
-                title=f"{i['data_title']} ({urlsplit(self._url).netloc})",
-                url=self._build_episode_url(i),  # type: ignore
-                **self._kwargs_http,
             )
-            for i in available_translations
-        ]
+        return results
 
-    def get_sources(self):
-        return self._extract()
-
-    async def a_get_sources(self):
-        return self._extract()
+    async def a_get_sources(self) -> List["Source"]:
+        return self.get_sources()
 
 
 @define(kw_only=True)
 class Source(BaseSource):
-    pass
+    vk_id: str
+
+    # todo: move to player extractor (how?)
+    def get_videos(self, **httpx_kwargs) -> List[Video]:
+        return video_playlist_from_vk_id(self.vk_id)
+
+    async def a_get_videos(self, **httpx_kwargs) -> List[Video]:
+        return await a_video_playlist_from_vk_id(self.vk_id)
 
 
 if __name__ == "__main__":
