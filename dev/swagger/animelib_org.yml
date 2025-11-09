@@ -1,0 +1,752 @@
+openapi: 3.0.0
+info:
+  title: Animelib.org API
+  version: 1.0.0
+  description: API для доступа к аниме контенту
+servers:
+  - url: https://api.cdnlibs.org/api
+    description: Основной сервер
+
+paths:
+  /anime:
+    get:
+      summary: Получить список аниме
+      description: Возвращает список аниме с пагинацией и фильтрацией
+      tags:
+        - Anime
+      parameters:
+        - name: fields[]
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Поля для выборки
+        - name: site_id[]
+          in: query
+          required: false
+          schema:
+            type: number
+          description: ID сайта
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Поисковый запрос
+      responses:
+        '200':
+          $ref: '#/components/responses/AnimeListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /anime/{slug_url}:
+    get:
+      summary: Получить информацию об аниме
+      description: Возвращает детальную информацию об аниме по его slug
+      tags:
+        - Anime
+      parameters:
+        - name: slug_url
+          in: path
+          required: true
+          schema:
+            type: string
+          description: URL-идентификатор аниме
+          example: "316--serial-experiments-lain-anime"
+        - name: fields[]
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Поля для выборки
+      responses:
+        '200':
+          $ref: '#/components/responses/AnimeDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /episodes:
+    get:
+      summary: Получить список эпизодов
+      description: Возвращает список эпизодов с возможностью фильтрации по аниме
+      tags:
+        - Episodes
+      parameters:
+        - name: anime_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID аниме для фильтрации эпизодов
+      responses:
+        '200':
+          $ref: '#/components/responses/EpisodeListResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  # WARNING
+  # при авторизации плеер 'animelib' дает дополнительный ключ 'video', в kodik он отстутствует
+  /episodes/{id}:
+    get:
+      summary: Получить информацию об эпизоде
+      description: Возвращает детальную информацию об эпизоде по его ID
+      tags:
+        - Episodes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID эпизода
+      responses:
+        '200':
+          $ref: '#/components/responses/EpisodeDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  schemas:
+    AnimeListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 316
+        name:
+          type: string
+          example: "Serial Experiments Lain"
+        rus_name:
+          type: string
+          example: "Эксперименты Лэйн"
+        eng_name:
+          type: string
+          example: "Serial Experiments Lain"
+        model:
+          type: string
+          example: "anime"
+        slug:
+          type: string
+          example: "316--serial-experiments-lain"
+        slug_url:
+          type: string
+          example: "316--serial-experiments-lain-anime"
+        cover:
+          $ref: '#/components/schemas/Cover'
+        ageRestriction:
+          $ref: '#/components/schemas/AgeRestriction'
+        site:
+          type: integer
+          example: 1
+        type:
+          $ref: '#/components/schemas/Type'
+        releaseDate:
+          type: string
+          format: date
+          example: "1998-07-06"
+        rating:
+          $ref: '#/components/schemas/Rating'
+        content_marking:
+          type: array
+          items: {}
+        status:
+          $ref: '#/components/schemas/Status'
+        releaseDateString:
+          type: string
+          example: "6 июля 1998"
+        shiki_rate:
+          type: object
+          nullable: true
+
+    AnimeDetail:
+      allOf:
+        - $ref: '#/components/schemas/AnimeListItem'
+        - type: object
+          properties:
+            otherNames:
+              type: array
+              items:
+                type: string
+            background:
+              $ref: '#/components/schemas/Background'
+            summary:
+              type: string
+            close_view:
+              type: integer
+            views:
+              $ref: '#/components/schemas/Views'
+            is_licensed:
+              type: boolean
+            moderated:
+              $ref: '#/components/schemas/Moderated'
+            teams:
+              type: array
+              items:
+                $ref: '#/components/schemas/Team'
+            genres:
+              type: array
+              items:
+                $ref: '#/components/schemas/Genre'
+            tags:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tag'
+            publisher:
+              type: array
+              items:
+                $ref: '#/components/schemas/Publisher'
+            franchise:
+              type: array
+              items: {}
+            authors:
+              type: array
+              items:
+                $ref: '#/components/schemas/Author'
+            user:
+              $ref: '#/components/schemas/User'
+            metadata:
+              $ref: '#/components/schemas/Metadata'
+            time:
+              $ref: '#/components/schemas/Time'
+            items_count:
+              $ref: '#/components/schemas/ItemsCount'
+            episodes_schedule:
+              type: array
+              items: {}
+            shikimori_href:
+              type: string
+            shiki_rate:
+              type: number
+
+    EpisodeListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        model:
+          type: string
+        name:
+          type: string
+        number:
+          type: string
+        number_secondary:
+          type: string
+        season:
+          type: string
+        status:
+          $ref: '#/components/schemas/EpisodeStatus'
+        anime_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        item_number:
+          type: integer
+        type:
+          type: string
+
+    EpisodeDetail:
+      allOf:
+        - $ref: '#/components/schemas/EpisodeListItem'
+        - type: object
+          properties:
+            players:
+              type: array
+              items:
+                $ref: '#/components/schemas/Player'
+
+    # Common schemas
+    Cover:
+      type: object
+      properties:
+        filename:
+          type: string
+        thumbnail:
+          type: string
+        default:
+          type: string
+        md:
+          type: string
+
+    Background:
+      type: object
+      properties:
+        filename:
+          type: string
+        url:
+          type: string
+
+    AgeRestriction:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+
+    Type:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+
+    Rating:
+      type: object
+      properties:
+        average:
+          type: string
+        averageFormated:
+          type: string
+        votes:
+          type: integer
+        votesFormated:
+          type: string
+        user:
+          type: integer
+
+    Status:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+
+    Views:
+      type: object
+      properties:
+        total:
+          type: integer
+        short:
+          type: string
+        formated:
+          type: string
+
+    Moderated:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+
+    Team:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        slug_url:
+          type: string
+        model:
+          type: string
+        name:
+          type: string
+        cover:
+          $ref: '#/components/schemas/Cover'
+        donate_enabled:
+          type: object
+          nullable: true
+
+    Genre:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        adult:
+          type: boolean
+        alert:
+          type: boolean
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        adult:
+          type: boolean
+        alert:
+          type: boolean
+
+    Publisher:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        slug_url:
+          type: string
+        model:
+          type: string
+        name:
+          type: string
+        rus_name:
+          type: object
+          nullable: true
+        cover:
+          $ref: '#/components/schemas/Cover'
+        subscription:
+          $ref: '#/components/schemas/Subscription'
+
+    Author:
+      type: object
+      properties:
+        id:
+          type: integer
+        slug:
+          type: string
+        slug_url:
+          type: string
+        model:
+          type: string
+        name:
+          type: string
+        rus_name:
+          type: object
+          nullable: true
+        alt_name:
+          type: object
+          nullable: true
+        cover:
+          $ref: '#/components/schemas/Cover'
+        subscription:
+          $ref: '#/components/schemas/Subscription'
+        confirmed:
+          type: object
+          nullable: true
+        user_id:
+          type: integer
+
+    Subscription:
+      type: object
+      properties:
+        is_subscribed:
+          type: boolean
+        source_type:
+          type: string
+        source_id:
+          type: integer
+        relation:
+          type: object
+          nullable: true
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        avatar:
+          $ref: '#/components/schemas/Avatar'
+        last_online_at:
+          type: object
+          nullable: true
+        premium:
+          $ref: '#/components/schemas/Premium'
+
+    Avatar:
+      type: object
+      properties:
+        filename:
+          type: string
+        url:
+          type: string
+
+    Premium:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+
+    Metadata:
+      type: object
+      properties:
+        close_comments:
+          type: integer
+        comments_disabled:
+          type: object
+          properties:
+            media:
+              type: boolean
+            content:
+              type: boolean
+        count:
+          type: object
+          properties:
+            branches:
+              type: integer
+            characters:
+              type: object
+              properties:
+                Main:
+                  type: integer
+                Supporting:
+                  type: integer
+            reviews:
+              type: object
+              properties:
+                neutral:
+                  type: integer
+                positive:
+                  type: integer
+                negative:
+                  type: integer
+                all:
+                  type: integer
+            relations:
+              type: integer
+            people:
+              type: integer
+            covers:
+              type: integer
+
+    Time:
+      type: object
+      properties:
+        value:
+          type: integer
+        formated:
+          type: string
+
+    ItemsCount:
+      type: object
+      properties:
+        uploaded:
+          type: integer
+        total:
+          type: integer
+
+    EpisodeStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        abbr:
+          type: object
+          nullable: true
+
+    Player:
+      type: object
+      properties:
+        id:
+          type: integer
+        episode_id:
+          type: integer
+        player:
+          type: string
+        translation_type:
+          $ref: '#/components/schemas/TranslationType'
+        team:
+          $ref: '#/components/schemas/TeamWithStats'
+        created_at:
+          type: string
+          format: date-time
+        views:
+          type: integer
+        src:
+          type: string
+        # auth-only signature (contains anilib player data)
+        video:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 12518
+            quality:
+              type: array
+              items:
+                type: object
+                properties:
+                  href:
+                    type: string
+                  quality:
+                    type: integer
+                  bitrate:
+                    type: integer
+    TranslationType:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+
+    TeamWithStats:
+      allOf:
+        - $ref: '#/components/schemas/Team'
+        - type: object
+          properties:
+            stats:
+              type: array
+              items:
+                $ref: '#/components/schemas/Stat'
+
+    Stat:
+      type: object
+      properties:
+        value:
+          type: number
+        formated:
+          type: string
+        short:
+          type: string
+        label:
+          type: string
+        tag:
+          type: string
+
+    Pagination:
+      type: object
+      properties:
+        first:
+          type: string
+        last:
+          type: object
+          nullable: true
+        prev:
+          type: object
+          nullable: true
+        next:
+          type: string
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        from:
+          type: integer
+        path:
+          type: string
+        per_page:
+          type: integer
+        to:
+          type: integer
+        seed:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        toast:
+          type: object
+          properties:
+            type:
+              type: string
+            message:
+              type: string
+
+    CountryMeta:
+      type: object
+      properties:
+        country:
+          type: string
+
+  responses:
+    AnimeListResponse:
+      description: Успешный ответ со списком аниме
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AnimeListItem'
+              links:
+                $ref: '#/components/schemas/Pagination'
+              meta:
+                $ref: '#/components/schemas/PaginationMeta'
+
+    AnimeDetailResponse:
+      description: Успешный ответ с детальной информацией об аниме
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/AnimeDetail'
+              meta:
+                $ref: '#/components/schemas/CountryMeta'
+
+    EpisodeListResponse:
+      description: Успешный ответ со списком эпизодов
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EpisodeListItem'
+
+    EpisodeDetailResponse:
+      description: Успешный ответ с детальной информацией об эпизоде
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/EpisodeDetail'
+
+    NotFoundError:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/Error'
+
+    BadRequestError:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: Описание ошибки
+
+    ServerError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: Описание ошибки

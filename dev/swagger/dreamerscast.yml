@@ -1,0 +1,358 @@
+# flows Mitmproxy2Swagger
+# 1. for extract info about anime, required parse html document
+# required implement decoder for obfuscated playlist
+openapi: 3.0.0
+info:
+  title: Dreamerscast
+  version: 1.0.0
+servers:
+  - url: https://dreamerscast.com
+    description: The default server
+paths:
+  /:
+    post:
+      summary: Получение списка релизов
+      operationId: getReleases
+      tags:
+        - releases
+      requestBody:
+        $ref: '#/components/requestBodies/SearchForm'
+      responses:
+        '200':
+          $ref: '#/components/responses/OkReleases'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  requestBodies:
+    SearchForm:
+      description: |
+        Форма запроса (application/x-www-form-urlencoded).
+        Поля необязательные — использовать по необходимости.
+      required: false
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            $ref: '#/components/schemas/SearchForm'
+
+  responses:
+    OkReleases:
+      description: Успешный ответ — список релизов
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ReleasesResponse'
+          examples:
+            sample:
+              summary: Пример ответа
+              value:
+                releases:
+                  - id: 123
+                    russian: "Название на русском"
+                    original: "Original Title"
+                    image: "https://..."
+                    wall:
+                      image: "https://.../wall.jpg"
+                      color: "#000000"
+                      ratio: "16:9"
+                    description:
+                      text: "Короткое описание релиза"
+                      html: "<p>Короткое описание</p>"
+                      short: "Коротко"
+                    status:
+                      statusName: "ongoing"
+                      airing: true
+                      progress: "S2"
+                    type: "TV"
+                    dateissue: 20200101
+                    season: "Winter 2020"
+                    genres: "комедия, приключения"
+                    studio: "Studio Name"
+                    duration: 24
+                    series: 12
+                    currentSeries: 12
+                    dubbers: "Dub Studio"
+                    timers: "Timer Name"
+                    user:
+                      id: 42
+                      username: "u_login"
+                      displayName: "User Name"
+                      avatar: "https://.../avatar.jpg"
+                      profileUrl: "/users/42"
+                    url: "/anime/123"
+                    views: 54321
+                    rating: "8.7"
+                    date:
+                      createdAt: "2020-01-01T10:00:00Z"
+                      publishedAt: "2020-01-05T00:00:00Z"
+                      raw: "05 Jan 2020"
+                    update:
+                      lastUpdated: "2020-01-10T12:00:00Z"
+                      updatedBy:
+                        id: 1
+                        username: "admin"
+                      notes: "Minor metadata fix"
+                count: 1
+    BadRequest:
+      description: Неверный запрос — проверьте параметры
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InternalError:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    # --- основной ответ ---
+    ReleasesResponse:
+      type: object
+      description: Ответ с массивом релизов и общим счётом
+      properties:
+        releases:
+          type: array
+          items:
+            $ref: '#/components/schemas/Release'
+        count:
+          type: integer
+          format: int32
+      required:
+        - releases
+        - count
+
+    # --- главный объект релиза (ссылается на под-объекты) ---
+    Release:
+      type: object
+      description: Описание релиза (anime/episode)
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Внутренний идентификатор
+        russian:
+          type: string
+          description: Название на русском
+        original:
+          type: string
+          description: Оригинальное название
+        image:
+          type: string
+          format: uri
+          description: Ссылка на изображение постера
+        wall:
+          $ref: '#/components/schemas/Wall'
+          nullable: true
+        description:
+          $ref: '#/components/schemas/Description'
+          nullable: true
+        status:
+          $ref: '#/components/schemas/Status'
+          nullable: true
+        type:
+          type: string
+          description: Тип (TV, Movie и т.д.)
+        dateissue:
+          type: integer
+          description: Дата выпуска в числовом формате (как в источнике)
+        season:
+          type: string
+        genres:
+          type: string
+          description: Жанры в виде строки (как в исходном)
+        studio:
+          type: string
+        duration:
+          type: integer
+          description: Длительность в минутах
+        series:
+          type: integer
+          description: Общее число серий (если применимо)
+        currentSeries:
+          type: integer
+          description: Текущее число вышедших серий
+        dubbers:
+          type: string
+        timers:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+          nullable: true
+        url:
+          type: string
+          description: Относительная или абсолютная ссылка на страницу
+        views:
+          type: integer
+        rating:
+          type: string
+        date:
+          $ref: '#/components/schemas/DateInfo'
+          nullable: true
+        update:
+          $ref: '#/components/schemas/UpdateInfo'
+          nullable: true
+      required:
+        - id
+        - russian
+        - original
+        - url
+
+    # --- под-объекты ---
+    User:
+      type: object
+      description: Информация о пользователе, связанного с релизом
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        displayName:
+          type: string
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+        profileUrl:
+          type: string
+          nullable: true
+      required:
+        - id
+        - username
+
+    DateInfo:
+      type: object
+      description: Поля, связанные с датами релиза/публикации
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          description: Время создания записи
+        publishedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Дата публикации (если есть)
+        raw:
+          type: string
+          nullable: true
+          description: Сырой/оригинальный формат даты из источника
+      required:
+        - createdAt
+
+    UpdateInfo:
+      type: object
+      description: Информация об обновлениях/правках
+      properties:
+        lastUpdated:
+          type: string
+          format: date-time
+        updatedBy:
+          oneOf:
+            - $ref: '#/components/schemas/User'
+            - type: object
+              properties:
+                id:
+                  type: integer
+                username:
+                  type: string
+          description: Кто выполнил обновление (может быть частичной структурой User)
+        notes:
+          type: string
+          nullable: true
+          description: Комментарий / заметки об обновлении
+      required:
+        - lastUpdated
+
+    Wall:
+      type: object
+      description: Данные для фонового изображения ("wall")
+      properties:
+        image:
+          type: string
+          format: uri
+        color:
+          type: string
+          nullable: true
+          description: Hex или название цвета для фоновой заливки
+        ratio:
+          type: string
+          nullable: true
+          description: Соотношение сторон, например "16:9"
+      required:
+        - image
+
+    Description:
+      type: object
+      description: Текстовое и HTML описание релиза
+      properties:
+        text:
+          type: string
+          description: Обычный текст описания
+        html:
+          type: string
+          nullable: true
+          description: HTML-версия описания (если есть)
+        short:
+          type: string
+          nullable: true
+          description: Краткое описание/аннотация
+      required:
+        - text
+
+    Status:
+      type: object
+      description: Статус релиза
+      properties:
+        statusName:
+          type: string
+          description: Строковое представление статуса (например: "ongoing", "finished", "announced")
+        airing:
+          type: boolean
+          nullable: true
+          description: Идёт ли сейчас (если применимо)
+        progress:
+          type: string
+          nullable: true
+          description: Доп. информация о прогрессе (например "S2", "12/24")
+      required:
+        - statusName
+
+    # --- вспомогательные схемы ---
+    SearchForm:
+      type: object
+      properties:
+        search:
+          type: string
+          description: Строка поиска
+        status:
+          type: string
+          description: Фильтр по статусу
+        pageSize:
+          type: integer
+          format: int32
+          description: Количество результатов на странице
+        pageNumber:
+          type: integer
+          format: int32
+          description: Номер страницы (начиная с 1)
+      example:
+        search: "naruto"
+        status: "all"
+        pageSize: 20
+        pageNumber: 1
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+      example:
+        code: 400
+        message: "Bad Request"

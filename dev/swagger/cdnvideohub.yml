@@ -1,0 +1,240 @@
+# flows Mitmproxy2Swagger
+# get values for extract from animego player
+# eg:
+# GET https://animego.me/cdn-iframe/60254/Dream%20Cast/1/1
+# Referer': https://animego.me
+openapi: 3.0.0
+info:
+  title: CdnVideoHub
+  version: 1.0.0
+servers:
+  - url: https://plapi.cdnvideohub.com
+    description: The default server
+paths:
+  /api/v1/player/sv/playlist:
+    get:
+      summary: GET playlist
+      operationId: getPlaylist
+      parameters:
+        - $ref: '#/components/parameters/pub'
+        - $ref: '#/components/parameters/aggr'
+        - $ref: '#/components/parameters.query.id'
+      responses:
+        '200':
+          $ref: '#/components/responses/Playlist200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/player/sv/video/{id}:
+    get:
+      summary: GET video by id
+      operationId: getVideoById
+      parameters:
+        - $ref: '#/components/parameters.path.id'
+      responses:
+        '200':
+          $ref: '#/components/responses/Video200'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    pub:
+      name: pub
+      in: query
+      required: false
+      schema:
+        type: number
+      description: Publisher id (optional)
+    aggr:
+      name: aggr
+      in: query
+      required: false
+      schema:
+        type: string
+      description: Aggregation parameter (optional)
+    # query id (named differently to avoid collision with path id)
+    query:
+      id:
+        name: id
+        in: query
+        required: false
+        schema:
+          type: number
+        description: Request query id (optional)
+    path:
+      id:
+        name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Video identifier (path parameter)
+
+  responses:
+    Playlist200:
+      description: OK — playlist returned
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PlaylistResponse'
+    Video200:
+      description: OK — video data returned
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/VideoResponse'
+    BadRequest:
+      description: Bad Request — validation error or missing parameter
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not Found — resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # ----- Playlist response and sub-objects -----
+    PlaylistResponse:
+      type: object
+      properties:
+        titleName:
+          type: string
+          description: Title of playlist
+        isSerial:
+          type: boolean
+          description: Whether the title is a serial
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaylistItem'
+        trailers:
+          type: object
+          nullable: true
+          description: Trailers object (structure may vary)
+        vast:
+          $ref: '#/components/schemas/Vast'
+      required:
+        - titleName
+        - isSerial
+        - items
+
+    PlaylistItem:
+      type: object
+      properties:
+        cvhId:
+          type: string
+        name:
+          type: string
+        vkId:
+          type: string
+        voiceStudio:
+          type: string
+        voiceType:
+          type: string
+        season:
+          type: number
+        episode:
+          type: number
+      description: Item in playlist (episode/clip)
+      additionalProperties: false
+
+    Vast:
+      type: object
+      properties:
+        preroll:
+          type: array
+          items:
+            type: string
+        prerolls:
+          type: array
+          items:
+            $ref: '#/components/schemas/VastUrl'
+        pauseroll:
+          type: array
+          items:
+            type: string
+        pauserolls:
+          type: array
+          items:
+            $ref: '#/components/schemas/VastUrl'
+        midroll:
+          type: object
+          nullable: true
+      additionalProperties: false
+
+    VastUrl:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+        - url
+
+    # ----- Video response and sub-objects -----
+    VideoResponse:
+      type: object
+      properties:
+        unitedVideoId:
+          type: number
+        duration:
+          type: number
+          description: Duration in seconds
+        failoverHost:
+          type: string
+        thumbUrl:
+          type: string
+        sources:
+          $ref: '#/components/schemas/VideoSources'
+      required:
+        - unitedVideoId
+        - duration
+        - sources
+
+    VideoSources:
+      type: object
+      properties:
+        hlsUrl:
+          type: string
+        dashUrl:
+          type: string
+        mpegQhdUrl:
+          type: string
+        mpeg2kUrl:
+          type: string
+        mpeg4kUrl:
+          type: string
+        mpegHighUrl:
+          type: string
+        mpegFullHdUrl:
+          type: string
+        mpegMediumUrl:
+          type: string
+        mpegLowUrl:
+          type: string
+        mpegLowestUrl:
+          type: string
+        mpegTinyUrl:
+          type: string
+      additionalProperties: false
+
+    # ----- Common error schema -----
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Bad request
+      required:
+        - code
+        - message

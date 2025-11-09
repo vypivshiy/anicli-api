@@ -1,0 +1,160 @@
+# flows Mitmproxy2Swagger
+openapi: 3.0.0
+info:
+  title: Animevost
+  version: 1.0.0
+servers:
+  - url: https://api.animevost.org
+    description: The default server
+paths:
+  /v1/search:
+    post:
+      summary: POST search
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/OkSearch'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/last:
+    get:
+      summary: GET last
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: quantity
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/OkLast'
+  /v1/playlist:
+    post:
+      summary: POST playlist
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/OkPlaylist'
+
+components:
+  schemas:
+    State:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Статус запроса
+        rek:
+          type: integer
+          description: Рек
+        page:
+          type: integer
+          description: Текущая страница
+        count:
+          type: integer
+          description: Количество результатов
+      required:
+        - status
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        genre:
+          type: string
+        year:
+          type: string
+        urlImagePreview:
+          type: string
+        screenImage:
+          type: array
+          items:
+            type: string
+        isFavorite:
+          type: integer
+          description: 0/1
+        isLikes:
+          type: integer
+          description: 0/1
+        rating:
+          type: number
+        votes:
+          type: integer
+        timer:
+          type: number
+        type:
+          type: string
+        director:
+          type: string
+        series:
+          type: string
+    SearchData:
+      type: object
+      properties:
+        state:
+          $ref: '#/components/schemas/State'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Item'
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+    PlaylistResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          type: string
+
+  responses:
+    OkSearch:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SearchData'
+    OkLast:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SearchData'
+    NotFound:
+      description: NOT FOUND
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    OkPlaylist:
+      description: OK
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PlaylistResponse'

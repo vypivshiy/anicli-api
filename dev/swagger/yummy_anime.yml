@@ -1,0 +1,3186 @@
+info:
+  version: v1.0.1
+  title: YummyAnime API
+  description: >
+    
+    **ONLY FOR PERSONAL USE!!!** For commercial use write me in
+    [telegram](https://imcorp.t.me) or
+    [email](mailto:yummy.anime.ru@gmail.com). 
+
+
+    ### Introduction
+
+    For authorizing your *application*, you are **REQUIRED** to get the token
+    from [here](https://yummyani.me/dev/applications) 
+
+    by creating a new application. Public token **required to be passed** in
+    `X-Application` header.
+
+
+
+    All requests are working with JSON, all body also in JSON. 
+     
+    ### Users authorization
+
+
+    To get token, you can use [/profile/login](#/Profile/post_profile_login)
+    method. Token is valid for 2 weeks. Refresh it every 2-3 days using
+    [/profile/token](#/Profile/get_profile_token) method.
+
+
+    For authorization pass your token in the `Authorization` header with the
+    Bearer scheme (for example, `Authorization: Bearer this.is.token.you.get`).
+
+
+    ### Language
+
+    If you want to get content in different languages, pass `Lang` header with
+    needed language. Accepted values for now:
+
+    - `ru` - Russian
+
+    - `en` - English
+
+    - `uk` - Ukrainian
+
+    - `jp` - Japanese (would be added soon)
+
+
+    Otherwise, server would look on `Accept-Language` header.
+
+
+    ### Captcha
+
+
+    Website uses [HCaptcha](https://www.hcaptcha.com/), so if you get `420`
+    error (see [bruteforce abuse
+    warning](#operations-Profile-post_profile_login)), your app should show
+    captcha to user and repeat the request with the same data and captcha
+    response passed in the body.
+
+
+    `SITE_KEY="b1847961-208e-4a90-9671-1e6bba9e0b36"` (used in initializing
+    HCaptcha)
+     
+
+    ### Response content types
+
+
+    The default response content type is json, but (if you really want), you can
+    specify it using `Vary` header.
+
+    Supported values for `Vary` headers: `json`, `json5` and `xml`.
+
+
+    Also pass `Accept` header with each request, where include `image/avif` and
+    `image/webp` (through comma) if client supports them (otherwise, they would
+    be replaced by JPEG images worse quality).
+
+
+
+    ### Example (Python):
+
+    ```Python
+
+    import requests
+
+    requests.get('https://api.yani.tv/anime', params={'limit': 1, 'offset': 1},
+    headers={'X-Application': 'your_token', 'Accept': 'image/avif,image/webp'})
+
+    # OR
+
+    import asyncio, yummyanime # https://github.com/IM1corp/YummyAPI
+
+    async def main(url):
+        api = yummyanime.YummyApi('your_token')
+        print((await api.anime.get(url)).response)
+    asyncio.run(main(1))
+
+    ```
+
+
+    ### Raw swagger file
+
+    If you need RAW swagger JSON file, you can download it [from
+    here](./swagger.json)
+tags:
+  - name: Anime
+    description: Routes for anime
+  - name: Anime recommends
+    description: Routes for anime recommendations
+  - name: Collections
+    description: Anime collections
+  - name: Apps
+    description: Routes for development apps (to access this API)
+servers:
+  - url: https://api.yani.tv
+    description: API server, where all routes should be passed
+openapi: 3.0.1
+components:
+  securitySchemes:
+    Access Token:
+      type: apiKey
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Authorization header using the Bearer header. Pass "Yummy
+        access_token_get_from_auth"
+      name: Yummy auth
+      in: User token, grabbed after authorization
+    apiKeyAuth:
+      type: Yummy Token
+      in: header
+      name: Authorization
+      description: Yummy {token}
+  schemas:
+    GetAnimeGenresIdResponse:
+      type: object
+      properties:
+        response:
+          type: object
+          properties:
+            title:
+              type: string
+              description: Genre title
+            id:
+              type: number
+              description: Genre ID
+              enum:
+                - 2
+                - 4
+                - 5
+                - 6
+                - 7
+                - 8
+                - 9
+                - 10
+                - 11
+                - 13
+                - 14
+                - 15
+                - 16
+                - 17
+                - 18
+                - 19
+                - 20
+                - 21
+                - 22
+                - 23
+                - 24
+                - 25
+                - 26
+                - 27
+                - 28
+                - 29
+                - 30
+                - 31
+                - 32
+                - 33
+                - 34
+                - 35
+                - 36
+                - 37
+                - 38
+                - 39
+                - 40
+                - 41
+                - 42
+                - 43
+                - 44
+                - 45
+                - 46
+                - 47
+                - 48
+                - 49
+                - 50
+                - 51
+                - 52
+                - 53
+                - 54
+                - 55
+                - 56
+                - 57
+                - 58
+                - 59
+                - 60
+                - 61
+                - 62
+                - 63
+                - 64
+                - 65
+                - 66
+                - 67
+                - 68
+                - 69
+                - 70
+                - 72
+                - 73
+                - 74
+                - 75
+                - 76
+                - 77
+                - 78
+                - 79
+                - 80
+                - 81
+                - 82
+                - 83
+                - 85
+                - 86
+                - 87
+                - 88
+                - 89
+                - 90
+                - 91
+                - 92
+                - 93
+                - 94
+                - 95
+                - 96
+                - 97
+                - 98
+                - 99
+                - 100
+                - 101
+                - 102
+                - 103
+                - 104
+                - 106
+                - 107
+                - 108
+                - 109
+                - 110
+            alias:
+              type: string
+              enum:
+                - bisenen
+                - dzesej
+                - maho-sedze
+                - sedze
+                - sedze-aj
+                - senen
+                - senen-aj
+                - sejnen
+                - etti
+                - vestern
+                - detektiv
+                - drama
+                - komediya
+                - parodiya
+                - prestupnyj-mir
+                - vori
+                - mafiya-yakudza
+                - ohotniki-za-golovami
+                - piraty
+                - terroristy
+                - ubijcy
+                - meha
+                - androidy
+                - pilotiruemye-roboty
+                - silovye-kostyumy
+                - ii
+                - transformery
+                - mistika
+                - priklyucheniya
+                - romantika
+                - lyubovnyj-treugol-nik
+                - triller
+                - ugasy
+                - fantastika
+                - inoplanetyane
+                - kiborgi
+                - kosmicheskie-priklyucheniya
+                - puteshestviya-vo-vremeni
+                - fentezi
+                - al-ternativnaya-real-nost
+                - angely
+                - bogi
+                - vampiry
+                - ved-my
+                - demony
+                - drakony
+                - zombi
+                - magiya
+                - prizraki
+                - rysalki
+                - sovremennoe-fentezi
+                - sukkuby
+                - temnoe-fentezi
+                - temnye-el-fy
+                - fei
+                - celyj-fentezi-mir
+                - el-fy
+                - virtual-naya-real-nost
+                - parallel-nyj-mir
+                - ekshen
+                - boevye-iskusstva
+                - nindzya
+                - perestrelki
+                - proksi-boi
+                - samurai
+                - srazheniya-na-mechah
+                - supersposobnosti
+                - al-ternativnaya-istoriya
+                - antivojna
+                - antiutopiya
+                - vojna
+                - voennaya-tematika
+                - garem
+                - iskusstvo
+                - muzyka
+                - istoricheskij
+                - kiberpank
+                - kulinariya
+                - lolikon
+                - nelinejnyj-syuzhet
+                - povsednevnost
+                - politika
+                - policejskie
+                - postapokaliptika
+                - rossiya-v-anime
+                - sport
+                - basketbol
+                - stimpank
+                - tajnyj-zagovor
+                - shkola
+                - garem-dlya-devochek
+                - lyudi-zveri
+                - psihologiya
+                - manga
+                - erotica
+                - ne-yaponskoe
+                - trap
+                - sverh-estestvennoe
+                - igry
+                - isekai
+                - chinese3d
+                - motorcycles
+                - badguys
+                - bezumie
+            url:
+              type: string
+              description: Genre URL
+            description:
+              type: string
+            sub_genres:
+              type: array
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                    description: Genre title
+                  id:
+                    type: number
+                    description: Genre ID
+                    enum:
+                      - 2
+                      - 4
+                      - 5
+                      - 6
+                      - 7
+                      - 8
+                      - 9
+                      - 10
+                      - 11
+                      - 13
+                      - 14
+                      - 15
+                      - 16
+                      - 17
+                      - 18
+                      - 19
+                      - 20
+                      - 21
+                      - 22
+                      - 23
+                      - 24
+                      - 25
+                      - 26
+                      - 27
+                      - 28
+                      - 29
+                      - 30
+                      - 31
+                      - 32
+                      - 33
+                      - 34
+                      - 35
+                      - 36
+                      - 37
+                      - 38
+                      - 39
+                      - 40
+                      - 41
+                      - 42
+                      - 43
+                      - 44
+                      - 45
+                      - 46
+                      - 47
+                      - 48
+                      - 49
+                      - 50
+                      - 51
+                      - 52
+                      - 53
+                      - 54
+                      - 55
+                      - 56
+                      - 57
+                      - 58
+                      - 59
+                      - 60
+                      - 61
+                      - 62
+                      - 63
+                      - 64
+                      - 65
+                      - 66
+                      - 67
+                      - 68
+                      - 69
+                      - 70
+                      - 72
+                      - 73
+                      - 74
+                      - 75
+                      - 76
+                      - 77
+                      - 78
+                      - 79
+                      - 80
+                      - 81
+                      - 82
+                      - 83
+                      - 85
+                      - 86
+                      - 87
+                      - 88
+                      - 89
+                      - 90
+                      - 91
+                      - 92
+                      - 93
+                      - 94
+                      - 95
+                      - 96
+                      - 97
+                      - 98
+                      - 99
+                      - 100
+                      - 101
+                      - 102
+                      - 103
+                      - 104
+                      - 106
+                      - 107
+                      - 108
+                      - 109
+                      - 110
+                  alias:
+                    type: string
+                    enum:
+                      - bisenen
+                      - dzesej
+                      - maho-sedze
+                      - sedze
+                      - sedze-aj
+                      - senen
+                      - senen-aj
+                      - sejnen
+                      - etti
+                      - vestern
+                      - detektiv
+                      - drama
+                      - komediya
+                      - parodiya
+                      - prestupnyj-mir
+                      - vori
+                      - mafiya-yakudza
+                      - ohotniki-za-golovami
+                      - piraty
+                      - terroristy
+                      - ubijcy
+                      - meha
+                      - androidy
+                      - pilotiruemye-roboty
+                      - silovye-kostyumy
+                      - ii
+                      - transformery
+                      - mistika
+                      - priklyucheniya
+                      - romantika
+                      - lyubovnyj-treugol-nik
+                      - triller
+                      - ugasy
+                      - fantastika
+                      - inoplanetyane
+                      - kiborgi
+                      - kosmicheskie-priklyucheniya
+                      - puteshestviya-vo-vremeni
+                      - fentezi
+                      - al-ternativnaya-real-nost
+                      - angely
+                      - bogi
+                      - vampiry
+                      - ved-my
+                      - demony
+                      - drakony
+                      - zombi
+                      - magiya
+                      - prizraki
+                      - rysalki
+                      - sovremennoe-fentezi
+                      - sukkuby
+                      - temnoe-fentezi
+                      - temnye-el-fy
+                      - fei
+                      - celyj-fentezi-mir
+                      - el-fy
+                      - virtual-naya-real-nost
+                      - parallel-nyj-mir
+                      - ekshen
+                      - boevye-iskusstva
+                      - nindzya
+                      - perestrelki
+                      - proksi-boi
+                      - samurai
+                      - srazheniya-na-mechah
+                      - supersposobnosti
+                      - al-ternativnaya-istoriya
+                      - antivojna
+                      - antiutopiya
+                      - vojna
+                      - voennaya-tematika
+                      - garem
+                      - iskusstvo
+                      - muzyka
+                      - istoricheskij
+                      - kiberpank
+                      - kulinariya
+                      - lolikon
+                      - nelinejnyj-syuzhet
+                      - povsednevnost
+                      - politika
+                      - policejskie
+                      - postapokaliptika
+                      - rossiya-v-anime
+                      - sport
+                      - basketbol
+                      - stimpank
+                      - tajnyj-zagovor
+                      - shkola
+                      - garem-dlya-devochek
+                      - lyudi-zveri
+                      - psihologiya
+                      - manga
+                      - erotica
+                      - ne-yaponskoe
+                      - trap
+                      - sverh-estestvennoe
+                      - igry
+                      - isekai
+                      - chinese3d
+                      - motorcycles
+                      - badguys
+                      - bezumie
+                  url:
+                    type: string
+                    description: Genre URL
+      example:
+        response:
+          title: Дзёсэй
+          id: 4
+          alias: dzesej
+          url: /catalog/category/dzesej
+          description: <b>Genre description</b> - blablabla
+          sub_genres:
+            - title: Дзёсэй
+              id: 4
+              alias: dzesej
+              url: /catalog/category/dzesej
+    GetAnimeCatalogResponse:
+      type: object
+      properties:
+        response:
+          type: object
+          properties:
+            genres:
+              type: object
+              properties:
+                genres:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      href:
+                        type: string
+                      value:
+                        type: number
+                      more_titles:
+                        type: array
+                        items:
+                          type: string
+                      group_id:
+                        type: number
+                groups:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      id:
+                        type: number
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  anime_id:
+                    type: number
+                  anime_status:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                        description: Anime status title
+                        enum:
+                          - вышел
+                          - онгоинг
+                          - анонс
+                      class:
+                        type: string
+                        description: Deprecated, do not use it
+                      alias:
+                        type: string
+                        description: Anime status alias
+                        enum:
+                          - released
+                          - ongoing
+                          - announcement
+                      value:
+                        type: number
+                        description: Anime status ID
+                        enum:
+                          - 0
+                          - 1
+                          - 2
+                  anime_url:
+                    type: string
+                    description: Anime alias (URL would be
+                      https://yummyani.me/catalog/item/anime-alias-123)
+                  poster:
+                    type: object
+                    properties:
+                      small:
+                        type: string
+                        description: Anime poster in WEBP format. 33x47px
+                      medium:
+                        type: string
+                        description: Anime poster in WEBP format. 184x260px
+                      big:
+                        type: string
+                        description: Anime poster in AVIF format. 250x350px
+                      huge:
+                        type: string
+                        description: Anime poster in AVIF format. 400x560
+                      fullsize:
+                        type: string
+                        description: Anime FULL poster in JPEG format. Responsive size.
+                      mega:
+                        type: string
+                        description: Anime mega poster in AVIF format. 570x800px
+                  rating:
+                    type: object
+                    properties:
+                      average:
+                        type: number
+                      kp_rating:
+                        type: number
+                      anidub_rating:
+                        type: number
+                      counters:
+                        type: number
+                      myanimelist_rating:
+                        type: number
+                      shikimori_rating:
+                        type: number
+                      worldart_rating:
+                        type: number
+                    description: Anime rating
+                  title:
+                    type: string
+                    description: Anime title
+                  type:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: Anime type title
+                      value:
+                        type: number
+                        description: Anime type ID
+                      shortname:
+                        type: string
+                        description: Anime type short name
+                    description: Anime type
+                  year:
+                    type: number
+                    description: Anime release year
+                  description:
+                    type: string
+                  views:
+                    type: number
+                  season:
+                    type: number
+                    enum:
+                      - 1
+                      - 2
+                      - 3
+                      - 4
+                    description: 1 - Winter, 2 - Spring, 3 - Summer, 4 - Fall
+                  min_age:
+                    type: object
+                    properties:
+                      value:
+                        type: number
+                        enum:
+                          - 0
+                          - 1
+                          - 2
+                          - 3
+                          - 4
+                          - 5
+                        description: Minimum age rating
+                      title:
+                        type: string
+                        description: Minimum age rating title
+                      title_long:
+                        type: string
+                  user:
+                    type: object
+                    properties:
+                      list:
+                        type: object
+                        properties:
+                          is_fav:
+                            type: boolean
+                            description: Is anime in favorites
+                          list:
+                            type: object
+                            properties:
+                              title:
+                                type: string
+                                enum:
+                                  - Смотрю
+                                  - В Планах
+                                  - Просмотрено
+                                  - Брошено
+                                  - Отложено
+                                description: List title
+                              href:
+                                type: string
+                                enum:
+                                  - watch_now
+                                  - will
+                                  - watched
+                                  - lost
+                                  - postpone
+                                description: List alias
+                              id:
+                                type: number
+                                enum:
+                                  - 0
+                                  - 1
+                                  - 2
+                                  - 3
+                                  - 5
+                      rating:
+                        type: number
+                        description: Current user rating for this anime
+                  remote_ids:
+                    type: object
+                    properties:
+                      worldart_id:
+                        type: number
+                        description: "WorldArt URL looks like:
+                          http://world-art.ru/{worldart_type}/{worldart_type}.p\
+                          hp?id={worldart_id}"
+                      worldart_type:
+                        type: string
+                        enum:
+                          - animation
+                          - cinema
+                      kp_id:
+                        type: number
+                        description: "Kinopoisk ID. URL looks like:
+                          https://www.kinopoisk.ru/film/{kp_id}/"
+                      anidub_id:
+                        type: number
+                        description: Deprecated. Do not use it
+                      sr_id:
+                        type: number
+                        description: "SovetRomantica ID. URL looks like:
+                          https://sovetromantica.com/anime/{sr_id}"
+                      anilibria_alias:
+                        type: string
+                        description: "Anilibria alias. URL looks like:
+                          https://anilibria.tv/release/{anilibria_alias}.html"
+                      shikimori_id:
+                        type: number
+                        description: "Shikimori ID. URL looks like:
+                          https://shikimori.one/animes/{shikimori_id}"
+                      myanimelist_id:
+                        type: number
+                        description: "MyAnimeList ID. URL looks like:
+                          https://myanimelist.net/anime/{myanimelist_id}"
+                  top:
+                    type: object
+                    properties:
+                      category:
+                        type: number
+                        description: Top place in anime category (ova, ona, tv, film, etc)
+                      global:
+                        type: number
+                        description: Global TOP place in all animes.
+                  blocked_in:
+                    type: array
+                    items:
+                      type: string
+                  original:
+                    type: string
+                  duration:
+                    type: number
+                  other_titles:
+                    type: array
+                    items:
+                      type: string
+                  creators:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        id:
+                          type: number
+                        url:
+                          type: string
+                  studios:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        id:
+                          type: number
+                        url:
+                          type: string
+                  videos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        video_id:
+                          type: number
+                        iframe_url:
+                          type: string
+                        data:
+                          type: object
+                          properties:
+                            dubbing:
+                              type: string
+                            player:
+                              type: string
+                        number:
+                          type: string
+                        date:
+                          type: number
+                          description: Video publish date (unix timestamp)
+                        index:
+                          type: number
+                          description: Video index (used for ordering episodes)
+                        skips:
+                          type: object
+                          properties:
+                            ending:
+                              type: object
+                              properties:
+                                time:
+                                  type: number
+                                length:
+                                  type: number
+                              description: Ending skip time and length
+                            opening:
+                              type: object
+                              properties:
+                                time:
+                                  type: number
+                                length:
+                                  type: number
+                              description: Opening skip time and length
+                        views:
+                          type: number
+                        duration:
+                          type: number
+                  genres:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          description: Genre title
+                        id:
+                          type: number
+                          description: Genre ID
+                          enum:
+                            - 2
+                            - 4
+                            - 5
+                            - 6
+                            - 7
+                            - 8
+                            - 9
+                            - 10
+                            - 11
+                            - 13
+                            - 14
+                            - 15
+                            - 16
+                            - 17
+                            - 18
+                            - 19
+                            - 20
+                            - 21
+                            - 22
+                            - 23
+                            - 24
+                            - 25
+                            - 26
+                            - 27
+                            - 28
+                            - 29
+                            - 30
+                            - 31
+                            - 32
+                            - 33
+                            - 34
+                            - 35
+                            - 36
+                            - 37
+                            - 38
+                            - 39
+                            - 40
+                            - 41
+                            - 42
+                            - 43
+                            - 44
+                            - 45
+                            - 46
+                            - 47
+                            - 48
+                            - 49
+                            - 50
+                            - 51
+                            - 52
+                            - 53
+                            - 54
+                            - 55
+                            - 56
+                            - 57
+                            - 58
+                            - 59
+                            - 60
+                            - 61
+                            - 62
+                            - 63
+                            - 64
+                            - 65
+                            - 66
+                            - 67
+                            - 68
+                            - 69
+                            - 70
+                            - 72
+                            - 73
+                            - 74
+                            - 75
+                            - 76
+                            - 77
+                            - 78
+                            - 79
+                            - 80
+                            - 81
+                            - 82
+                            - 83
+                            - 85
+                            - 86
+                            - 87
+                            - 88
+                            - 89
+                            - 90
+                            - 91
+                            - 92
+                            - 93
+                            - 94
+                            - 95
+                            - 96
+                            - 97
+                            - 98
+                            - 99
+                            - 100
+                            - 101
+                            - 102
+                            - 103
+                            - 104
+                            - 106
+                            - 107
+                            - 108
+                            - 109
+                            - 110
+                        alias:
+                          type: string
+                          enum:
+                            - bisenen
+                            - dzesej
+                            - maho-sedze
+                            - sedze
+                            - sedze-aj
+                            - senen
+                            - senen-aj
+                            - sejnen
+                            - etti
+                            - vestern
+                            - detektiv
+                            - drama
+                            - komediya
+                            - parodiya
+                            - prestupnyj-mir
+                            - vori
+                            - mafiya-yakudza
+                            - ohotniki-za-golovami
+                            - piraty
+                            - terroristy
+                            - ubijcy
+                            - meha
+                            - androidy
+                            - pilotiruemye-roboty
+                            - silovye-kostyumy
+                            - ii
+                            - transformery
+                            - mistika
+                            - priklyucheniya
+                            - romantika
+                            - lyubovnyj-treugol-nik
+                            - triller
+                            - ugasy
+                            - fantastika
+                            - inoplanetyane
+                            - kiborgi
+                            - kosmicheskie-priklyucheniya
+                            - puteshestviya-vo-vremeni
+                            - fentezi
+                            - al-ternativnaya-real-nost
+                            - angely
+                            - bogi
+                            - vampiry
+                            - ved-my
+                            - demony
+                            - drakony
+                            - zombi
+                            - magiya
+                            - prizraki
+                            - rysalki
+                            - sovremennoe-fentezi
+                            - sukkuby
+                            - temnoe-fentezi
+                            - temnye-el-fy
+                            - fei
+                            - celyj-fentezi-mir
+                            - el-fy
+                            - virtual-naya-real-nost
+                            - parallel-nyj-mir
+                            - ekshen
+                            - boevye-iskusstva
+                            - nindzya
+                            - perestrelki
+                            - proksi-boi
+                            - samurai
+                            - srazheniya-na-mechah
+                            - supersposobnosti
+                            - al-ternativnaya-istoriya
+                            - antivojna
+                            - antiutopiya
+                            - vojna
+                            - voennaya-tematika
+                            - garem
+                            - iskusstvo
+                            - muzyka
+                            - istoricheskij
+                            - kiberpank
+                            - kulinariya
+                            - lolikon
+                            - nelinejnyj-syuzhet
+                            - povsednevnost
+                            - politika
+                            - policejskie
+                            - postapokaliptika
+                            - rossiya-v-anime
+                            - sport
+                            - basketbol
+                            - stimpank
+                            - tajnyj-zagovor
+                            - shkola
+                            - garem-dlya-devochek
+                            - lyudi-zveri
+                            - psihologiya
+                            - manga
+                            - erotica
+                            - ne-yaponskoe
+                            - trap
+                            - sverh-estestvennoe
+                            - igry
+                            - isekai
+                            - chinese3d
+                            - motorcycles
+                            - badguys
+                            - bezumie
+                        url:
+                          type: string
+                          description: Genre URL
+                  viewing_order:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        anime_id:
+                          type: number
+                        type:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              description: Anime type title
+                            value:
+                              type: number
+                              description: Anime type ID
+                            shortname:
+                              type: string
+                              description: Anime type short name
+                        anime_url:
+                          type: string
+                        anime_status:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                              description: Anime status title
+                              enum:
+                                - вышел
+                                - онгоинг
+                                - анонс
+                            class:
+                              type: string
+                              description: Deprecated, do not use it
+                            alias:
+                              type: string
+                              description: Anime status alias
+                              enum:
+                                - released
+                                - ongoing
+                                - announcement
+                            value:
+                              type: number
+                              description: Anime status ID
+                              enum:
+                                - 0
+                                - 1
+                                - 2
+                        description:
+                          type: string
+                        poster:
+                          type: object
+                          properties:
+                            small:
+                              type: string
+                              description: Anime poster in WEBP format. 33x47px
+                            medium:
+                              type: string
+                              description: Anime poster in WEBP format. 184x260px
+                            big:
+                              type: string
+                              description: Anime poster in AVIF format. 250x350px
+                            huge:
+                              type: string
+                              description: Anime poster in AVIF format. 400x560
+                            fullsize:
+                              type: string
+                              description: Anime FULL poster in JPEG format. Responsive size.
+                            mega:
+                              type: string
+                              description: Anime mega poster in AVIF format. 570x800px
+                        user:
+                          type: object
+                          properties:
+                            list:
+                              type: object
+                              properties:
+                                list:
+                                  type: object
+                                  properties:
+                                    title:
+                                      type: string
+                                      enum:
+                                        - Смотрю
+                                        - В Планах
+                                        - Просмотрено
+                                        - Брошено
+                                        - Отложено
+                                      description: List title
+                                    href:
+                                      type: string
+                                      enum:
+                                        - watch_now
+                                        - will
+                                        - watched
+                                        - lost
+                                        - postpone
+                                      description: List alias
+                                    id:
+                                      type: number
+                                      enum:
+                                        - 0
+                                        - 1
+                                        - 2
+                                        - 3
+                                        - 5
+                                is_fav:
+                                  type: boolean
+                              description: User's list (if anime in users lists)
+                            rating:
+                              type: number
+                        year:
+                          type: number
+                        data:
+                          type: object
+                          properties:
+                            id:
+                              type: number
+                            index:
+                              type: number
+                            text:
+                              type: string
+                  translates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        href:
+                          type: string
+                        value:
+                          type: number
+                  episodes:
+                    type: object
+                    properties:
+                      aired:
+                        type: number
+                        description: Count of episodes, which already aired
+                      count:
+                        type: number
+                        description: The total number of episodes, which this anime has
+                      next_date:
+                        type: number
+                        description: UNIX time of next episode
+                  comments_count:
+                    type: number
+                    description: How many comments are in this anime
+                  reviews_count:
+                    type: number
+                    description: How many reviews are in this anime
+                  random_screenshots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sizes:
+                          type: object
+                          properties:
+                            small:
+                              type: string
+                              description: 250x150 webp image
+                            full:
+                              type: string
+                              description: Full HD avif image (if no header passed - webp)
+                        id:
+                          type: number
+                        time:
+                          type: number
+                          description: Screenshot time in seconds
+                        episode:
+                          type: string
+                          description: Screenshot episode number
+                  posts_count:
+                    type: number
+            types:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: Anime type title
+                      value:
+                        type: number
+                        description: Anime type ID
+                      shortname:
+                        type: string
+                        description: Anime type short name
+                  count:
+                    type: number
+      example:
+        response:
+          genres:
+            genres:
+              - title: title
+                href: href
+                value: 12
+                more_titles:
+                  - Title#2
+                  - Title#3
+                group_id: -1
+            groups:
+              - title: base group
+                id: -2
+          data:
+            - anime_id: 12
+              anime_status:
+                title: вышел
+                class: ""
+                alias: released
+                value: 0
+              anime_url: anime-alias-123
+              poster:
+                small: https://example.com/small.webp
+                medium: https://example.com/medium.webp
+                big: https://example.com/big.webp
+                huge: https://example.com/huge.webp
+                fullsize: https://example.com/fullsize.webp
+                mega: https://example.com/mega.webp
+              rating:
+                average: 9.2332323232
+                kp_rating: 7.2332323232
+                anidub_rating: 8.2332323232
+                counters: 123
+                myanimelist_rating: 9.1332323232
+                shikimori_rating: 9.6332323232
+                worldart_rating: 9.4332323232
+              title: Your name
+              type:
+                name: Спешл
+                value: 5
+                shortname: спешл
+              year: 2016
+              description: Anime description long-long-long...
+              views: 12345
+              season: 1
+              min_age:
+                value: 5
+                title: R+
+                title_long: R+ (17+)
+              user:
+                list:
+                  is_fav: false
+                  list:
+                    title: Смотрю
+                    href: watch_now
+                    id: 0
+                rating: 9.23
+              remote_ids:
+                worldart_id: 123
+                worldart_type: animation
+                kp_id: 123
+                anidub_id: 123
+                sr_id: 123
+                anilibria_alias: anilibria-anime-alias
+                shikimori_id: 123
+                myanimelist_id: 123
+              top:
+                category: 12
+                global: 123
+              blocked_in:
+                - RU
+                - UA
+              original: Manga
+              duration: 123
+              other_titles:
+                - Another title
+                - 僕のピコ
+              creators:
+                - title: Creator title
+                  id: 134
+                  url: catalog/director/134
+              studios:
+                - title: Studio title
+                  id: 134
+                  url: catalog/studio/134
+              videos:
+                - video_id: 123
+                  iframe_url: https://iframe.com
+                  data:
+                    dubbing: Dubbing title
+                    player: Player title
+                  number: "1"
+                  date: 123455644
+                  index: 1
+                  skips:
+                    ending:
+                      time: 1234
+                      length: 180
+                    opening:
+                      time: 0
+                      length: 120
+                  views: 12345
+                  duration: 0
+              genres:
+                - title: Дзёсэй
+                  id: 4
+                  alias: dzesej
+                  url: /catalog/category/dzesej
+              viewing_order:
+                - title: Anime Title
+                  anime_id: 123
+                  type:
+                    name: Спешл
+                    value: 5
+                    shortname: спешл
+                  anime_url: anime-alias-123
+                  anime_status:
+                    title: вышел
+                    class: ""
+                    alias: released
+                    value: 0
+                  description: Anime description
+                  poster:
+                    small: https://example.com/small.webp
+                    medium: https://example.com/medium.webp
+                    big: https://example.com/big.webp
+                    huge: https://example.com/huge.webp
+                    fullsize: https://example.com/fullsize.webp
+                    mega: https://example.com/mega.webp
+                  user:
+                    list:
+                      list:
+                        title: Смотрю
+                        href: watch_now
+                        id: 0
+                      is_fav: false
+                    rating: 9
+                  year: 2016
+                  data:
+                    id: 123
+                    index: 1
+                    text: Spinnoff
+              translates:
+                - title: Dubbing
+                  href: dubbing
+                  value: 1
+              episodes:
+                aired: 12
+                count: 24
+                next_date: 12344343
+              comments_count: 123
+              reviews_count: 1
+              random_screenshots:
+                - sizes:
+                    small: https://example.com/small.webp
+                    full: https://example.com/full.avif
+                  id: 123
+                  time: 100
+                  episode: "1"
+              posts_count: 2
+          types:
+            - type:
+                name: Спешл
+                value: 5
+                shortname: спешл
+              count: 2
+    GetAnimeGenresResponse:
+      type: object
+      properties:
+        response:
+          type: object
+          properties:
+            genres:
+              type: array
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  href:
+                    type: string
+                  value:
+                    type: number
+                  more_titles:
+                    type: array
+                    items:
+                      type: string
+                  group_id:
+                    type: number
+            groups:
+              type: array
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  id:
+                    type: number
+      example:
+        response:
+          genres:
+            - title: title
+              href: href
+              value: 12
+              more_titles:
+                - Title#2
+                - Title#3
+              group_id: -1
+          groups:
+            - title: base group
+              id: -2
+    GetAnimeCountsTypesResponse:
+      type: object
+      properties:
+        response:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: Anime type title
+                  value:
+                    type: number
+                    description: Anime type ID
+                  shortname:
+                    type: string
+                    description: Anime type short name
+              count:
+                type: number
+      example:
+        response:
+          - type:
+              name: Спешл
+              value: 5
+              shortname: спешл
+            count: 2
+    GetAnimeScheduleResponse:
+      type: object
+      properties:
+        response:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              poster:
+                type: object
+                properties:
+                  small:
+                    type: string
+                    description: Anime poster in WEBP format. 33x47px
+                  medium:
+                    type: string
+                    description: Anime poster in WEBP format. 184x260px
+                  big:
+                    type: string
+                    description: Anime poster in AVIF format. 250x350px
+                  huge:
+                    type: string
+                    description: Anime poster in AVIF format. 400x560
+                  fullsize:
+                    type: string
+                    description: Anime FULL poster in JPEG format. Responsive size.
+                  mega:
+                    type: string
+                    description: Anime mega poster in AVIF format. 570x800px
+              anime_url:
+                type: string
+              anime_id:
+                type: number
+              episodes:
+                type: object
+                properties:
+                  aired:
+                    type: number
+                    description: Count of episodes, which already aired
+                  count:
+                    type: number
+                    description: The total number of episodes, which this anime has
+                  next_date:
+                    type: number
+                    description: UNIX time of next episode
+      example:
+        response:
+          - title: Anime title
+            description: Anime description
+            poster:
+              small: https://example.com/small.webp
+              medium: https://example.com/medium.webp
+              big: https://example.com/big.webp
+              huge: https://example.com/huge.webp
+              fullsize: https://example.com/fullsize.webp
+              mega: https://example.com/mega.webp
+            anime_url: anime-alias-123
+            anime_id: 123
+            episodes:
+              aired: 12
+              count: 24
+              next_date: 12344343
+    GetAnimeResponse:
+      type: object
+      properties:
+        response:
+          type: array
+          items:
+            type: object
+            properties:
+              anime_id:
+                type: number
+              anime_status:
+                type: object
+                properties:
+                  title:
+                    type: string
+                    description: Anime status title
+                    enum:
+                      - вышел
+                      - онгоинг
+                      - анонс
+                  class:
+                    type: string
+                    description: Deprecated, do not use it
+                  alias:
+                    type: string
+                    description: Anime status alias
+                    enum:
+                      - released
+                      - ongoing
+                      - announcement
+                  value:
+                    type: number
+                    description: Anime status ID
+                    enum:
+                      - 0
+                      - 1
+                      - 2
+              anime_url:
+                type: string
+                description: Anime alias (URL would be
+                  https://yummyani.me/catalog/item/anime-alias-123)
+              poster:
+                type: object
+                properties:
+                  small:
+                    type: string
+                    description: Anime poster in WEBP format. 33x47px
+                  medium:
+                    type: string
+                    description: Anime poster in WEBP format. 184x260px
+                  big:
+                    type: string
+                    description: Anime poster in AVIF format. 250x350px
+                  huge:
+                    type: string
+                    description: Anime poster in AVIF format. 400x560
+                  fullsize:
+                    type: string
+                    description: Anime FULL poster in JPEG format. Responsive size.
+                  mega:
+                    type: string
+                    description: Anime mega poster in AVIF format. 570x800px
+              rating:
+                type: object
+                properties:
+                  counters:
+                    type: number
+                    description: How many users rated this anime
+                  average:
+                    type: number
+                    description: Anime average rating
+                description: Anime rating
+              title:
+                type: string
+                description: Anime title
+              type:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: Anime type title
+                  value:
+                    type: number
+                    description: Anime type ID
+                  shortname:
+                    type: string
+                    description: Anime type short name
+                description: Anime type
+              year:
+                type: number
+                description: Anime release year
+              description:
+                type: string
+              views:
+                type: number
+              season:
+                type: number
+                enum:
+                  - 1
+                  - 2
+                  - 3
+                  - 4
+                description: 1 - Winter, 2 - Spring, 3 - Summer, 4 - Fall
+              min_age:
+                type: object
+                properties:
+                  value:
+                    type: number
+                    enum:
+                      - 0
+                      - 1
+                      - 2
+                      - 3
+                      - 4
+                      - 5
+                    description: Minimum age rating
+                  title:
+                    type: string
+                    description: Minimum age rating title
+                  title_long:
+                    type: string
+              user:
+                type: object
+                properties:
+                  list:
+                    type: object
+                    properties:
+                      is_fav:
+                        type: boolean
+                        description: Is anime in favorites
+                      list:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                            enum:
+                              - Смотрю
+                              - В Планах
+                              - Просмотрено
+                              - Брошено
+                              - Отложено
+                            description: List title
+                          href:
+                            type: string
+                            enum:
+                              - watch_now
+                              - will
+                              - watched
+                              - lost
+                              - postpone
+                            description: List alias
+                          id:
+                            type: number
+                            enum:
+                              - 0
+                              - 1
+                              - 2
+                              - 3
+                              - 5
+                  rating:
+                    type: number
+                    description: Current user rating for this anime
+              remote_ids:
+                type: object
+                properties:
+                  worldart_id:
+                    type: number
+                    description: "WorldArt URL looks like:
+                      http://world-art.ru/{worldart_type}/{worldart_type}.php?i\
+                      d={worldart_id}"
+                  worldart_type:
+                    type: string
+                    enum:
+                      - animation
+                      - cinema
+                  kp_id:
+                    type: number
+                    description: "Kinopoisk ID. URL looks like:
+                      https://www.kinopoisk.ru/film/{kp_id}/"
+                  anidub_id:
+                    type: number
+                    description: Deprecated. Do not use it
+                  sr_id:
+                    type: number
+                    description: "SovetRomantica ID. URL looks like:
+                      https://sovetromantica.com/anime/{sr_id}"
+                  anilibria_alias:
+                    type: string
+                    description: "Anilibria alias. URL looks like:
+                      https://anilibria.tv/release/{anilibria_alias}.html"
+                  shikimori_id:
+                    type: number
+                    description: "Shikimori ID. URL looks like:
+                      https://shikimori.one/animes/{shikimori_id}"
+                  myanimelist_id:
+                    type: number
+                    description: "MyAnimeList ID. URL looks like:
+                      https://myanimelist.net/anime/{myanimelist_id}"
+              top:
+                type: object
+                properties:
+                  global:
+                    type: number
+                    description: Global TOP place in all animes.
+                  category:
+                    type: number
+                    description: Top place in anime category (ova, ona, tv, film, etc)
+              blocked_in:
+                type: array
+                items:
+                  type: string
+      example:
+        response:
+          - anime_id: 12
+            anime_status:
+              title: вышел
+              class: ""
+              alias: released
+              value: 0
+            anime_url: anime-alias-123
+            poster:
+              small: https://example.com/small.webp
+              medium: https://example.com/medium.webp
+              big: https://example.com/big.webp
+              huge: https://example.com/huge.webp
+              fullsize: https://example.com/fullsize.webp
+              mega: https://example.com/mega.webp
+            rating:
+              counters: 10
+              average: 9.23
+            title: Your name
+            type:
+              name: Спешл
+              value: 5
+              shortname: спешл
+            year: 2016
+            description: Anime description long-long-long...
+            views: 12345
+            season: 1
+            min_age:
+              value: 5
+              title: R+
+              title_long: R+ (17+)
+            user:
+              list:
+                is_fav: false
+                list:
+                  title: Смотрю
+                  href: watch_now
+                  id: 0
+              rating: 9.23
+            remote_ids:
+              worldart_id: 123
+              worldart_type: animation
+              kp_id: 123
+              anidub_id: 123
+              sr_id: 123
+              anilibria_alias: anilibria-anime-alias
+              shikimori_id: 123
+              myanimelist_id: 123
+            top:
+              global: 23
+              category: 12
+            blocked_in:
+              - RU
+    GetSearchResponse:
+      type: object
+      properties:
+        response:
+          type: array
+          items:
+            type: object
+            properties:
+              anime_id:
+                type: number
+              anime_status:
+                type: object
+                properties:
+                  title:
+                    type: string
+                    description: Anime status title
+                    enum:
+                      - вышел
+                      - онгоинг
+                      - анонс
+                  class:
+                    type: string
+                    description: Deprecated, do not use it
+                  alias:
+                    type: string
+                    description: Anime status alias
+                    enum:
+                      - released
+                      - ongoing
+                      - announcement
+                  value:
+                    type: number
+                    description: Anime status ID
+                    enum:
+                      - 0
+                      - 1
+                      - 2
+              anime_url:
+                type: string
+                description: Anime alias (URL would be
+                  https://yummyani.me/catalog/item/anime-alias-123)
+              poster:
+                type: object
+                properties:
+                  small:
+                    type: string
+                    description: Anime poster in WEBP format. 33x47px
+                  medium:
+                    type: string
+                    description: Anime poster in WEBP format. 184x260px
+                  big:
+                    type: string
+                    description: Anime poster in AVIF format. 250x350px
+                  huge:
+                    type: string
+                    description: Anime poster in AVIF format. 400x560
+                  fullsize:
+                    type: string
+                    description: Anime FULL poster in JPEG format. Responsive size.
+                  mega:
+                    type: string
+                    description: Anime mega poster in AVIF format. 570x800px
+              rating:
+                type: object
+                properties:
+                  counters:
+                    type: number
+                    description: How many users rated this anime
+                  average:
+                    type: number
+                    description: Anime average rating
+                description: Anime rating
+              title:
+                type: string
+                description: Anime title
+              type:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    description: Anime type title
+                  value:
+                    type: number
+                    description: Anime type ID
+                  shortname:
+                    type: string
+                    description: Anime type short name
+                description: Anime type
+              year:
+                type: number
+                description: Anime release year
+              description:
+                type: string
+              views:
+                type: number
+              season:
+                type: number
+                enum:
+                  - 1
+                  - 2
+                  - 3
+                  - 4
+                description: 1 - Winter, 2 - Spring, 3 - Summer, 4 - Fall
+              min_age:
+                type: object
+                properties:
+                  value:
+                    type: number
+                    enum:
+                      - 0
+                      - 1
+                      - 2
+                      - 3
+                      - 4
+                      - 5
+                    description: Minimum age rating
+                  title:
+                    type: string
+                    description: Minimum age rating title
+                  title_long:
+                    type: string
+              user:
+                type: object
+                properties:
+                  list:
+                    type: object
+                    properties:
+                      is_fav:
+                        type: boolean
+                        description: Is anime in favorites
+                      list:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                            enum:
+                              - Смотрю
+                              - В Планах
+                              - Просмотрено
+                              - Брошено
+                              - Отложено
+                            description: List title
+                          href:
+                            type: string
+                            enum:
+                              - watch_now
+                              - will
+                              - watched
+                              - lost
+                              - postpone
+                            description: List alias
+                          id:
+                            type: number
+                            enum:
+                              - 0
+                              - 1
+                              - 2
+                              - 3
+                              - 5
+                  rating:
+                    type: number
+                    description: Current user rating for this anime
+              remote_ids:
+                type: object
+                properties:
+                  worldart_id:
+                    type: number
+                    description: "WorldArt URL looks like:
+                      http://world-art.ru/{worldart_type}/{worldart_type}.php?i\
+                      d={worldart_id}"
+                  worldart_type:
+                    type: string
+                    enum:
+                      - animation
+                      - cinema
+                  kp_id:
+                    type: number
+                    description: "Kinopoisk ID. URL looks like:
+                      https://www.kinopoisk.ru/film/{kp_id}/"
+                  anidub_id:
+                    type: number
+                    description: Deprecated. Do not use it
+                  sr_id:
+                    type: number
+                    description: "SovetRomantica ID. URL looks like:
+                      https://sovetromantica.com/anime/{sr_id}"
+                  anilibria_alias:
+                    type: string
+                    description: "Anilibria alias. URL looks like:
+                      https://anilibria.tv/release/{anilibria_alias}.html"
+                  shikimori_id:
+                    type: number
+                    description: "Shikimori ID. URL looks like:
+                      https://shikimori.one/animes/{shikimori_id}"
+                  myanimelist_id:
+                    type: number
+                    description: "MyAnimeList ID. URL looks like:
+                      https://myanimelist.net/anime/{myanimelist_id}"
+              top:
+                type: object
+                properties:
+                  global:
+                    type: number
+                    description: Global TOP place in all animes.
+                  category:
+                    type: number
+                    description: Top place in anime category (ova, ona, tv, film, etc)
+              blocked_in:
+                type: array
+                items:
+                  type: string
+      example:
+        response:
+          - anime_id: 12
+            anime_status:
+              title: вышел
+              class: ""
+              alias: released
+              value: 0
+            anime_url: anime-alias-123
+            poster:
+              small: https://example.com/small.webp
+              medium: https://example.com/medium.webp
+              big: https://example.com/big.webp
+              huge: https://example.com/huge.webp
+              fullsize: https://example.com/fullsize.webp
+              mega: https://example.com/mega.webp
+            rating:
+              counters: 10
+              average: 9.23
+            title: Your name
+            type:
+              name: Спешл
+              value: 5
+              shortname: спешл
+            year: 2016
+            description: Anime description long-long-long...
+            views: 12345
+            season: 1
+            min_age:
+              value: 5
+              title: R+
+              title_long: R+ (17+)
+            user:
+              list:
+                is_fav: false
+                list:
+                  title: Смотрю
+                  href: watch_now
+                  id: 0
+              rating: 9.23
+            remote_ids:
+              worldart_id: 123
+              worldart_type: animation
+              kp_id: 123
+              anidub_id: 123
+              sr_id: 123
+              anilibria_alias: anilibria-anime-alias
+              shikimori_id: 123
+              myanimelist_id: 123
+            top:
+              global: 23
+              category: 12
+            blocked_in:
+              - RU
+    GetAnimeIdVideosResponse:
+      type: object
+      properties:
+        response:
+          type: array
+          items:
+            type: object
+            properties:
+              video_id:
+                type: number
+              iframe_url:
+                type: string
+              data:
+                type: object
+                properties:
+                  dubbing:
+                    type: string
+                  player:
+                    type: string
+              number:
+                type: string
+              date:
+                type: number
+                description: Video publish date (unix timestamp)
+              index:
+                type: number
+                description: Video index (used for ordering episodes)
+              skips:
+                type: object
+                properties:
+                  ending:
+                    type: object
+                    properties:
+                      time:
+                        type: number
+                      length:
+                        type: number
+                    description: Ending skip time and length
+                  opening:
+                    type: object
+                    properties:
+                      time:
+                        type: number
+                      length:
+                        type: number
+                    description: Opening skip time and length
+              views:
+                type: number
+              duration:
+                type: number
+      example:
+        response:
+          - video_id: 123
+            iframe_url: https://iframe.com
+            data:
+              dubbing: Dubbing title
+              player: Player title
+            number: "1"
+            date: 123455644
+            index: 1
+            skips:
+              ending:
+                time: 1234
+                length: 180
+              opening:
+                time: 0
+                length: 120
+            views: 12345
+            duration: 0
+  responses:
+    ArgumentsApiError:
+      description: Error representing arguments error
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          enum:
+            - Error representing arguments error
+        error_code:
+          type: number
+          description: Error code
+          enum:
+            - 3
+        error_title:
+          type: string
+          description: Error title
+          enum:
+            - Arguments error
+        error_name:
+          type: string
+          description: Error name
+          enum:
+            - ArgumentsApiError
+        sub_error_code:
+          type: number
+          description: Sub error code
+paths:
+  /anime/genres/{id}:
+    get:
+      tags:
+        - Anime
+      summary: Get anime genre
+      description: Get anime genre by id
+      parameters:
+        - name: id
+          schema:
+            type: string
+          in: path
+          required: true
+          description: Genre ID or alias
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnimeGenresIdResponse"
+          description: Success response
+  /anime/catalog:
+    get:
+      tags:
+        - Anime
+      summary: Get anime catalog data
+      description: Get genres, anime types and and default catalog items
+      parameters: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnimeCatalogResponse"
+          description: Success response
+  /anime/genres:
+    get:
+      tags:
+        - Anime
+      summary: List of all anime genres
+      description: List of all anime genres
+      parameters: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnimeGenresResponse"
+          description: Success response
+  /anime/counts/types:
+    get:
+      tags:
+        - Anime
+      summary: Get anime count, grouped by anime types
+      description: ""
+      parameters: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnimeCountsTypesResponse"
+          description: Success response
+  /anime/schedule:
+    get:
+      tags:
+        - Anime
+      summary: Get anime (ongoings) schedule
+      description: ""
+      parameters: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnimeScheduleResponse"
+          description: Success response
+  /anime:
+    get:
+      tags:
+        - Anime
+      summary: Filter anime by different parameters
+      description: ""
+      parameters:
+        - name: studio_ids
+          description: Filter animes by studio ids
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+          in: query
+        - name: q
+          description: Search query
+          required: false
+          schema:
+            type: string
+            default: ""
+          in: query
+        - name: director_ids
+          description: Fitler anime by director ids
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+          in: query
+        - name: worldart_ids
+          description: Filter animes by worldart ids
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+          in: query
+        - name: mal_ids
+          description: Filter animes by MyAnimeList ids
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+          in: query
+        - name: kp_ids
+          description: Filter animes by kinopoisk ids
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+          in: query
+        - name: shikimori_ids
+          description: Filter animes by shikimori ids
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+          in: query
+        - name: min_age
+          description: Filter animes by year ratings (PG - 1, PG-13 - 2, R-17+ - 3, R+ - 4)
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+              enum:
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+          in: query
+        - name: max_rating_counters
+          description: Maximum rating counters
+          required: false
+          schema:
+            type: integer
+            default: null
+            minimum: 0
+            maximum: 1000000000
+          in: query
+        - name: min_rating_counters
+          description: Minimum rating counters
+          required: false
+          schema:
+            type: integer
+            default: null
+            minimum: 0
+            maximum: 1000000000
+          in: query
+        - name: require_fields
+          description: Return only animes, which contains certain fields
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: string
+              enum:
+                - creators
+                - studios
+                - original
+                - description
+                - min_age
+                - season
+                - genres
+                - ep_count
+                - translates
+          in: query
+        - name: ids
+          description: Filter animes by ids
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: integer
+          in: query
+        - name: season
+          description: Season
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: string
+              enum:
+                - "1"
+                - "2"
+                - "3"
+                - "4"
+                - winter
+                - fall
+                - summer
+                - spring
+                - autumn
+          in: query
+        - name: status
+          description: Status
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: string
+              enum:
+                - released
+                - ongoing
+                - announcement
+                - announce
+                - "0"
+                - "1"
+                - "2"
+          in: query
+        - name: translates
+          description: Type of anime translates
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: string
+              enum:
+                - "1"
+                - "4"
+                - "5"
+                - "6"
+                - "7"
+                - full
+                - dubbing
+                - multivoice
+                - onevoice
+                - single
+                - twovoice
+                - duet
+                - subtitles
+          in: query
+        - name: types
+          description: Types
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: string
+              enum:
+                - "0"
+                - "1"
+                - "2"
+                - "3"
+                - "4"
+                - "5"
+                - "6"
+                - "7"
+                - tv
+                - movie
+                - shortfilm
+                - ova
+                - special
+                - shorttv
+                - ona
+          in: query
+        - name: exclude_genres
+          description: Exclude genres
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: string
+              enum:
+                - "2"
+                - "4"
+                - "5"
+                - "6"
+                - "7"
+                - "8"
+                - "9"
+                - "10"
+                - "11"
+                - "13"
+                - "14"
+                - "15"
+                - "16"
+                - "17"
+                - "18"
+                - "19"
+                - "20"
+                - "21"
+                - "22"
+                - "23"
+                - "24"
+                - "25"
+                - "26"
+                - "27"
+                - "28"
+                - "29"
+                - "30"
+                - "31"
+                - "32"
+                - "33"
+                - "34"
+                - "35"
+                - "36"
+                - "37"
+                - "38"
+                - "39"
+                - "40"
+                - "41"
+                - "42"
+                - "43"
+                - "44"
+                - "45"
+                - "46"
+                - "47"
+                - "48"
+                - "49"
+                - "50"
+                - "51"
+                - "52"
+                - "53"
+                - "54"
+                - "55"
+                - "56"
+                - "57"
+                - "58"
+                - "59"
+                - "60"
+                - "61"
+                - "62"
+                - "63"
+                - "64"
+                - "65"
+                - "66"
+                - "67"
+                - "68"
+                - "69"
+                - "70"
+                - "72"
+                - "73"
+                - "74"
+                - "75"
+                - "76"
+                - "77"
+                - "78"
+                - "79"
+                - "80"
+                - "81"
+                - "82"
+                - "83"
+                - "85"
+                - "86"
+                - "87"
+                - "88"
+                - "89"
+                - "90"
+                - "91"
+                - "92"
+                - "93"
+                - "94"
+                - "95"
+                - "96"
+                - "97"
+                - "98"
+                - "99"
+                - "100"
+                - "101"
+                - "102"
+                - "103"
+                - "104"
+                - "106"
+                - "107"
+                - "108"
+                - "109"
+                - "110"
+                - bisenen
+                - dzesej
+                - maho-sedze
+                - sedze
+                - sedze-aj
+                - senen
+                - senen-aj
+                - sejnen
+                - etti
+                - vestern
+                - detektiv
+                - drama
+                - komediya
+                - parodiya
+                - prestupnyj-mir
+                - vori
+                - mafiya-yakudza
+                - ohotniki-za-golovami
+                - piraty
+                - terroristy
+                - ubijcy
+                - meha
+                - androidy
+                - pilotiruemye-roboty
+                - silovye-kostyumy
+                - ii
+                - transformery
+                - mistika
+                - priklyucheniya
+                - romantika
+                - lyubovnyj-treugol-nik
+                - triller
+                - ugasy
+                - fantastika
+                - inoplanetyane
+                - kiborgi
+                - kosmicheskie-priklyucheniya
+                - puteshestviya-vo-vremeni
+                - fentezi
+                - al-ternativnaya-real-nost
+                - angely
+                - bogi
+                - vampiry
+                - ved-my
+                - demony
+                - drakony
+                - zombi
+                - magiya
+                - prizraki
+                - rysalki
+                - sovremennoe-fentezi
+                - sukkuby
+                - temnoe-fentezi
+                - temnye-el-fy
+                - fei
+                - celyj-fentezi-mir
+                - el-fy
+                - virtual-naya-real-nost
+                - parallel-nyj-mir
+                - ekshen
+                - boevye-iskusstva
+                - nindzya
+                - perestrelki
+                - proksi-boi
+                - samurai
+                - srazheniya-na-mechah
+                - supersposobnosti
+                - al-ternativnaya-istoriya
+                - antivojna
+                - antiutopiya
+                - vojna
+                - voennaya-tematika
+                - garem
+                - iskusstvo
+                - muzyka
+                - istoricheskij
+                - kiberpank
+                - kulinariya
+                - lolikon
+                - nelinejnyj-syuzhet
+                - povsednevnost
+                - politika
+                - policejskie
+                - postapokaliptika
+                - rossiya-v-anime
+                - sport
+                - basketbol
+                - stimpank
+                - tajnyj-zagovor
+                - shkola
+                - garem-dlya-devochek
+                - lyudi-zveri
+                - psihologiya
+                - manga
+                - erotica
+                - ne-yaponskoe
+                - trap
+                - sverh-estestvennoe
+                - igry
+                - isekai
+                - chinese3d
+                - motorcycles
+                - badguys
+                - bezumie
+          in: query
+        - name: genres
+          description: Genres
+          required: false
+          schema:
+            type: array
+            default: []
+            items:
+              type: string
+              enum:
+                - "2"
+                - "4"
+                - "5"
+                - "6"
+                - "7"
+                - "8"
+                - "9"
+                - "10"
+                - "11"
+                - "13"
+                - "14"
+                - "15"
+                - "16"
+                - "17"
+                - "18"
+                - "19"
+                - "20"
+                - "21"
+                - "22"
+                - "23"
+                - "24"
+                - "25"
+                - "26"
+                - "27"
+                - "28"
+                - "29"
+                - "30"
+                - "31"
+                - "32"
+                - "33"
+                - "34"
+                - "35"
+                - "36"
+                - "37"
+                - "38"
+                - "39"
+                - "40"
+                - "41"
+                - "42"
+                - "43"
+                - "44"
+                - "45"
+                - "46"
+                - "47"
+                - "48"
+                - "49"
+                - "50"
+                - "51"
+                - "52"
+                - "53"
+                - "54"
+                - "55"
+                - "56"
+                - "57"
+                - "58"
+                - "59"
+                - "60"
+                - "61"
+                - "62"
+                - "63"
+                - "64"
+                - "65"
+                - "66"
+                - "67"
+                - "68"
+                - "69"
+                - "70"
+                - "72"
+                - "73"
+                - "74"
+                - "75"
+                - "76"
+                - "77"
+                - "78"
+                - "79"
+                - "80"
+                - "81"
+                - "82"
+                - "83"
+                - "85"
+                - "86"
+                - "87"
+                - "88"
+                - "89"
+                - "90"
+                - "91"
+                - "92"
+                - "93"
+                - "94"
+                - "95"
+                - "96"
+                - "97"
+                - "98"
+                - "99"
+                - "100"
+                - "101"
+                - "102"
+                - "103"
+                - "104"
+                - "106"
+                - "107"
+                - "108"
+                - "109"
+                - "110"
+                - bisenen
+                - dzesej
+                - maho-sedze
+                - sedze
+                - sedze-aj
+                - senen
+                - senen-aj
+                - sejnen
+                - etti
+                - vestern
+                - detektiv
+                - drama
+                - komediya
+                - parodiya
+                - prestupnyj-mir
+                - vori
+                - mafiya-yakudza
+                - ohotniki-za-golovami
+                - piraty
+                - terroristy
+                - ubijcy
+                - meha
+                - androidy
+                - pilotiruemye-roboty
+                - silovye-kostyumy
+                - ii
+                - transformery
+                - mistika
+                - priklyucheniya
+                - romantika
+                - lyubovnyj-treugol-nik
+                - triller
+                - ugasy
+                - fantastika
+                - inoplanetyane
+                - kiborgi
+                - kosmicheskie-priklyucheniya
+                - puteshestviya-vo-vremeni
+                - fentezi
+                - al-ternativnaya-real-nost
+                - angely
+                - bogi
+                - vampiry
+                - ved-my
+                - demony
+                - drakony
+                - zombi
+                - magiya
+                - prizraki
+                - rysalki
+                - sovremennoe-fentezi
+                - sukkuby
+                - temnoe-fentezi
+                - temnye-el-fy
+                - fei
+                - celyj-fentezi-mir
+                - el-fy
+                - virtual-naya-real-nost
+                - parallel-nyj-mir
+                - ekshen
+                - boevye-iskusstva
+                - nindzya
+                - perestrelki
+                - proksi-boi
+                - samurai
+                - srazheniya-na-mechah
+                - supersposobnosti
+                - al-ternativnaya-istoriya
+                - antivojna
+                - antiutopiya
+                - vojna
+                - voennaya-tematika
+                - garem
+                - iskusstvo
+                - muzyka
+                - istoricheskij
+                - kiberpank
+                - kulinariya
+                - lolikon
+                - nelinejnyj-syuzhet
+                - povsednevnost
+                - politika
+                - policejskie
+                - postapokaliptika
+                - rossiya-v-anime
+                - sport
+                - basketbol
+                - stimpank
+                - tajnyj-zagovor
+                - shkola
+                - garem-dlya-devochek
+                - lyudi-zveri
+                - psihologiya
+                - manga
+                - erotica
+                - ne-yaponskoe
+                - trap
+                - sverh-estestvennoe
+                - igry
+                - isekai
+                - chinese3d
+                - motorcycles
+                - badguys
+                - bezumie
+          in: query
+        - name: max_rating
+          description: To rating
+          required: false
+          schema:
+            type: number
+            default: null
+            minimum: 0
+            maximum: 10
+          in: query
+        - name: min_rating
+          description: From rating
+          required: false
+          schema:
+            type: number
+            default: null
+            minimum: 0
+            maximum: 10
+          in: query
+        - name: ep_to
+          description: Maximum episodes number
+          required: false
+          schema:
+            type: integer
+            default: null
+            minimum: 0
+            maximum: 10000
+          in: query
+        - name: ep_from
+          description: Minimum episodes number
+          required: false
+          schema:
+            type: integer
+            default: null
+            minimum: 0
+            maximum: 10000
+          in: query
+        - name: to_year
+          description: To year
+          required: false
+          schema:
+            type: integer
+            default: null
+            minimum: 1900
+            maximum: 2100
+          in: query
+        - name: from_year
+          description: From year
+          required: false
+          schema:
+            type: integer
+            default: null
+            minimum: 1900
+            maximum: 2100
+          in: query
+        - name: sort_forward
+          description: Sort forward
+          required: false
+          schema:
+            type: boolean
+            default: true
+          in: query
+        - name: sort
+          description: Sort by
+          required: false
+          schema:
+            type: string
+            default: top
+            enum:
+              - title
+              - year
+              - rating
+              - rating_counters
+              - views
+              - top
+              - random
+              - id
+          in: query
+        - name: offset
+          description: Offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+            maximum: 20000
+          in: query
+        - name: limit
+          description: Limit
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnimeResponse"
+          description: Success response
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/responses/ArgumentsApiError"
+  /search:
+    get:
+      tags:
+        - Anime
+      summary: Search anime
+      description: Search anime by search query. Minimum 3 chars in query
+      parameters:
+        - name: q
+          description: Search query
+          required: true
+          schema:
+            type: string
+          in: query
+        - name: offset
+          description: Offset
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+            maximum: 300
+          in: query
+        - name: limit
+          description: Limit
+          required: false
+          schema:
+            type: integer
+            default: 5
+            minimum: 0
+            maximum: 30
+          in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetSearchResponse"
+          description: Success response
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/responses/ArgumentsApiError"
+  /anime/{id}/videos:
+    get:
+      tags:
+        - Anime
+      summary: Get anime videos
+      description: ""
+      parameters:
+        - name: id
+          schema:
+            type: integer
+          in: path
+          required: true
+          description: Anime ID
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAnimeIdVideosResponse"
+          description: Success response
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/responses/NotFoundError"
