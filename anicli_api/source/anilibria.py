@@ -25,7 +25,7 @@ T_KW_APIS = TypedDict("T_KW_APIS", {"sync_api": AniLibertySync, "async_api": Ani
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://api.anilibria.tv/v3/"
+    BASE_URL = "https://aniliberty.top/api/v1"
 
     def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
         super().__init__(http_client=http_client, http_async_client=http_async_client)
