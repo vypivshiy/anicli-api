@@ -195,7 +195,7 @@ class PageUtils:
         v0 = v.cssselect('link[rel="canonical"]')[0]
         v1 = v0.get("href")
 
-        return ssc_rm_prefix(v1, "/")
+        return v1.rstrip("/")
 
     def parse(self) -> T_PageUtils:
         return {

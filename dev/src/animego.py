@@ -5,7 +5,7 @@ class PageUtils(ItemSchema):
     # old domain - animego.org
     # this provider can be replace domains by redirect
     # helper function page for fix ongoings url
-    url_canonical = D().css('link[rel="canonical"]::attr(href)').rm_prefix("/")
+    url_canonical = D().css('link[rel="canonical"]::attr(href)').rtrim("/")
 
 
 class PageOngoing(ListSchema):
