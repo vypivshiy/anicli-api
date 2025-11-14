@@ -9,6 +9,8 @@ from functools import reduce
 
 from lxml import html
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
+
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -104,7 +106,10 @@ class PageOngoing:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".all_anime_global")
@@ -166,7 +171,10 @@ class PageSearch:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".all_anime_global")
@@ -219,7 +227,10 @@ class EpisodesView:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".video")
@@ -266,7 +277,10 @@ class PageAnime:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".anime_padding_for_title")[0]
@@ -306,7 +320,10 @@ class SourceView:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect("#my-player > source")
@@ -366,7 +383,10 @@ class PageSource:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_videos(self, v: html.HtmlElement) -> T_SourceView:
         return SourceView(v).parse()

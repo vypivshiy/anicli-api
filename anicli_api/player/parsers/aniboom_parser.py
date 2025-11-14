@@ -9,6 +9,8 @@ from functools import reduce
 
 from lxml import html
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
+
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -164,7 +166,10 @@ class PageAniboom:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_data_parameters(self, v: html.HtmlElement) -> J_DataParameters:
         v0 = v.cssselect("#video[data-parameters]")[0]

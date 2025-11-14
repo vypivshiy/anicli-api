@@ -10,6 +10,8 @@ from functools import reduce
 
 from lxml import html
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
+
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -189,7 +191,10 @@ class PageUtils:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_url_canonical(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect('link[rel="canonical"]')[0]
@@ -226,7 +231,10 @@ class PageOngoing:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".border-bottom-0.cursor-pointer")
@@ -298,7 +306,10 @@ class PageSearch:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".row > .col-ul-2")
@@ -404,7 +415,10 @@ class PageAnime:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".anime-title h1")[0]
@@ -463,7 +477,10 @@ class EpisodesView:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect("#video-carousel .mb-0")
@@ -497,7 +514,10 @@ class EpisodeDubbersView:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect("#video-dubbing .mb-1")
@@ -549,7 +569,10 @@ class PageEpisode:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_is_film(self, v: html.HtmlElement) -> bool:
         v0 = v
@@ -587,7 +610,10 @@ class EpisodeVideoPlayersView:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect("#video-players > .mb-1")
@@ -651,7 +677,10 @@ class PageEpisodeVideo:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_is_film(self, v: html.HtmlElement) -> bool:
         v0 = v
@@ -690,7 +719,10 @@ class SourceVideoView:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect("#video-players > span")
@@ -730,7 +762,10 @@ class SourceDubbersView:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect("#video-dubbing > span")
@@ -785,7 +820,10 @@ class PageSource:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_dubbers(self, v: html.HtmlElement) -> T_SourceDubbersView:
         return SourceDubbersView(v).parse()

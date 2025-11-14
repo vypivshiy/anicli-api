@@ -8,6 +8,8 @@ from functools import reduce
 
 from lxml import html
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
+
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -88,7 +90,10 @@ class PageOngoing:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".col-auto")
@@ -143,7 +148,10 @@ class PageSearch:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".col-auto")
@@ -193,7 +201,10 @@ class PageAnime:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("h1.m-0")[0]
@@ -272,7 +283,10 @@ class PagePlaylistURL:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_playlist_url(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")

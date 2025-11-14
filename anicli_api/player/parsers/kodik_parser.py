@@ -10,6 +10,8 @@ from functools import reduce
 
 from lxml import html
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
+
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -180,7 +182,10 @@ class KodikAPIPayload:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_d(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
@@ -310,7 +315,10 @@ class PageMainKodikMin:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_url_params(self, v: html.HtmlElement) -> J_UrlParams:
         v0 = html.tostring(v, encoding="unicode")
@@ -349,7 +357,10 @@ class SeasonBox:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".serial-panel > .serial-seasons-box option")
@@ -396,7 +407,10 @@ class SeriesBox:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".serial-panel > .serial-series-box option")
@@ -439,7 +453,10 @@ class SeriesOptionItem:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect("option")
@@ -485,7 +502,10 @@ class SeriesOptions:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".serial-panel > .series-options div")
@@ -518,7 +538,10 @@ class TranslationsBox:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".serial-panel > .serial-translations-box option")
@@ -646,7 +669,10 @@ class PageMainKodikSerial:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_url_params(self, v: html.HtmlElement) -> J_UrlParams:
         v0 = html.tostring(v, encoding="unicode")
@@ -713,7 +739,10 @@ class MovieTranslationBox:
     ]"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> List[html.HtmlElement]:
         return v.cssselect(".movie-panel > .movie-translations-box option")
@@ -805,7 +834,10 @@ class PageMainKodikVideo:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_url_params(self, v: html.HtmlElement) -> J_UrlParams:
         v0 = html.tostring(v, encoding="unicode")
@@ -863,7 +895,10 @@ class PageMainKodikAPIPath:
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        self._document = html.fromstring(document) if isinstance(document, str) else document
+        if isinstance(document, html.HtmlElement):
+            self._document = document
+        elif isinstance(document, str):
+            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_api_path(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
