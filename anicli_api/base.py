@@ -1,7 +1,9 @@
 import warnings
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Sequence, TypedDict
+from typing import TYPE_CHECKING
+
 from urllib.parse import urlsplit
+from anicli_api.typing import MutableSequence, TypedDict
 
 from attrs import define, field
 
@@ -57,7 +59,7 @@ class BaseExtractor:
         return {"http": self.http, "http_async": self.http_async}
 
     @abstractmethod
-    def search(self, query: str) -> Sequence["BaseSearch"]:
+    def search(self, query: str) -> MutableSequence["BaseSearch"]:
         """search anime by string query
 
         :param query: string search query
@@ -65,7 +67,7 @@ class BaseExtractor:
         pass
 
     @abstractmethod
-    async def a_search(self, query: str) -> Sequence["BaseSearch"]:
+    async def a_search(self, query: str) -> MutableSequence["BaseSearch"]:
         """search anime by string query in async mode
 
         :param query: string search query
@@ -73,12 +75,12 @@ class BaseExtractor:
         pass
 
     @abstractmethod
-    def ongoing(self) -> Sequence["BaseOngoing"]:
+    def ongoing(self) -> MutableSequence["BaseOngoing"]:
         """get ongoings"""
         pass
 
     @abstractmethod
-    async def a_ongoing(self) -> Sequence["BaseOngoing"]:
+    async def a_ongoing(self) -> MutableSequence["BaseOngoing"]:
         """get ongoings in async mode"""
         pass
 
@@ -176,12 +178,12 @@ class BaseAnime(HttpMixin):
     """anime description"""
 
     @abstractmethod
-    def get_episodes(self) -> Sequence["BaseEpisode"]:
+    def get_episodes(self) -> MutableSequence["BaseEpisode"]:
         """get episodes"""
         pass
 
     @abstractmethod
-    async def a_get_episodes(self) -> Sequence["BaseEpisode"]:
+    async def a_get_episodes(self) -> MutableSequence["BaseEpisode"]:
         """get episodes in async mode"""
         pass
 
@@ -213,12 +215,12 @@ class BaseEpisode(HttpMixin):
     """episode number. Stars from 1"""
 
     @abstractmethod
-    def get_sources(self) -> Sequence["BaseSource"]:
+    def get_sources(self) -> MutableSequence["BaseSource"]:
         """get raw source player information"""
         pass
 
     @abstractmethod
-    async def a_get_sources(self) -> Sequence["BaseSource"]:
+    async def a_get_sources(self) -> MutableSequence["BaseSource"]:
         """get raw source player information in async mode"""
         pass
 
@@ -244,7 +246,7 @@ class BaseSource(HttpMixin):
         """helper property for helps dynamic match decoder parser by player url"""
         return ALL_DECODERS
 
-    def get_videos(self, **httpx_kwargs) -> Sequence["Video"]:
+    def get_videos(self, **httpx_kwargs) -> MutableSequence["Video"]:
         """get direct video information for direct play
 
         :param httpx_kwargs: httpx.Client configuration
@@ -255,7 +257,7 @@ class BaseSource(HttpMixin):
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
-    async def a_get_videos(self, **httpx_kwargs) -> Sequence["Video"]:
+    async def a_get_videos(self, **httpx_kwargs) -> MutableSequence["Video"]:
         """get direct video information for direct play in async mode
 
         :param httpx_kwargs: httpx.AsyncClient configuration

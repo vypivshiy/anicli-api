@@ -1,6 +1,6 @@
+from __future__ import annotations
 import logging
 import re
-from typing import List, Tuple
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 from anicli_api.player.parsers.cdnvideohub_parser import PageAnimegoIframe
@@ -26,7 +26,7 @@ _RESOLUTION_MAPPING = {
 }
 
 
-def video_playlist_from_vk_id(vkid: str) -> List["Video"]:
+def video_playlist_from_vk_id(vkid: str) -> list["Video"]:
     result = CdnVideoHubSync().get_video_by_id(id=vkid).data["sources"]
     hls_video = result.pop("hlsUrl")
     dash_video = result.pop("dashUrl")
@@ -51,7 +51,7 @@ def video_playlist_from_vk_id(vkid: str) -> List["Video"]:
     return videos
 
 
-async def a_video_playlist_from_vk_id(vkid: str) -> List["Video"]:
+async def a_video_playlist_from_vk_id(vkid: str) -> list["Video"]:
     result = (await CdnVideoHubAsync().get_video_by_id(id=vkid)).data["sources"]
     hls_video = result.pop("hlsUrl")
     dash_video = result.pop("dashUrl")
@@ -85,7 +85,7 @@ class CdnVideoHub(BaseVideoExtractor):
         self.async_api = CdnVideoHubAsync()
 
     @staticmethod
-    def _parse_url_parts(url: str) -> Tuple[str, str, str, str]:
+    def _parse_url_parts(url: str) -> tuple[str, str, str, str]:
         # eg signature url
         # https://animego.me/cdn-iframe/47158/Dream Cast/1/1
         path = url.split("cdn-iframe/")[-1]
@@ -120,7 +120,7 @@ class CdnVideoHub(BaseVideoExtractor):
         return []
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> List[Video]:
+    def parse(self, url: str, **kwargs) -> list[Video]:
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
         response = self.http.get(url, headers={"referer": "https://animego.me"})
         options = PageAnimegoIframe(response.text).parse()
@@ -142,7 +142,7 @@ class CdnVideoHub(BaseVideoExtractor):
         return []
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+    async def a_parse(self, url: str, **kwargs) -> list[Video]:
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
         response = self.http.get(url, headers={"referer": "https://animego.me"})
         options = PageAnimegoIframe(response.text).parse()

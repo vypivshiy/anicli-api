@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import re
-from typing import List
 
 from attrs import define
 
@@ -21,7 +22,7 @@ RE_IS_CYRRILIC = re.compile(r"[А-Яа-яЁё]")
 class Extractor(BaseExtractor):
     BASE_URL = "https://yummyanime.in"
 
-    def _extract_search(self, resp: str) -> List["Search"]:
+    def _extract_search(self, resp: str) -> list["Search"]:
         data = PageSearch(resp).parse()
         full_url = PageUtils(resp).parse()["url"]
         return [
@@ -29,7 +30,7 @@ class Extractor(BaseExtractor):
             for i in data
         ]
 
-    def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
+    def _extract_ongoing(self, resp: str) -> list["Ongoing"]:
         data = PageOngoing(resp).parse()
         full_url = PageUtils(resp).parse()["url"]
 
@@ -120,7 +121,7 @@ class Ongoing(BaseOngoing):
 class Anime(BaseAnime):
     cdn_data: T_PageParseCdnVideoData
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         result = CdnVideoHubSync().get_playlist(
             pub=int(self.cdn_data["data_publisher_id"]),
             aggr=self.cdn_data["data_aggregator"],
@@ -140,7 +141,7 @@ class Anime(BaseAnime):
 
         return episodes
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         result = await CdnVideoHubAsync().get_playlist(
             pub=int(self.cdn_data["data_publisher_id"]),
             aggr=self.cdn_data["data_aggregator"],
@@ -163,9 +164,9 @@ class Anime(BaseAnime):
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    data: List[T_PlaylistItem]
+    data: list[T_PlaylistItem]
 
-    def get_sources(self) -> List["Source"]:
+    def get_sources(self) -> list["Source"]:
         results = []
         for item in self.data:
             results.append(
@@ -177,7 +178,7 @@ class Episode(BaseEpisode):
             )
         return results
 
-    async def a_get_sources(self) -> List["Source"]:
+    async def a_get_sources(self) -> list["Source"]:
         return self.get_sources()
 
 
@@ -186,10 +187,10 @@ class Source(BaseSource):
     vk_id: str
 
     # todo: move to player extractor (how?)
-    def get_videos(self, **httpx_kwargs) -> List[Video]:
+    def get_videos(self, **httpx_kwargs) -> list[Video]:
         return video_playlist_from_vk_id(self.vk_id)
 
-    async def a_get_videos(self, **httpx_kwargs) -> List[Video]:
+    async def a_get_videos(self, **httpx_kwargs) -> list[Video]:
         return await a_video_playlist_from_vk_id(self.vk_id)
 
 

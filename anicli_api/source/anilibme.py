@@ -1,7 +1,10 @@
-from typing import TYPE_CHECKING, List, TypedDict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 
+from anicli_api.typing import TypedDict
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
@@ -78,7 +81,7 @@ class Extractor(BaseExtractor):
         """shortcut for pass API objects arguments in kwargs style"""
         return {"sync_api": self.sync_api, "async_api": self.async_api}
 
-    def search(self, query: str) -> List["Search"]:
+    def search(self, query: str) -> list["Search"]:
         result = self.sync_api.get_anime(fields=_SEARCH_ANIME_FIELD_PARAMS, site_id=_SITE_ID, q=query)
         results = []
         if result.success and result.data:
@@ -95,7 +98,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    async def a_search(self, query: str) -> List["Search"]:
+    async def a_search(self, query: str) -> list["Search"]:
         result = await self.async_api.get_anime(fields=_SEARCH_ANIME_FIELD_PARAMS, site_id=_SITE_ID, q=query)
         results = []
         if result.success and result.data:
@@ -112,7 +115,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    def ongoing(self) -> List["Ongoing"]:
+    def ongoing(self) -> list["Ongoing"]:
         result = self.sync_api.get_anime(
             fields=["rate", "rate_avg", "userBookmark"],
             site_id=_SITE_ID,  # magic enum - sorty by ongoings
@@ -134,7 +137,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    async def a_ongoing(self) -> List["Ongoing"]:
+    async def a_ongoing(self) -> list["Ongoing"]:
         result = await self.async_api.get_anime(
             fields=["rate", "rate_avg", "userBookmark"],
             site_id=_SITE_ID,  # magic enum - sorty by ongoings
@@ -244,7 +247,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
     _async_api: AnimeliborgAPIAsync = field(alias="async_api")
     data: T_AnimeDetail
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         result = self.sync_api.get_episodes(self.data["slug_url"])
         results = []
         if result.success and result.data:
@@ -260,7 +263,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
                 )
         return results
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         result = await self.async_api.get_episodes(self.data["slug_url"])
         results = []
         if result.success and result.data:
@@ -283,7 +286,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
     _async_api: AnimeliborgAPIAsync = field(alias="async_api")
     data: T_EpisodeListItem
 
-    def get_sources(self) -> List["Source"]:
+    def get_sources(self) -> list["Source"]:
         result = self.sync_api.get_episode_by_id(str(self.data["id"]))
         results = []
         for data in result.data["data"]["players"]:
@@ -313,7 +316,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
                 )
         return results
 
-    async def a_get_sources(self) -> List["Source"]:
+    async def a_get_sources(self) -> list["Source"]:
         result = await self.async_api.get_episode_by_id(str(self.data["id"]))
         results = []
         for data in result.data["data"]["players"]:
@@ -350,7 +353,7 @@ class Source(_ApiInstancesMixin, BaseSource):
     _async_api: AnimeliborgAPIAsync = field(alias="async_api")
     data: T_Player
 
-    def get_videos(self, **httpx_kwargs) -> List[Video]:
+    def get_videos(self, **httpx_kwargs) -> list[Video]:
         # implemended, run original method
         if self.data["player"].lower() == "kodik":
             return super().get_videos(**httpx_kwargs)  # type: ignore
@@ -370,7 +373,7 @@ class Source(_ApiInstancesMixin, BaseSource):
             return results
         return []
 
-    async def a_get_videos(self, **httpx_kwargs) -> List[Video]:
+    async def a_get_videos(self, **httpx_kwargs) -> list[Video]:
         # implemended, run original method
         if self.data["player"].lower() == "kodik":
             return await super().a_get_videos(**httpx_kwargs)  # type: ignore

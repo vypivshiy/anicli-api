@@ -1,6 +1,9 @@
-from typing import TYPE_CHECKING, List, TypedDict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from attrs import define, field
 
+from anicli_api.typing import TypedDict
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video  # direct make this object
@@ -33,7 +36,7 @@ class Extractor(BaseExtractor):
         """shortcut for pass API objects arguments in kwargs style"""
         return {"sync_api": self.sync_api, "async_api": self.async_api}
 
-    def search(self, query: str) -> List["Search"]:
+    def search(self, query: str) -> list["Search"]:
         result = self.sync_api.search(query)
         # not founded, not raise exception
         if result.status_code == 404:
@@ -56,7 +59,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    async def a_search(self, query: str) -> List["Search"]:
+    async def a_search(self, query: str) -> list["Search"]:
         result = await self.async_api.search(query)
         # not founded, not raise exception
         if result.status_code == 404:
@@ -79,7 +82,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    def ongoing(self) -> List["Ongoing"]:
+    def ongoing(self) -> list["Ongoing"]:
         result = self.sync_api.last(page=1, quantity=20)
 
         result.raise_for_status()
@@ -99,7 +102,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    async def a_ongoing(self) -> List["Ongoing"]:
+    async def a_ongoing(self) -> list["Ongoing"]:
         result = await self.async_api.last(page=1, quantity=20)
 
         result.raise_for_status()
@@ -183,7 +186,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
     _sync_api: AnimeVostSync = field(alias="sync_api")
     _async_api: AnimeVostAsync = field(alias="async_api")
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         result = await self._async_api.playlist(str(self.data["id"]))
         result.raise_for_status()
 
@@ -200,7 +203,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
 
         return results
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         result = self._sync_api.playlist(str(self.data["id"]))
         result.raise_for_status()
 
@@ -225,7 +228,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
     _sync_api: AnimeVostSync = field(alias="sync_api")
     _async_api: AnimeVostAsync = field(alias="async_api")
 
-    def get_sources(self) -> List["Source"]:
+    def get_sources(self) -> list["Source"]:
         return [
             Source(
                 title="Animevost",
@@ -237,7 +240,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
             )
         ]
 
-    async def a_get_sources(self) -> List["Source"]:
+    async def a_get_sources(self) -> list["Source"]:
         return self.get_sources()
 
     def __str__(self):
@@ -251,13 +254,13 @@ class Source(_ApiInstancesMixin, BaseSource):
     _sync_api: AnimeVostSync = field(alias="sync_api")
     _async_api: AnimeVostAsync = field(alias="async_api")
 
-    def get_videos(self, **_) -> List[Video]:
+    def get_videos(self, **_) -> list[Video]:
         return [
             Video(type="mp4", quality=480, url=self._std),
             Video(type="mp4", quality=720, url=self._hd),
         ]
 
-    async def a_get_videos(self, **_) -> List[Video]:
+    async def a_get_videos(self, **_) -> list[Video]:
         return self.get_videos()
 
 

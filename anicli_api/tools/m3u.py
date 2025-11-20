@@ -1,7 +1,8 @@
 """simple M3U playlist generators"""
 
-from typing import NamedTuple, Optional, Sequence, Union
+from typing import Optional, Union
 
+from anicli_api.typing import NamedTuple, MutableSequence
 from anicli_api.base import BaseSource
 from anicli_api.player.base import Video
 
@@ -20,11 +21,11 @@ class M3UPlaylistItem(NamedTuple):
 
 
 class Playlist:
-    def __init__(self, playlist: Sequence[M3UPlaylistItem]):
+    def __init__(self, playlist: MutableSequence[M3UPlaylistItem]):
         self._playlist = playlist
 
     @classmethod
-    def from_urls(cls, urls: Sequence[str], names: Optional[Sequence[str]] = None):
+    def from_urls(cls, urls: MutableSequence[str], names: Optional[MutableSequence[str]] = None):
         if not names:
             names = [f"Episode {i + 1}" for i in range(len(urls))]
 
@@ -35,7 +36,7 @@ class Playlist:
         return cls(playlists).generate()
 
     @classmethod
-    def from_videos(cls, videos: Sequence["Video"], names: Optional[Sequence[str]]) -> str:
+    def from_videos(cls, videos: MutableSequence["Video"], names: Optional[MutableSequence[str]]) -> str:
         if not names:
             names = [f"Episode {i + 1}" for i in range(len(videos))]
         playlists: list["M3UPlaylistItem"] = []
@@ -53,7 +54,9 @@ class Playlist:
         return raw_playlist
 
 
-def generate_playlist_from_urls(videos: Sequence[Union[str, Video]], names: Optional[Sequence[str]] = None) -> str:
+def generate_playlist_from_urls(
+    videos: MutableSequence[Union[str, Video]], names: Optional[MutableSequence[str]] = None
+) -> str:
     if isinstance(videos[0], Video):
         videos = [v.url for v in videos]
     if not names:
@@ -61,12 +64,12 @@ def generate_playlist_from_urls(videos: Sequence[Union[str, Video]], names: Opti
     return Playlist.from_urls(urls=videos, names=names)
 
 
-def _get_preferred_video_quality(videos: Sequence[Video], quality: int) -> Video:
+def _get_preferred_video_quality(videos: MutableSequence[Video], quality: int) -> Video:
     return sorted(videos, key=lambda x: abs(x.quality - quality))[0]
 
 
 def generate_playlist_from_sources(
-    sources: Sequence["BaseSource"], names: Optional[Sequence[str]] = None, quality: int = 1080
+    sources: MutableSequence["BaseSource"], names: Optional[MutableSequence[str]] = None, quality: int = 1080
 ) -> str:
     _is_empty_names = False
     if not names:
@@ -87,7 +90,7 @@ def generate_playlist_from_sources(
 
 
 async def generate_playlist_from_async_sources(
-    target: Sequence["BaseSource"], names: Optional[Sequence[str]] = None, quality: int = 1080
+    target: MutableSequence["BaseSource"], names: Optional[MutableSequence[str]] = None, quality: int = 1080
 ) -> str:
     """generate m3u playlist structure IN ASYNCIO MODE
 
@@ -114,8 +117,8 @@ async def generate_playlist_from_async_sources(
 
 
 def generate_playlist(
-    target: Sequence[Union[BaseSource, Video, str]],
-    names: Optional[Sequence[str]] = None,
+    target: MutableSequence[Union[BaseSource, Video, str]],
+    names: Optional[MutableSequence[str]] = None,
     quality: int = 1080,
 ) -> str:
     """generate m3u playlist structure
@@ -133,8 +136,8 @@ def generate_playlist(
 
 
 async def generate_asyncio_playlist(
-    target: Sequence[Union[BaseSource, Video, str]],
-    names: Optional[Sequence[str]] = None,
+    target: MutableSequence[Union[BaseSource, Video, str]],
+    names: Optional[MutableSequence[str]] = None,
     quality: int = 1080,
 ) -> str:
     if isinstance(target[0], BaseSource):

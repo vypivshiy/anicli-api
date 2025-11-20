@@ -3,7 +3,10 @@
 saved old extractor name for backport support purposes
 """
 
-from typing import TYPE_CHECKING, List, Optional, TypedDict
+from __future__ import annotations
+
+from anicli_api.typing import TypedDict
+from typing import TYPE_CHECKING, Optional
 
 from attrs import define, field
 
@@ -45,7 +48,7 @@ class Extractor(BaseExtractor):
         """shortcut for pass API objects arguments in kwargs style"""
         return {"sync_api": self.sync_api, "async_api": self.async_api}
 
-    def search(self, query: str) -> List["Search"]:
+    def search(self, query: str) -> list["Search"]:
         # https://anilibria.top/api/docs/v1#/Аниме.Каталог
         result = self.sync_api.get_anime_catalog_releases(search=query)
         searches = []
@@ -63,7 +66,7 @@ class Extractor(BaseExtractor):
                 )
         return searches
 
-    async def a_search(self, query: str) -> List["Search"]:
+    async def a_search(self, query: str) -> list["Search"]:
         # https://anilibria.top/api/docs/v1#/Аниме.Каталог
         result = await self.async_api.get_anime_catalog_releases(search=query)
         searches = []
@@ -81,7 +84,7 @@ class Extractor(BaseExtractor):
                 )
         return searches
 
-    def ongoing(self) -> List["Ongoing"]:
+    def ongoing(self) -> list["Ongoing"]:
         # https://anilibria.top/api/docs/v1#/Аниме.Каталог
         result = self.sync_api.get_anime_catalog_releases()
         ongoings = []
@@ -99,7 +102,7 @@ class Extractor(BaseExtractor):
                 )
         return ongoings
 
-    async def a_ongoing(self) -> List["Ongoing"]:
+    async def a_ongoing(self) -> list["Ongoing"]:
         # https://anilibria.top/api/docs/v1#/Аниме.Каталог
         result = await self.async_api.get_anime_catalog_releases()
         ongoings = []
@@ -184,7 +187,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
     def __str__(self):
         return self.title
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         # https://anilibria.top/api/docs/v1#/Аниме.Релизы/1a04f3ab108f6960aacb815ecabe29d2
         release_id = self.data["id"]
         result = self.sync_api.get_anime_release(id_or_alias=str(release_id), include="id,episodes")
@@ -203,7 +206,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
                 )
         return episodes
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         # https://anilibria.top/api/docs/v1#/Аниме.Релизы/1a04f3ab108f6960aacb815ecabe29d2
         release_id = self.data["id"]
         result = await self.async_api.get_anime_release(id_or_alias=str(release_id), include="id,episodes")
@@ -228,7 +231,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
     _sync_api: AniLibertySync = field(alias="sync_api")
     _async_api: AniLibertyAsync = field(alias="async_api")
 
-    def get_sources(self) -> List["Source"]:
+    def get_sources(self) -> list["Source"]:
         return [
             Source(
                 title="Aniliberty",
@@ -241,7 +244,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
             )
         ]
 
-    async def a_get_sources(self) -> List["Source"]:
+    async def a_get_sources(self) -> list["Source"]:
         return self.get_sources()
 
 
@@ -258,7 +261,7 @@ class Source(_ApiInstancesMixin, BaseSource):
     _sync_api: AniLibertySync = field(alias="sync_api")
     _async_api: AniLibertyAsync = field(alias="async_api")
 
-    def get_videos(self, **_) -> List["Video"]:
+    def get_videos(self, **_) -> list["Video"]:
         videos = []
         if self._hls_480:
             videos.append(Video(type="m3u8", quality=480, url=self._hls_480))
@@ -270,7 +273,7 @@ class Source(_ApiInstancesMixin, BaseSource):
             videos.append(Video(type="m3u8", quality=1080, url=self._hls_1080))
         return videos
 
-    async def a_get_videos(self, **_) -> List["Video"]:
+    async def a_get_videos(self, **_) -> list["Video"]:
         return self.get_videos()
 
 

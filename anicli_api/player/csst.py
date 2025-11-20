@@ -1,7 +1,8 @@
 """NOTE: THIS Extractor not work in RU"""
 
+from __future__ import annotations
+
 import re
-from typing import List
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -17,17 +18,17 @@ class CsstOnline(BaseVideoExtractor):
     RE_URLS = re.compile(r"\[(?P<quality>\d{3,4})p\](?P<url>https?://(?:www\.)?.*?\.mp4)")
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> List[Video]:
+    def parse(self, url: str, **kwargs) -> list[Video]:
         response = self.http.get(url).text
         return self._extract(response)
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+    async def a_parse(self, url: str, **kwargs) -> list[Video]:
         async with self.a_http as client:
             response = (await client.get(url)).text
             return self._extract(response)
 
-    def _extract(self, response: str) -> List[Video]:
+    def _extract(self, response: str) -> list[Video]:
         url_data = list(re.finditer(self.RE_URLS, response))
         return [
             Video(type="mp4", quality=data["quality"], url=data["url"])  # type: ignore[arg-type]

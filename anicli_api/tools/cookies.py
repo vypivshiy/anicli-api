@@ -18,6 +18,8 @@ USAGE EXAMPLE:
 
 """
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
@@ -26,7 +28,7 @@ try:
 except ImportError:
     # we don't throw an error because it is still possible to load from netscape format string/file
     rookiepy = None
-from typing import Literal, List, Optional, Any, Dict, Union
+from typing import Literal, Optional, Any, Union
 from httpx import Cookies
 
 
@@ -94,8 +96,8 @@ def __is_installed_rookiepy() -> None:
 
 
 def get_raw_cookies_from_browser(
-    browser: BROWSER_LITERAL = "any_browser", domains: Optional[List[str]] = None
-) -> List[Dict[str, Any]]:
+    browser: BROWSER_LITERAL = "any_browser", domains: Optional[list[str]] = None
+) -> list[dict[str, Any]]:
     """extract cookies from browser. Optional, can be filtered by list of domains."""
     if not rookiepy:
         msg = (
@@ -111,20 +113,20 @@ def get_raw_cookies_from_browser(
     return func_extract(domains)
 
 
-def raw_cookies_to_httpx_cookiejar(raw_cookies: List[Dict[str, Any]]) -> Cookies:
+def raw_cookies_to_httpx_cookiejar(raw_cookies: list[dict[str, Any]]) -> Cookies:
     """convert raw cookies to httpx.Cookies format"""
     __is_installed_rookiepy()
     cookie_jar = rookiepy.to_cookiejar(raw_cookies)
     return Cookies(cookie_jar)
 
 
-def raw_cookies_to_netscape(raw_cookies: List[Dict[str, Any]]) -> str:
+def raw_cookies_to_netscape(raw_cookies: list[dict[str, Any]]) -> str:
     """convert list of cookies to netscape format"""
     __is_installed_rookiepy()
     return rookiepy.to_netscape(raw_cookies)
 
 
-def parse_netscape_cookie_line(netscape_cookie_line: str) -> Dict[str, Any]:
+def parse_netscape_cookie_line(netscape_cookie_line: str) -> dict[str, Any]:
     line = netscape_cookie_line.strip()
 
     # Skip empty lines and comments
@@ -150,7 +152,7 @@ def parse_netscape_cookie_line(netscape_cookie_line: str) -> Dict[str, Any]:
     }
 
 
-def parse_netscape_cookie_string(netscape_cookie_string: str) -> List[Dict[str, Any]]:
+def parse_netscape_cookie_string(netscape_cookie_string: str) -> list[dict[str, Any]]:
     cookies = []
     for line in netscape_cookie_string.splitlines():
         cookie = parse_netscape_cookie_line(line)
@@ -160,7 +162,7 @@ def parse_netscape_cookie_string(netscape_cookie_string: str) -> List[Dict[str, 
     return cookies
 
 
-def parse_netscape_cookies_file(cookie_file: Union[str, Path]) -> List[Dict[str, Any]]:
+def parse_netscape_cookies_file(cookie_file: Union[str, Path]) -> list[dict[str, Any]]:
     """
     Parse Netscape format cookies file into a list of dictionaries.
 

@@ -1,10 +1,12 @@
 """thanks https://github.com/barsikus007 for researches and decoder implementation"""
 
+from __future__ import annotations
+
 import base64
 import json
 import re
 import urllib.parse
-from typing import Any, Tuple, List, Dict
+from typing import Any
 from typing_extensions import TypedDict
 
 
@@ -38,7 +40,7 @@ class T_DashSettings(TypedDict):
 
 class T_PlayerPlaylist(TypedDict):
     id: str
-    file: List[T_FileItem]
+    file: list[T_FileItem]
     poster: str
     url: str
     cuid: str
@@ -46,7 +48,7 @@ class T_PlayerPlaylist(TypedDict):
 
 
 NoneType = type(None)  # py3.8 backport type
-T_PACKED = Tuple[str, int, int, List[str], NoneType, Dict[str, str]]
+T_PACKED = tuple[str, int, int, list[str], NoneType, dict[str, str]]
 
 
 # consts from playerjs
@@ -90,7 +92,7 @@ def parse_params_to_unpack(packed: str) -> T_PACKED:
 
 # '_': NoneType
 # (in 3.9) will be added in types module
-def unpack_playerjs(p: str, a: int, c: int, k: List[str], _: Any, d: Dict[str, str]) -> str:
+def unpack_playerjs(p: str, a: int, c: int, k: list[str], _: Any, d: dict[str, str]) -> str:
     """Playerjs unpacker"""
 
     def e(c: int):

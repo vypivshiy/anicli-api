@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import logging
 import re
 import warnings
-from typing import List
 
 from httpx import Response
 
@@ -27,12 +28,12 @@ class Aniboom(BaseVideoExtractor):
     }
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> List[Video]:
+    def parse(self, url: str, **kwargs) -> list[Video]:
         response = self.http.get(url)
         return self._extract(response)
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+    async def a_parse(self, url: str, **kwargs) -> list[Video]:
         async with self.a_http as client:
             response = await client.get(url)
             return self._extract(response)
@@ -65,7 +66,7 @@ class Aniboom(BaseVideoExtractor):
             return True
         return False
 
-    def _extract(self, response: Response) -> List[Video]:
+    def _extract(self, response: Response) -> list[Video]:
         if self._is_not_found(response):
             return []
 

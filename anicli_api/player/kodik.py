@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import logging
 import re
 from base64 import b64decode
-from typing import Dict, List
 from urllib.parse import urlsplit
 from httpx import Response
 
@@ -22,7 +23,7 @@ class Kodik(BaseVideoExtractor):
     API_CONSTS_PAYLOAD = {"bad_user": False, "info": {}, "cdn_is_working": True}
 
     @kodik_validator
-    def parse(self, url: str, **kwargs) -> List[Video]:
+    def parse(self, url: str, **kwargs) -> list[Video]:
         response = self.http.get(url)
         if self._is_unhandled_error_response(response):
             return []
@@ -53,7 +54,7 @@ class Kodik(BaseVideoExtractor):
         return self._extract(response_api.json()["links"])
 
     @kodik_validator
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+    async def a_parse(self, url: str, **kwargs) -> list[Video]:
         async with self.a_http as client:
             response = await client.get(url)
             if self._is_unhandled_error_response(response):
@@ -119,7 +120,7 @@ class Kodik(BaseVideoExtractor):
         return f"https://{netloc}{path}"
 
     @staticmethod
-    def _create_api_headers(*, url: str, netloc: str) -> Dict[str, str]:
+    def _create_api_headers(*, url: str, netloc: str) -> dict[str, str]:
         return {
             "origin": f"https://{netloc}",
             "referer": url,
@@ -167,7 +168,7 @@ class Kodik(BaseVideoExtractor):
         payload.update(self.API_CONSTS_PAYLOAD)  # type: ignore
         return page, payload
 
-    def _extract(self, response_api: Dict) -> List[Video]:
+    def _extract(self, response_api: dict) -> list[Video]:
         # maybe not exists '720' key for VERY old anime titles
         # eg: early 'One peace!', 'Evangelion' series
         if response_api.get("720"):

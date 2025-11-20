@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Sequence, TypeVar
+from typing import TYPE_CHECKING, TypeVar
+
+from anicli_api.typing import MutableSequence
 from anicli_api.base import BaseSource
 
 if TYPE_CHECKING:
@@ -16,12 +18,12 @@ p <url> - extract videos from player url
 """
 
 
-def _pretty_print(items: Sequence[T]):
+def _pretty_print(items: MutableSequence[T]):
     for i, item in enumerate(items):
         print(f"[{i + 1}] {item}")
 
 
-def _choice(items: Sequence[T], input_state: str = "") -> T:
+def _choice(items: MutableSequence[T], input_state: str = "") -> T:
     _pretty_print(items)
     while True:
         ch = input(f"{input_state})> ")

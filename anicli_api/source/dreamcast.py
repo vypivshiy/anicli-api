@@ -1,8 +1,11 @@
-from typing import List, TYPE_CHECKING, TypedDict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from attr import define, field
 from httpx import AsyncClient, Client
 
+from anicli_api.typing import TypedDict
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
@@ -42,7 +45,7 @@ class Extractor(BaseExtractor):
         """shortcut for pass API objects arguments in kwargs style"""
         return {"sync_api": self.sync_api, "async_api": self.async_api}
 
-    def ongoing(self) -> List["Ongoing"]:
+    def ongoing(self) -> list["Ongoing"]:
         result = self.sync_api.get_releases(search_form={"search": "", "pageNumber": 1, "pageSize": 16, "status": ""})
         result.raise_for_status()
 
@@ -66,7 +69,7 @@ class Extractor(BaseExtractor):
             )
         return results
 
-    async def a_ongoing(self) -> List["Ongoing"]:
+    async def a_ongoing(self) -> list["Ongoing"]:
         result = await self.async_api.get_releases(
             search_form={"search": "", "pageNumber": 1, "pageSize": 16, "status": ""}
         )
@@ -92,7 +95,7 @@ class Extractor(BaseExtractor):
             )
         return results
 
-    def search(self, query: str) -> List["Search"]:
+    def search(self, query: str) -> list["Search"]:
         result = self.sync_api.get_releases(
             search_form={"search": query, "pageNumber": 1, "pageSize": 16, "status": ""}
         )
@@ -118,7 +121,7 @@ class Extractor(BaseExtractor):
             )
         return results
 
-    async def a_search(self, query: str) -> List["Search"]:
+    async def a_search(self, query: str) -> list["Search"]:
         result = await self.async_api.get_releases(
             search_form={"search": query, "pageNumber": 1, "pageSize": 16, "status": ""}
         )
@@ -210,7 +213,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
     _player_js_encoded: str = field(alias="player_js_encoded")
     _player_js_url: str = field(alias="player_js_url")
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         js_encoded_resp = self.http.get(self._player_js_url).text
         result = extract_playlist(js_encoded_resp, self._player_js_encoded)
         results = []
@@ -218,7 +221,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
             results.append(Episode(title=data["title"], ordinal=i, data=data, **self._kwargs_http, **self._kwargs_apis))
         return results
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         js_encoded_resp = (await self.http_async.get(self._player_js_url)).text
         result = extract_playlist(js_encoded_resp, self._player_js_encoded)
         result = extract_playlist(js_encoded_resp, self._player_js_encoded)
@@ -235,7 +238,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
     _async_api: DreamerscastAsync = field(alias="async_api")
     data: T_FileItem
 
-    def get_sources(self) -> List["Source"]:
+    def get_sources(self) -> list["Source"]:
         return [
             Source(
                 title="Dreamcast",
@@ -246,7 +249,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
             )
         ]
 
-    async def a_get_sources(self) -> List["Source"]:
+    async def a_get_sources(self) -> list["Source"]:
         return self.get_sources()
 
 
@@ -259,7 +262,7 @@ class Source(_ApiInstancesMixin, BaseSource):
     # NOTE: 'file' key signature:
     #  'file': 'https://play.dreamerscast.com/dash/.../manifest.mpd or https://play.dreamerscast.com/hls/.../master.m3u8'
 
-    def get_videos(self, **httpx_kwargs) -> List["Video"]:
+    def get_videos(self, **httpx_kwargs) -> list["Video"]:
         parts = self._file.split()
         videos = []
         for part in parts:
@@ -278,7 +281,7 @@ class Source(_ApiInstancesMixin, BaseSource):
         videos.reverse()
         return videos
 
-    async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
+    async def a_get_videos(self, **httpx_kwargs) -> list["Video"]:
         return self.get_videos()
 
 

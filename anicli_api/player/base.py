@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import re
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Any, Dict, List, Literal, TypeVar, Union, Callable
+from typing import Any, Literal, TypeVar, Union, Callable
 from urllib.parse import urlparse
 
 from attrs import Factory, define
@@ -14,7 +16,7 @@ ALL_QUALITIES = (144, 240, 360, 480, 720, 1080)
 T = TypeVar("T")
 
 
-def url_validator(pattern: Union[str, re.Pattern]) -> Callable[..., Callable[..., List["Video"]]]:
+def url_validator(pattern: Union[str, re.Pattern]) -> Callable[..., Callable[..., list["Video"]]]:
     """check valid url for extractor"""
     if isinstance(pattern, str):
         pattern = re.compile(pattern)
@@ -62,9 +64,9 @@ class Video:
     type: Literal["mp4", "m3u8", "mpd", "audio", "webm"]
     quality: int  # real signature: Literal[0, 144, 240, 360, 480, 720, 1080, 2160]
     url: str
-    headers: Dict[str, str] = Factory(dict)
+    headers: dict[str, str] = Factory(dict)
 
-    def dict(self) -> Dict[str, Any]:
+    def dict(self) -> dict[str, Any]:
         return {
             "type": self.type,
             "quality": self.quality,
@@ -94,7 +96,7 @@ class ABCVideoExtractor(ABC):
     URL_RULE: Union[str, re.Pattern] = NotImplemented
     """regular expression for validate urls for `==` (__eq__) stmt"""
     # config if needed configurate HTTP classes for requests
-    DEFAULT_HTTP_CONFIG: Dict[str, Any] = {}
+    DEFAULT_HTTP_CONFIG: dict[str, Any] = {}
     """minimal httpx.Client, httpx.AsyncClient configuration for correct work player provider"""
 
     def __init__(self, **httpx_kwargs):
@@ -107,11 +109,11 @@ class ABCVideoExtractor(ABC):
         self.a_http = BaseHTTPAsync(**default_kwargs)
 
     @abstractmethod
-    def parse(self, url: str, **kwargs) -> List[Video]:
+    def parse(self, url: str, **kwargs) -> list[Video]:
         pass
 
     @abstractmethod
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+    async def a_parse(self, url: str, **kwargs) -> list[Video]:
         pass
 
     @classmethod

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import re
-from typing import List
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -12,13 +13,13 @@ class SovietRomanticaPlayer(BaseVideoExtractor):
     URL_RULE = _URL_EQ
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> List[Video]:
+    def parse(self, url: str, **kwargs) -> list[Video]:
         return self._extract(url)
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+    async def a_parse(self, url: str, **kwargs) -> list[Video]:
         return self._extract(url)
 
     @staticmethod
-    def _extract(response) -> List[Video]:
+    def _extract(response) -> list[Video]:
         return [Video(type="m3u8", quality=1080, url=response)]

@@ -1,11 +1,13 @@
-from typing import TYPE_CHECKING, List, Callable, Generator, Tuple, AsyncGenerator
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Callable, Generator, AsyncGenerator
 from urllib.parse import urlsplit
 
 if TYPE_CHECKING:
     from anicli_api.base import Video, BaseEpisode, BaseAnime, BaseSource
 
 
-def get_video_by_quality(videos: List["Video"], quality: int) -> "Video":
+def get_video_by_quality(videos: list["Video"], quality: int) -> "Video":
     """get video by quality from collection
     if current quality not exist - get closest
 
@@ -40,9 +42,9 @@ def video_picker_iterator(
     start_source: "BaseSource",
     start_video: "Video",
     anime: "BaseAnime",
-    episodes: List["BaseEpisode"],
+    episodes: list["BaseEpisode"],
     title_cb: Callable[["BaseAnime", "BaseEpisode", "BaseSource"], str] = title_callback,
-) -> Generator[Tuple["Video", str], None, None]:
+) -> Generator[tuple["Video", str], None, None]:
     """video picker generator. compare by start_source hash function
 
     useful, for implementation playlists features.
@@ -86,11 +88,11 @@ def video_picker_iterator(
 async def async_video_picker_iterator(
     *,
     anime: "BaseAnime",
-    episodes: List["BaseEpisode"],
+    episodes: list["BaseEpisode"],
     start_source: "BaseSource",
     start_video: "Video",
     title_cb: Callable[["BaseAnime", "BaseEpisode", "BaseSource"], str] = title_callback,
-) -> AsyncGenerator[Tuple["Video", str], None]:
+) -> AsyncGenerator[tuple["Video", str], None]:
     """video picker generator. compare by start_source hash function
 
     useful, for implementation playlists features.

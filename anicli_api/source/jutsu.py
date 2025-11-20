@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from attr import field
 from attrs import define
@@ -26,10 +28,10 @@ class Extractor(BaseExtractor):
 
     BASE_URL = "https://jut.su"
 
-    def _extract_search(self, resp: str) -> List["Search"]:
+    def _extract_search(self, resp: str) -> list["Search"]:
         return [Search(**kw, **self._kwargs_http) for kw in PageSearch(resp).parse()]
 
-    def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
+    def _extract_ongoing(self, resp: str) -> list["Ongoing"]:
         return [Ongoing(**kw, **self._kwargs_http) for kw in PageOngoing(resp).parse()]
 
     def search(self, query: str):
@@ -81,12 +83,12 @@ class Ongoing(_SearchOrOngoing, BaseOngoing):
 @define(kw_only=True)
 class Anime(BaseAnime):
     # stub attribute
-    _episodes: List[T_EpisodesView] = field(repr=False, alias="episodes")
+    _episodes: list[T_EpisodesView] = field(repr=False, alias="episodes")
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         return [Episode(ordinal=n, **kw, **self._kwargs_http) for n, kw in enumerate(self._episodes, 1)]
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         return self.get_episodes()
 
 
@@ -115,7 +117,7 @@ class Episode(BaseEpisode):
         logger.warning(msg)
         return True
 
-    def _extract(self, resp: str) -> List["Source"]:
+    def _extract(self, resp: str) -> list["Source"]:
         data = PageSource(resp).parse()["videos"]
         # RKN blocks (RU region)
         # eg: https://jut.su/shingekii-no-kyojin/season-1/episode-1.html
@@ -136,9 +138,9 @@ class Episode(BaseEpisode):
 
 @define(kw_only=True)
 class Source(BaseSource):
-    _source: Dict[str, Any] = field(repr=False, alias="source")
+    _source: dict[str, Any] = field(repr=False, alias="source")
 
-    def get_videos(self, **_) -> List["Video"]:
+    def get_videos(self, **_) -> list["Video"]:
         # For video playing, the user-agent MUST BE equal
         # as a client user-agent in the extractor API
         # ELSE VIDEO HOSTING RETURNS 403 CODE
@@ -152,7 +154,7 @@ class Source(BaseSource):
             for quality, url in self._source.items()
         ]
 
-    async def a_get_videos(self, **httpx_kwargs) -> List["Video"]:
+    async def a_get_videos(self, **httpx_kwargs) -> list["Video"]:
         return [
             Video(
                 url=url,

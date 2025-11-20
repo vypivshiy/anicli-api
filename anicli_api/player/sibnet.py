@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import re
-from typing import List
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 
@@ -12,17 +13,17 @@ class SibNet(BaseVideoExtractor):
     URL_RULE = _URL_EQ
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> List[Video]:
+    def parse(self, url: str, **kwargs) -> list[Video]:
         response = self.http.get(url).text
         return self._extract(response, referer=url)
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> List[Video]:
+    async def a_parse(self, url: str, **kwargs) -> list[Video]:
         async with self.a_http as client:
             response = (await client.get(url)).text
             return self._extract(response, referer=url)
 
-    def _extract(self, response: str, referer: str) -> List[Video]:
+    def _extract(self, response: str, referer: str) -> list[Video]:
         if path := re.search(r'"(?P<url>/v/.*?\.mp4)"', response):
             url = f"https://video.sibnet.ru{path[1]}"
             return [Video(type="mp4", quality=480, url=url, headers={"Referer": referer})]

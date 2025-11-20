@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 import re
-from typing import Dict, List
 
 from attr import field
 from attrs import define
@@ -35,13 +36,13 @@ RE_DIV_H5_ERR = re.compile(
 class Extractor(BaseExtractor):
     BASE_URL = "https://animego.one"
 
-    def _extract_search(self, resp: str) -> List["Search"]:
+    def _extract_search(self, resp: str) -> list["Search"]:
         return [Search(**d, **self._kwargs_http) for d in PageSearch(resp).parse()]
 
     @staticmethod
-    def _remove_ongoings_dups(ongoings: List["Ongoing"]) -> List["Ongoing"]:
+    def _remove_ongoings_dups(ongoings: list["Ongoing"]) -> list["Ongoing"]:
         # remove duplicates and accumulate by episode and dubber keys
-        sorted_ongs: Dict[int, "Ongoing"] = {}
+        sorted_ongs: dict[int, "Ongoing"] = {}
         for ong in ongoings:
             key = hash(ong.url + ong.episode)
             if sorted_ongs.get(key):
@@ -50,7 +51,7 @@ class Extractor(BaseExtractor):
                 sorted_ongs[key] = ong
         return list(sorted_ongs.values())
 
-    def _extract_ongoing(self, resp: str) -> List["Ongoing"]:
+    def _extract_ongoing(self, resp: str) -> list["Ongoing"]:
         netloc = PageUtils(resp).parse()["url_canonical"]
 
         ongs = []
@@ -69,19 +70,19 @@ class Extractor(BaseExtractor):
 
         return self._remove_ongoings_dups(ongs)
 
-    def search(self, query: str) -> List["Search"]:
+    def search(self, query: str) -> list["Search"]:
         resp = self.http.get(f"{self.BASE_URL}/search/anime", params={"q": query})
         return self._extract_search(resp.text)
 
-    async def a_search(self, query: str) -> List["Search"]:
+    async def a_search(self, query: str) -> list["Search"]:
         resp = await self.http_async.get(f"{self.BASE_URL}/search/anime", params={"q": query})
         return self._extract_search(resp.text)
 
-    def ongoing(self) -> List["Ongoing"]:
+    def ongoing(self) -> list["Ongoing"]:
         resp = self.http.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
-    async def a_ongoing(self) -> List["Ongoing"]:
+    async def a_ongoing(self) -> list["Ongoing"]:
         resp = await self.http_async.get(self.BASE_URL)
         return self._extract_ongoing(resp.text)
 
@@ -184,7 +185,7 @@ class Anime(BaseAnime):
     id: str
     raw_json: J_Content
 
-    def _extract(self, resp: str) -> List["Episode"]:
+    def _extract(self, resp: str) -> list["Episode"]:
         # magic string:
         # carousel implemented only for episodes
         # film, OVA not exists this feature
@@ -228,12 +229,12 @@ class Anime(BaseAnime):
             return False
         return True
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         resp = self.http.get(f"https://animego.one/anime/{self.id}/player?_allow=true")
         resp = resp.json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         resp = await self.http_async.get(f"https://animego.one/anime/{self.id}/player?_allow=true")
         resp = resp.json()["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
@@ -241,10 +242,10 @@ class Anime(BaseAnime):
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    dubbers: Dict[str, str]
+    dubbers: dict[str, str]
     id: str  # episode id (for extract videos required)
     _is_film: bool = field(alias="is_film", default=False)
-    _videos: List[T_EpisodeVideoPlayersView] = field(alias="videos")
+    _videos: list[T_EpisodeVideoPlayersView] = field(alias="videos")
 
     def _extract(self, resp: str):
         data = PageSource(resp).parse()

@@ -1,7 +1,10 @@
-from typing import TYPE_CHECKING, List, TypedDict
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from attrs import define, field
 
+from anicli_api.typing import TypedDict
 from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.source.apis.yummy_anime import (
@@ -39,7 +42,7 @@ class Extractor(BaseExtractor):
     def _kwargs_api(self) -> T_KW_APIS:
         return {"sync_api": self._sync_api, "async_api": self._async_api}
 
-    def search(self, query: str) -> List["Search"]:
+    def search(self, query: str) -> list["Search"]:
         # https://yummy-anime.ru/api/swagger#/Anime/get_anime
         result = self.sync_api.filter_anime(q=query, offset=0, limit=20)
         results = []
@@ -58,7 +61,7 @@ class Extractor(BaseExtractor):
 
         return results
 
-    async def a_search(self, query: str) -> List["Search"]:
+    async def a_search(self, query: str) -> list["Search"]:
         result = await self.async_api.filter_anime(q=query, offset=0, limit=20)
         results = []
         if result.success and result.data:
@@ -75,7 +78,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    def ongoing(self) -> List["Ongoing"]:
+    def ongoing(self) -> list["Ongoing"]:
         # too many output (100 items)
         # https://yummy-anime.ru/api/swagger#/Anime/get_anime_schedule
         result = self.sync_api.get_anime_schedule()
@@ -94,7 +97,7 @@ class Extractor(BaseExtractor):
                 )
         return results
 
-    async def a_ongoing(self) -> List["Ongoing"]:
+    async def a_ongoing(self) -> list["Ongoing"]:
         result = await self.async_api.get_anime_schedule()
         results = []
         if result.success and result.data:
@@ -187,7 +190,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
     _sync_api: YummyAnimeAPISync = field(alias="sync_api")
     _async_api: YummyAnimeAPIAsync = field(alias="async_api")
 
-    def get_episodes(self) -> List["Episode"]:
+    def get_episodes(self) -> list["Episode"]:
         video_data = self.sync_api.get_anime_videos(id=self.data["anime_id"]).data["response"]
         mapping_videos = {}
         for video in video_data:
@@ -205,7 +208,7 @@ class Anime(_ApiInstancesMixin, BaseAnime):
             )
         return results
 
-    async def a_get_episodes(self) -> List["Episode"]:
+    async def a_get_episodes(self) -> list["Episode"]:
         video_data = (await self.async_api.get_anime_videos(id=self.data["anime_id"])).data["response"]
         mapping_videos = {}
         for video in video_data:
@@ -228,9 +231,9 @@ class Anime(_ApiInstancesMixin, BaseAnime):
 class Episode(_ApiInstancesMixin, BaseEpisode):
     _sync_api: YummyAnimeAPISync = field(alias="sync_api")
     _async_api: YummyAnimeAPIAsync = field(alias="async_api")
-    data: List[T_Video]
+    data: list[T_Video]
 
-    def get_sources(self) -> List["Source"]:
+    def get_sources(self) -> list["Source"]:
         results = []
         for video in self.data:
             results.append(
@@ -243,7 +246,7 @@ class Episode(_ApiInstancesMixin, BaseEpisode):
             )
         return results
 
-    async def a_get_sources(self) -> List["Source"]:
+    async def a_get_sources(self) -> list["Source"]:
         return self.get_sources()
 
 
