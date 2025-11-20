@@ -16,13 +16,26 @@ Search:
 For extract playlist required reverse obfuscated playlist data and obfuscated javascript player
 """
 
+from __future__ import annotations
+
 import re
+import sys
 from html import unescape as _html_unescape
-from typing import Dict, TypedDict, Union, Optional
+from typing import TypedDict, Union, Optional
 from contextlib import suppress
 from functools import reduce
 
+if sys.version_info >= (3, 10):
+    from types import NoneType
+    from typing import TypeAlias
+else:
+    NoneType = type(None)
 
+    try:
+        from typing_extensions import TypeAlias  # noqa
+    except ImportError:
+        msg = "python < 3.10 required 'typing_extensions' dependency"
+        raise ImportError(msg)
 from lxml import html
 
 FALLBACK_HTML_STR = "<html><body></body></html>"
@@ -44,7 +57,7 @@ def ssc_unescape(s: str) -> str:
     return s
 
 
-def ssc_map_replace(s: str, replacements: Dict[str, str]) -> str:
+def ssc_map_replace(s: str, replacements: dict[str, str]) -> str:
     return reduce(lambda acc, kv: acc.replace(kv[0], kv[1]), replacements.items(), s)
 
 
@@ -103,32 +116,32 @@ class PageAnime:
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("h3")[0]
-
+        
         return v0.text_content()
 
     def _parse_description(self, v: html.HtmlElement) -> Optional[str]:
         v0 = v
         with suppress(Exception):
             v1 = v0.cssselect(".postDesc")[0]
-
+            
             return v1.text_content()
         return None
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".details_poster img")[0]
         v1 = v0.get("src")
-
+        
         return f"https:{v1}"
 
     def _parse_player_js_encoded(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-
+        
         return re.search('new Playerjs\\("(.*?)"\\)', v0)[1]
 
     def _parse_player_js_url(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
         v1 = re.search('<script[^>]+src="(/js/playerjs.*?)"', v0)[1]
-
+        
         return f"https://dreamerscast.com{v1}"
 
     def parse(self) -> T_PageAnime:
