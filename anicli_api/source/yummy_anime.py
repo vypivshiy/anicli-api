@@ -85,16 +85,18 @@ class Extractor(BaseExtractor):
         results = []
         if result.success and result.data:
             for data in result.data["response"]:
-                results.append(
-                    Ongoing(
-                        data=data,
-                        title=data["title"],
-                        thumbnail=data["poster"]["medium"],
-                        url=self.BASE_URL + "/catalog/item/" + data["anime_url"],
-                        **self._kwargs_http,
-                        **self._kwargs_api,
+                # ignore annoned titles wout episodes
+                if data["episodes"]["count"] > 0:
+                    results.append(
+                        Ongoing(
+                            data=data,
+                            title=data["title"],
+                            thumbnail=data["poster"]["medium"],
+                            url=self.BASE_URL + "/catalog/item/" + data["anime_url"],
+                            **self._kwargs_http,
+                            **self._kwargs_api,
+                        )
                     )
-                )
         return results
 
     async def a_ongoing(self) -> list["Ongoing"]:
@@ -102,16 +104,18 @@ class Extractor(BaseExtractor):
         results = []
         if result.success and result.data:
             for data in result.data["response"]:
-                results.append(
-                    Ongoing(
-                        data=data,
-                        title=data["title"],
-                        thumbnail=data["poster"]["medium"],
-                        url=self.BASE_URL + "/catalog/item/" + data["anime_url"],
-                        **self._kwargs_http,
-                        **self._kwargs_api,
+                # ignore annoned titles wout episodes
+                if data["episodes"]["count"] > 0:
+                    results.append(
+                        Ongoing(
+                            data=data,
+                            title=data["title"],
+                            thumbnail=data["poster"]["medium"],
+                            url=self.BASE_URL + "/catalog/item/" + data["anime_url"],
+                            **self._kwargs_http,
+                            **self._kwargs_api,
+                        )
                     )
-                )
         return results
 
 
@@ -151,6 +155,19 @@ class Search(_ApiInstancesMixin, BaseSearch):
     async def a_get_anime(self) -> "Anime":
         return self.get_anime()
 
+    def __str__(self):
+        kw_min = {}
+        if year := self.data.get("year", ""):
+            kw_min["year"] = year
+        if status := self.data.get("anime_status", {}).get("title", ""):
+            kw_min["status"] = status
+        if type_ := self.data.get("type", {}).get("name", ""):
+            kw_min["type"] = type_
+
+        out = f"({kw_min!r})" if kw_min else ""
+
+        return f"{self.title} {out}".rstrip()
+
 
 @define(kw_only=True)
 class Ongoing(_ApiInstancesMixin, BaseOngoing):
@@ -182,6 +199,11 @@ class Ongoing(_ApiInstancesMixin, BaseOngoing):
             **self._kwargs_http,
             **self._kwargs_apis,
         )
+
+    def __str__(self):
+        count = self.data.get("episodes", {}).get("count", 0)
+        aired = self.data.get("episodes", {}).get("aired", 0)
+        return f"{self.title} (ep count: {count}, aired={aired})".rstrip()
 
 
 @define(kw_only=True)
