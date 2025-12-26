@@ -133,3 +133,40 @@ def cli(extractor: "BaseExtractor"):
 
     """
     main(extractor)
+
+
+def __get_available_sources():
+    source_dir = Path(__file__).parent.parent / "source"
+    return [p.stem for p in source_dir.glob("[!_]*.py")]
+
+
+# shortcut cli runner
+# in project: python anicli_api/tools/dummy_cli.py <extractor name>
+# in installed lib: python -m anicli_api.tools.dummy_cli <extractor name>
+if __name__ == "__main__":
+    import importlib, sys  # noqa
+    from pathlib import Path
+
+    if len(sys.argv) < 2:
+        sources = __get_available_sources()
+        print("USAGE: python -m anicli_api.tools <extractor name>")
+        print(f"Available modules: {', '.join(sources)}")
+        sys.exit(1)
+
+    module_name = sys.argv[1]
+    full_path = f"anicli_api.source.{module_name}"
+    try:
+        module = importlib.import_module(full_path)
+        extractor_cls = getattr(module, "Extractor", None)
+        if not extractor_cls:
+            print(f"ERROR: 'Extractor' class not defined in {full_path}")
+            sys.exit(1)
+        extractor = extractor_cls()
+        cli(extractor)
+    except ImportError:
+        sources = __get_available_sources()
+        print(f"ERROR: module '{module_name}' not founded in source.")
+        print(f"Available modules: {', '.join(sources)}")
+        sys.exit(1)
+    except Exception as e:
+        raise e
