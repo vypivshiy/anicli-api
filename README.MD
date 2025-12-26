@@ -57,6 +57,25 @@ flowchart TD
 
 ## quickstart
 
+1. вызов из установленного модуля [PEP-0338](https://peps.python.org/pep-0338/):
+
+```
+python -m anicli-api.tools.dummy_cli <extractor-name>
+
+# пример
+python -m anicli-api.tools.dummy_cli animego
+```
+
+2. вызов из склонированного проекта:
+
+```
+python anicli-api/tools/dummy_cli.py <extrator-name>
+# пример
+python anicli-api/tools/dummy_cli.py animego
+```
+
+3. Использование в python коде:
+
 ```python
 from anicli_api.source.animego import Extractor
 from anicli_api.tools import cli
@@ -65,7 +84,7 @@ if __name__ == '__main__':
     cli(Extractor())
 ```
 
-> `cli()` функция реализована для простого ручного тестирования экстракторов и "имитирует" потенциальное настоящее приложение
+> `cli()` функция для простого ручного тестирования экстракторов, "имитирует" потенциальное настоящее приложение
 
 Пример своей реализации
 
