@@ -81,8 +81,9 @@ class CdnVideoHub(BaseVideoExtractor):
 
     def __init__(self, **httpx_kwargs):
         super().__init__(**httpx_kwargs)
-        self.sync_api = CdnVideoHubSync()
-        self.async_api = CdnVideoHubAsync()
+
+        self.sync_api = CdnVideoHubSync(headers=dict(self.http.headers), timeout=self.http.timeout)  # type: ignore
+        self.async_api = CdnVideoHubAsync(headers=dict(self.a_http.headers), timeout=self.a_http.timeout)  # type: ignore
 
     @staticmethod
     def _parse_url_parts(url: str) -> tuple[str, str, str, str]:
@@ -93,12 +94,14 @@ class CdnVideoHub(BaseVideoExtractor):
         id_, dubber_name, season, episode_num = path.strip().split("/")
         return id_, dubber_name, season, episode_num
 
-    def _extract_videos_common(self, resp3_data):
+    def _extract_videos_common(self, resp3_data, user_agent: str):
         """Common logic for extracting videos from API response data."""
         if resp3_data.success:
             hls_video = resp3_data.data["sources"].pop("hlsUrl")
             dash_video = resp3_data.data["sources"].pop("dashUrl")
             videos = []
+            # https://github.com/streamlink/streamlink/issues/6369#issuecomment-2565443159
+            # play or stream a video from OKCDN, the IP address and **user-agent** of the last request must match.
             for key, video_url in resp3_data.data["sources"].items():
                 if not video_url:
                     continue
@@ -108,14 +111,19 @@ class CdnVideoHub(BaseVideoExtractor):
                         type="mp4",
                         quality=quality,  # type: ignore (int)
                         url=video_url,  # type: ignore (str)
+                        headers={"User-Agent": user_agent},
                     )
                 )
             # hls, dash - set max quality
             if videos:
                 videos.sort(key=lambda i: i.quality)
                 max_quality = sorted(videos, key=lambda i: i.quality, reverse=True)[0].quality
-                videos.append(Video(type="m3u8", quality=max_quality, url=hls_video))  # type: ignore
-                videos.append(Video(type="mpd", quality=max_quality, url=dash_video))  # type: ignore
+                videos.append(
+                    Video(type="m3u8", quality=max_quality, url=hls_video, headers={"User-Agent": user_agent})
+                )  # type: ignore
+                videos.append(
+                    Video(type="mpd", quality=max_quality, url=dash_video, headers={"User-Agent": user_agent})
+                )  # type: ignore
             return videos
         return []
 
@@ -124,7 +132,6 @@ class CdnVideoHub(BaseVideoExtractor):
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
         response = self.http.get(url, headers={"referer": "https://animego.me"})
         options = PageAnimegoIframe(response.text).parse()
-        # TODO: config APIS http clients
         resp2 = self.sync_api.get_playlist(
             pub=int(options["data_publisher_id"]), aggr=options["data_aggregator"], id=int(options["data_title_id"])
         )
@@ -136,7 +143,7 @@ class CdnVideoHub(BaseVideoExtractor):
                     and data["voiceStudio"] == dubber_name
                 ):
                     resp3 = self.sync_api.get_video_by_id(id=data["vkId"])
-                    return self._extract_videos_common(resp3)
+                    return self._extract_videos_common(resp3, user_agent=self.http.headers["User-Agent"])
             else:
                 logger.warning("[cdnvideohub] failed get videos candidates")
         return []
@@ -146,7 +153,6 @@ class CdnVideoHub(BaseVideoExtractor):
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
         response = self.http.get(url, headers={"referer": "https://animego.me"})
         options = PageAnimegoIframe(response.text).parse()
-        # TODO: config APIS http clients
         resp2 = await self.async_api.get_playlist(
             pub=int(options["data_publisher_id"]), aggr=options["data_aggregator"], id=int(options["data_title_id"])
         )
@@ -158,7 +164,7 @@ class CdnVideoHub(BaseVideoExtractor):
                     and data["voiceStudio"] == dubber_name
                 ):
                     resp3 = await self.async_api.get_video_by_id(id=data["vkId"])
-                    return self._extract_videos_common(resp3)
+                    return self._extract_videos_common(resp3, user_agent=self.a_http.headers["User-Agent"])
             else:
                 logger.warning("[cdnvideohub] failed get videos candidates")
         return []
