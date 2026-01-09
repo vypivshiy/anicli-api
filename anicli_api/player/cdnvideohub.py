@@ -26,7 +26,7 @@ _RESOLUTION_MAPPING = {
 }
 
 
-def video_playlist_from_vk_id(vkid: str) -> list["Video"]:
+def video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video"]:
     result = CdnVideoHubSync().get_video_by_id(id=vkid).data["sources"]
     hls_video = result.pop("hlsUrl")
     dash_video = result.pop("dashUrl")
@@ -40,18 +40,19 @@ def video_playlist_from_vk_id(vkid: str) -> list["Video"]:
                 type="mp4",
                 quality=quality,  # type: ignore (int)
                 url=video_url,  # type: ignore (str)
+                headers={"User-Agent": user_agent}
             )
         )
     # hls, dash - set max quality
     if videos:
         videos.sort(key=lambda i: i.quality)
         max_quality = sorted(videos, key=lambda i: i.quality, reverse=True)[0].quality
-        videos.append(Video(type="m3u8", quality=max_quality, url=hls_video))  # type: ignore
-        videos.append(Video(type="mpd", quality=max_quality, url=dash_video))  # type: ignore
+        videos.append(Video(type="m3u8", quality=max_quality, url=hls_video, headers={"User-Agent": user_agent}))  # type: ignore
+        videos.append(Video(type="mpd", quality=max_quality, url=dash_video, headers={"User-Agent": user_agent}))  # type: ignore
     return videos
 
 
-async def a_video_playlist_from_vk_id(vkid: str) -> list["Video"]:
+async def a_video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video"]:
     result = (await CdnVideoHubAsync().get_video_by_id(id=vkid)).data["sources"]
     hls_video = result.pop("hlsUrl")
     dash_video = result.pop("dashUrl")
@@ -65,14 +66,15 @@ async def a_video_playlist_from_vk_id(vkid: str) -> list["Video"]:
                 type="mp4",
                 quality=quality,  # type: ignore (int)
                 url=video_url,  # type: ignore (str)
+                headers={"User-Agent": user_agent}
             )
         )
     # hls, dash - set max quality
     if videos:
         videos.sort(key=lambda i: i.quality)
         max_quality = sorted(videos, key=lambda i: i.quality, reverse=True)[0].quality
-        videos.append(Video(type="m3u8", quality=max_quality, url=hls_video))  # type: ignore
-        videos.append(Video(type="mpd", quality=max_quality, url=dash_video))  # type: ignore
+        videos.append(Video(type="m3u8", quality=max_quality, url=hls_video, headers={"User-Agent": user_agent}))  # type: ignore
+        videos.append(Video(type="mpd", quality=max_quality, url=dash_video, headers={"User-Agent": user_agent}))  # type: ignore
     return videos
 
 
