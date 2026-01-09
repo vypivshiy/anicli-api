@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from attr import define, field
 from httpx import AsyncClient, Client
@@ -216,6 +216,28 @@ class Anime(_ApiInstancesMixin, BaseAnime):
     def get_episodes(self) -> list["Episode"]:
         js_encoded_resp = self.http.get(self._player_js_url).text
         result = extract_playlist(js_encoded_resp, self._player_js_encoded)
+
+        if not result.get("file", None):
+            return []
+
+        # single episode available - return str
+        # result['file']='https://play.dreamerscast.com/dash/.../manifest.mpd or https://play.dreamerscast.com/hls/.../master.m3u8'
+        if isinstance(result.get("file"), str):
+            playlist = result["file"]
+            playlist = cast(str, playlist)
+            return [
+                Episode(
+                    title="Episoed 1",
+                    ordinal=1,
+                    # stub
+                    data=T_FileItem(
+                        file=playlist, label="", title="", thumbnails="", embed="", id="", vars={"vlc": "0"}
+                    ),
+                    **self._kwargs_http,
+                    **self._kwargs_apis,
+                )
+            ]
+
         results = []
         for i, data in enumerate(result["file"], 1):
             results.append(Episode(title=data["title"], ordinal=i, data=data, **self._kwargs_http, **self._kwargs_apis))
@@ -224,9 +246,29 @@ class Anime(_ApiInstancesMixin, BaseAnime):
     async def a_get_episodes(self) -> list["Episode"]:
         js_encoded_resp = (await self.http_async.get(self._player_js_url)).text
         result = extract_playlist(js_encoded_resp, self._player_js_encoded)
-        result = extract_playlist(js_encoded_resp, self._player_js_encoded)
-        results = []
 
+        if not result.get("file", None):
+            return []
+
+        # single episode available - return str
+        # result['file']='https://play.dreamerscast.com/dash/.../manifest.mpd or https://play.dreamerscast.com/hls/.../master.m3u8'
+        if isinstance(result.get("file"), str):
+            playlist = result["file"]
+            playlist = cast(str, playlist)
+            return [
+                Episode(
+                    title="Episoed 1",
+                    ordinal=1,
+                    # stub
+                    data=T_FileItem(
+                        file=playlist, label="", title="", thumbnails="", embed="", id="", vars={"vlc": "0"}
+                    ),
+                    **self._kwargs_http,
+                    **self._kwargs_apis,
+                )
+            ]
+
+        results = []
         for i, data in enumerate(result["file"], 1):
             results.append(Episode(title=data["title"], ordinal=i, data=data, **self._kwargs_http, **self._kwargs_apis))
         return results
