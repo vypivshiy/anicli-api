@@ -49,12 +49,12 @@ class PageSearch(ListSchema):
         GET https://animego.one/search/anime?q=LAIN
     """
 
-    __SPLIT_DOC__ = D().css_all(".grid.ani-list > .ani-grid__item")
+    __SPLIT_DOC__ = D().css_all(".grid.ani-list .ani-grid__item")
 
-    title = D().css(".ani-grid__item-title a::attr(title)")
+    title = D().css("a.ani-grid__item-picture img::attr(alt)")
     thumbnail = D().css(".image__img::attr(src)")
     # todo: extract path instead use hardcoded full url
-    url = D().css("ani-grid__item-title a::attr(href)").fmt("https://animego.me{{}}")
+    url = D().css(".ani-grid__item-title a::attr(href)").fmt("https://animego.me{{}}")
 
 
 # Anime page content

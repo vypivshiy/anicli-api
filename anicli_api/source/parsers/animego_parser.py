@@ -319,12 +319,12 @@ class PageSearch:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        return v.cssselect(".grid.ani-list > .ani-grid__item")
+        return v.cssselect(".grid.ani-list .ani-grid__item")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".ani-grid__item-title a")[0]
+        v0 = v.cssselect("a.ani-grid__item-picture img")[0]
 
-        return v0.get("title")
+        return v0.get("alt")
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".image__img")[0]
@@ -332,7 +332,7 @@ class PageSearch:
         return v0.get("src")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect("ani-grid__item-title a")[0]
+        v0 = v.cssselect(".ani-grid__item-title a")[0]
         v1 = v0.get("href")
 
         return f"https://animego.me{v1}"
