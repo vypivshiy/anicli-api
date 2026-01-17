@@ -4,7 +4,7 @@ import logging
 import re
 
 from attr import field
-from attrs import define
+from attr import define
 from httpx import Response
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
@@ -17,7 +17,7 @@ from anicli_api.source.parsers.animego_parser import (
     PageEpisodeVideo,
     PageUtils,
     J_Content,
-    T_EpisodeVideoPlayersView,
+    T_EpisodeVideos,
 )
 
 logger = logging.getLogger("anicli-api")
@@ -34,7 +34,7 @@ RE_DIV_H5_ERR = re.compile(
 
 
 class Extractor(BaseExtractor):
-    BASE_URL = "https://animego.one"
+    BASE_URL = "https://animego.me"
 
     def _extract_search(self, resp: str) -> list["Search"]:
         return [Search(**d, **self._kwargs_http) for d in PageSearch(resp).parse()]
@@ -186,10 +186,8 @@ class Anime(BaseAnime):
     raw_json: J_Content
 
     def _extract(self, resp: str) -> list["Episode"]:
-        # magic string:
-        # carousel implemented only for episodes
-        # film, OVA not exists this feature
-        if 'id="video-carousel"' not in resp:
+        # magic value:
+        if self.raw_json["type"].lower() == "movie":
             film_data = PageEpisodeVideo(resp).parse()
             return [
                 Episode(
@@ -230,13 +228,13 @@ class Anime(BaseAnime):
         return True
 
     def get_episodes(self) -> list["Episode"]:
-        resp = self.http.get(f"https://animego.one/anime/{self.id}/player?_allow=true")
-        resp = resp.json()["content"]
+        resp = self.http.get(f"https://animego.me/player/{self.id}")
+        resp = resp.json()["data"]["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
     async def a_get_episodes(self) -> list["Episode"]:
-        resp = await self.http_async.get(f"https://animego.one/anime/{self.id}/player?_allow=true")
-        resp = resp.json()["content"]
+        resp = await self.http_async.get(f"https://animego.me/player/{self.id}")
+        resp = resp.json()["data"]["content"]
         return self._extract(resp) if self._episodes_is_available(resp) else []
 
 
@@ -245,7 +243,7 @@ class Episode(BaseEpisode):
     dubbers: dict[str, str]
     id: str  # episode id (for extract videos required)
     _is_film: bool = field(alias="is_film", default=False)
-    _videos: list[T_EpisodeVideoPlayersView] = field(alias="videos")
+    _videos: list[T_EpisodeVideos] = field(alias="videos")
 
     def _extract(self, resp: str):
         data = PageSource(resp).parse()
@@ -270,9 +268,8 @@ class Episode(BaseEpisode):
         if self._is_film:
             return self._extract_film()
         resp = self.http.get(
-            "https://animego.one/anime/series",
-            params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
-        ).json()["content"]
+            f"https://animego.me/player/videos/{self.id}",
+        ).json()["data"]["content"]
         return self._extract(resp)
 
     async def a_get_sources(self):
@@ -280,10 +277,9 @@ class Episode(BaseEpisode):
             return self._extract_film()
         resp = (
             await self.http_async.get(
-                "https://animego.one/anime/series",
-                params={"dubbing": 2, "provider": 24, "episode": self.num, "id": self.id},
+                f"https://animego.me/player/videos/{self.id}",
             )
-        ).json()["content"]
+        ).json()["data"]["content"]
         return self._extract(resp)
 
 
