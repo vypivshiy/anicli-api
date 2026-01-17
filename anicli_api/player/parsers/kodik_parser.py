@@ -23,8 +23,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -58,6 +56,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 J_UrlParams = TypedDict(
     "J_UrlParams",
     {
@@ -202,47 +201,47 @@ class KodikAPIPayload:
 
     def _parse_d(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("var\\s*domain\\s+=\\s+['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_d_sign(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("var\\s*d_sign\\s+=\\s+['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_pd(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("var\\s*pd\\s+=\\s+['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_pd_sign(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("var\\s*pd_sign\\s+=\\s+['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_ref(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("var\\s*ref\\s+=\\s+['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_ref_sign(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("var\\s*ref_sign\\s+=\\s+['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_type(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("videoInfo\\.type\\s*=\\s*['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_hash(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("videoInfo\\.hash\\s*=\\s*['\\\"](.*?)['\\\"];", v0)[1]
 
     def _parse_id(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("videoInfo\\.id\\s*=\\s*['\\\"](.*?)['\\\"];", v0)[1]
 
     def parse(self) -> T_KodikAPIPayload:
@@ -262,42 +261,42 @@ class KodikAPIPayload:
 class PageMainKodikMin:
     """Universal parser for extract minimal data for next API reuqest
 
-        For extract full detailed information (about attached playlists) use:
+    For extract full detailed information (about attached playlists) use:
 
-        - MainKodikSerialPage for serials, OVA
-        - MainKodikVideoPage for films
+    - MainKodikSerialPage for serials, OVA
+    - MainKodikVideoPage for films
 
-        USAGE:
+    USAGE:
 
-            1. GET <kodik-page-player>
-            2. add base_url to <player_js_path>
-            3. extract API (<API_PATH>) path from javascript file (use MainKodikAPIPath)
-            3.1 decode <API_PATH> path (base64 cipher)
-            4. <api_payload> required extra constant keys
-                - bad_user = (true or false)
-                - cdn_is_working = true
-                - info "{}"
-            4.1 required headers:
-                - origin="https://<NETLOC>" // player page
-                - referer=<PLAYER_LINK> // FIRST URL player entrypoint
-                - accept= "application/json, text/javascript, */*; q=0.01"
-            4.2 POST <kodik-base-url> + /<API_PATH>
-               data=<api_payload> (<JSON>) + headers
-            5. extract urls from ['links'] key
-            6. video urls encoded in ROT_13 + BASE64 ciphers
+        1. GET <kodik-page-player>
+        2. add base_url to <player_js_path>
+        3. extract API (<API_PATH>) path from javascript file (use MainKodikAPIPath)
+        3.1 decode <API_PATH> path (base64 cipher)
+        4. <api_payload> required extra constant keys
+            - bad_user = (true or false)
+            - cdn_is_working = true
+            - info "{}"
+        4.1 required headers:
+            - origin="https://<NETLOC>" // player page
+            - referer=<PLAYER_LINK> // FIRST URL player entrypoint
+            - accept= "application/json, text/javascript, */*; q=0.01"
+        4.2 POST <kodik-base-url> + /<API_PATH>
+           data=<api_payload> (<JSON>) + headers
+        5. extract urls from ['links'] key
+        6. video urls encoded in ROT_13 + BASE64 ciphers
 
-        EXAMPLE:
+    EXAMPLE:
 
-            - GET https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
-            - GET https://aniqit.com/video/72755/dc966c03a7cb719dac577d8004a9b091/720p
-            - GET https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p
+        - GET https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
+        - GET https://aniqit.com/video/72755/dc966c03a7cb719dac577d8004a9b091/720p
+        - GET https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p
 
-         ISSUES:
+     ISSUES:
 
-            - kodik maybe have another netloc (e.g.: anivod)
-            - 403 Forbidden if request sent not from CIS region
-            - 404 DELETED: eg: https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p
-            - 500 Internal server error: eg: https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p ('Cyberpunk: Edgerunners' ep5 Anilibria dub)
+        - kodik maybe have another netloc (e.g.: anivod)
+        - 403 Forbidden if request sent not from CIS region
+        - 404 DELETED: eg: https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p
+        - 500 Internal server error: eg: https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p ('Cyberpunk: Edgerunners' ep5 Anilibria dub)
 
 
 
@@ -336,16 +335,15 @@ class PageMainKodikMin:
     def _parse_url_params(self, v: html.HtmlElement) -> J_UrlParams:
         v0 = html.tostring(v, encoding="unicode")
         v1 = re.search("var\\s*urlParams\\s*=\\s*['\\\"](\\{.*\\})['\\\"]", v0)[1]
-        
+
         return json.loads(v1)
 
     def _parse_api_payload(self, v: html.HtmlElement) -> T_KodikAPIPayload:
-        
         return KodikAPIPayload(v).parse()
 
     def _parse_player_js_path(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect('head > script[type="text/javascript"][src*="assets/js"]')[0]
-        
+
         return v0.get("src")
 
     def parse(self) -> T_PageMainKodikMin:
@@ -377,27 +375,21 @@ class SeasonBox:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".serial-panel > .serial-seasons-box option")
 
     def _parse_value(self, v: html.HtmlElement) -> str:
-        
         return v.get("value")
 
     def _parse_data_serial_id(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-serial-id")
 
     def _parse_data_serial_hash(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-serial-hash")
 
     def _parse_data_title(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-title")
 
     def _parse_data_translation_title(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-translation-title")
 
     def parse(self) -> list[T_SeasonBox]:
@@ -433,23 +425,18 @@ class SeriesBox:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".serial-panel > .serial-series-box option")
 
     def _parse_value(self, v: html.HtmlElement) -> str:
-        
         return v.get("value")
 
     def _parse_data_id(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-id")
 
     def _parse_data_hash(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-hash")
 
     def _parse_data_title(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-title")
 
     def parse(self) -> list[T_SeriesBox]:
@@ -484,23 +471,18 @@ class SeriesOptionItem:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect("option")
 
     def _parse_value(self, v: html.HtmlElement) -> str:
-        
         return v.get("value")
 
     def _parse_data_id(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-id")
 
     def _parse_data_hash(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-hash")
 
     def _parse_data_title(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-title")
 
     def parse(self) -> list[T_SeriesOptionItem]:
@@ -538,15 +520,12 @@ class SeriesOptions:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".serial-panel > .series-options div")
 
     def _parse_key(self, v: html.HtmlElement) -> str:
-        
         return v.get("class")
 
     def _parse_value(self, v: html.HtmlElement) -> list[T_SeriesOptionItem]:
-        
         return SeriesOptionItem(v).parse()
 
     def parse(self) -> T_SeriesOptions:
@@ -577,40 +556,32 @@ class TranslationsBox:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".serial-panel > .serial-translations-box option")
 
     def _parse_value(self, v: html.HtmlElement) -> str:
-        
         return v.get("value")
 
     def _parse_data_id(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-id")
 
     def _parse_data_translation_type(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-translation-type")
 
     def _parse_data_media_id(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-media-id")
 
     def _parse_data_media_hash(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-media-hash")
 
     def _parse_data_media_type(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-media-type")
 
     def _parse_data_title(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-title")
 
     def _parse_data_episode_count(self, v: html.HtmlElement) -> str:
         v0 = v.get("data-episode-count")
-        
+
         return re.search("(\\d+)$", v0)[1]
 
     def parse(self) -> list[T_TranslationsBox]:
@@ -633,8 +604,8 @@ class PageMainKodikSerial:
     """First extract data entrypoint for kodik.../serial/ entrypoint path
 
 
-        EXAMPLE:
-            GET - https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
+    EXAMPLE:
+        GET - https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
 
 
 
@@ -718,16 +689,15 @@ class PageMainKodikSerial:
     def _parse_url_params(self, v: html.HtmlElement) -> J_UrlParams:
         v0 = html.tostring(v, encoding="unicode")
         v1 = re.search("var\\s*urlParams\\s*=\\s*['\\\"](\\{.*\\})['\\\"]", v0)[1]
-        
+
         return json.loads(v1)
 
     def _parse_api_payload(self, v: html.HtmlElement) -> T_KodikAPIPayload:
-        
         return KodikAPIPayload(v).parse()
 
     def _parse_player_js_path(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect('head > script[type="text/javascript"][src*="assets/js"]')[0]
-        
+
         return v0.get("src")
 
     def _parse_thumbnails(self, v: html.HtmlElement) -> list[str]:
@@ -736,23 +706,19 @@ class PageMainKodikSerial:
         v2 = v1.replace('"', "")
         v3 = v2.split(",")
         v4 = [i.strip(" ") for i in v3]
-        
+
         return [f"https:{i}" for i in v4]
 
     def _parse_season_box(self, v: html.HtmlElement) -> list[T_SeasonBox]:
-        
         return SeasonBox(v).parse()
 
     def _parse_series_box(self, v: html.HtmlElement) -> list[T_SeriesBox]:
-        
         return SeriesBox(v).parse()
 
     def _parse_series_options(self, v: html.HtmlElement) -> T_SeriesOptions:
-        
         return SeriesOptions(v).parse()
 
     def _parse_translations_box(self, v: html.HtmlElement) -> list[T_TranslationsBox]:
-        
         return TranslationsBox(v).parse()
 
     def parse(self) -> T_PageMainKodikSerial:
@@ -791,35 +757,27 @@ class MovieTranslationBox:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".movie-panel > .movie-translations-box option")
 
     def _parse_value(self, v: html.HtmlElement) -> str:
-        
         return v.get("value")
 
     def _parse_data_id(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-id")
 
     def _parse_data_translation_type(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-translation-type")
 
     def _parse_data_media_id(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-media-id")
 
     def _parse_data_media_hash(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-media-hash")
 
     def _parse_data_media_type(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-media-type")
 
     def _parse_data_title(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-title")
 
     def parse(self) -> list[T_MovieTranslationBox]:
@@ -840,12 +798,12 @@ class MovieTranslationBox:
 class PageMainKodikVideo:
     """First extract data entrypoint for kodik.../video/ entrypoint path (FILMS, less often OVA)
 
-        required for extract videos via kodik API
+    required for extract videos via kodik API
 
-        EXAMPLE:
+    EXAMPLE:
 
-            - GET https://kodik.info/video/9935/313bc89421b094f6f374cc7420e00ad1/720p?translations=false&min_age=16 (Кланнад фильм)
-            - GET https://kodik.info/video/72755/dc966c03a7cb719dac577d8004a9b091/720p?translations=false&min_age=16 (Вайолет Эвергарден. Фильм)
+        - GET https://kodik.info/video/9935/313bc89421b094f6f374cc7420e00ad1/720p?translations=false&min_age=16 (Кланнад фильм)
+        - GET https://kodik.info/video/72755/dc966c03a7cb719dac577d8004a9b091/720p?translations=false&min_age=16 (Вайолет Эвергарден. Фильм)
 
 
     {
@@ -896,16 +854,15 @@ class PageMainKodikVideo:
     def _parse_url_params(self, v: html.HtmlElement) -> J_UrlParams:
         v0 = html.tostring(v, encoding="unicode")
         v1 = re.search("var\\s*urlParams\\s*=\\s*['\\\"](\\{.*\\})['\\\"]", v0)[1]
-        
+
         return json.loads(v1)
 
     def _parse_api_payload(self, v: html.HtmlElement) -> T_KodikAPIPayload:
-        
         return KodikAPIPayload(v).parse()
 
     def _parse_player_js_path(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect('head > script[type="text/javascript"][src*="assets/js"]')[0]
-        
+
         return v0.get("src")
 
     def _parse_thumbnails(self, v: html.HtmlElement) -> list[str]:
@@ -914,11 +871,10 @@ class PageMainKodikVideo:
         v2 = v1.replace('"', "")
         v3 = v2.split(",")
         v4 = [i.strip(" ") for i in v3]
-        
+
         return [f"https:{i}" for i in v4]
 
     def _parse_translation_box(self, v: html.HtmlElement) -> list[T_MovieTranslationBox]:
-        
         return MovieTranslationBox(v).parse()
 
     def parse(self) -> T_PageMainKodikVideo:
@@ -934,15 +890,15 @@ class PageMainKodikVideo:
 class PageMainKodikAPIPath:
     """Extract actual API path from kodik player javascript sources
 
-        after parse, required base64 decode string
+    after parse, required base64 decode string
 
-        USAGE:
-            GET MainKodikPage.player_js_path, MainKodikSerialPage.player_js_path
+    USAGE:
+        GET MainKodikPage.player_js_path, MainKodikSerialPage.player_js_path
 
-        EXAMPLE:
+    EXAMPLE:
 
-            - GET https://kodik.info/assets/js/app.serial.6721f2dd68501a625a518ea935006bd8f5cf5f4d037f2648a97a02dfd0fe5b85.js
-            - GET https://aniqit.com/assets/js/app.player_single.3e2f9f0ae45d18b06cfd8b01181f85bab47fb9867cd1e73568c84dbe44ba7a44.js
+        - GET https://kodik.info/assets/js/app.serial.6721f2dd68501a625a518ea935006bd8f5cf5f4d037f2648a97a02dfd0fe5b85.js
+        - GET https://aniqit.com/assets/js/app.player_single.3e2f9f0ae45d18b06cfd8b01181f85bab47fb9867cd1e73568c84dbe44ba7a44.js
 
 
 
@@ -958,7 +914,7 @@ class PageMainKodikAPIPath:
 
     def _parse_api_path(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search("\\$\\.ajax[^)]+atob\\([\\\"\\'](\\w+=)[\\'\\\"]\\)", v0)[1]
 
     def parse(self) -> T_PageMainKodikAPIPath:

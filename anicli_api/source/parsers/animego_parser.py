@@ -23,8 +23,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -58,6 +56,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 J_AggregateRating = TypedDict(
     "J_AggregateRating",
     {
@@ -87,7 +86,6 @@ J_Creator = TypedDict(
     "J_Creator",
     {
         "type": str,
-        "url": str,
         "name": str,
     },
 )
@@ -98,16 +96,16 @@ J_Content = TypedDict(
         "type": str,
         "url": str,
         "name": str,
-        "contentRating": str,
-        "description": str,
-        "aggregateRating": J_AggregateRating,
-        "startDate": str,
+        "alternateName": str,
         "image": str,
+        "description": str,
         "genre": list[str],
-        "alternativeHeadline": list[str],
-        "director": list[J_Director],
-        "actor": list[J_Actor],
+        "contentRating": str,
+        "datePublished": str,
+        "keywords": str,
         "creator": list[J_Creator],
+        "aggregateRating": J_AggregateRating,
+        "numberOfEpisodes": int,
     },
 )
 T_PageUtils = TypedDict(
@@ -144,25 +142,27 @@ T_PageAnime = TypedDict(
         "raw_json": J_Content,
     },
 )
-T_EpisodesView = TypedDict(
-    "T_EpisodesView",
+T_Episodes = TypedDict(
+    "T_Episodes",
     {
-        "num": str,
+        "num": int,
         "title": str,
+        "type": str,
+        "released": str,
         "id": str,
     },
 )
-T_EpisodeDubbersView: TypeAlias = dict[str, str]
+T_Dubbers: TypeAlias = dict[str, str]
 T_PageEpisode = TypedDict(
     "T_PageEpisode",
     {
         "is_film": bool,
-        "dubbers": T_EpisodeDubbersView,
-        "episodes": list[T_EpisodesView],
+        "episodes": list[T_Episodes],
+        "dubbers": T_Dubbers,
     },
 )
-T_EpisodeVideoPlayersView = TypedDict(
-    "T_EpisodeVideoPlayersView",
+T_EpisodeVideos = TypedDict(
+    "T_EpisodeVideos",
     {
         "player": str,
         "data_provider": str,
@@ -173,8 +173,8 @@ T_PageEpisodeVideo = TypedDict(
     "T_PageEpisodeVideo",
     {
         "is_film": bool,
-        "dubbers": T_EpisodeDubbersView,
-        "videos": list[T_EpisodeVideoPlayersView],
+        "dubbers": T_Dubbers,
+        "videos": list[T_EpisodeVideos],
     },
 )
 T_SourceVideoView = TypedDict(
@@ -184,13 +184,13 @@ T_SourceVideoView = TypedDict(
         "url": str,
         "data_provider": str,
         "data_provide_dubbing": str,
+        "data_translation_title": str,
     },
 )
-T_SourceDubbersView: TypeAlias = dict[str, str]
 T_PageSource = TypedDict(
     "T_PageSource",
     {
-        "dubbers": T_SourceDubbersView,
+        "dubbers": T_Dubbers,
         "videos": list[T_SourceVideoView],
     },
 )
@@ -212,7 +212,7 @@ class PageUtils:
     def _parse_url_canonical(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect('link[rel="canonical"]')[0]
         v1 = v0.get("href")
-        
+
         return v1.rstrip("/")
 
     def parse(self) -> T_PageUtils:
@@ -224,11 +224,11 @@ class PageUtils:
 class PageOngoing:
     """Get all available ongoings from the main page
 
-        GET https://animego.one
+    GET https://animego.one
 
 
-        NOTE: animego can change the domain, so only the path is returned.
-        To get the real url, extract the value using the selector 'link[rel="canonical"]::attr(href)'
+    NOTE: animego can change the domain, so only the path is returned.
+    To get the real url, extract the value using the selector 'link[rel="canonical"]::attr(href)'
 
 
 
@@ -250,39 +250,32 @@ class PageOngoing:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
-        return v.cssselect(".border-bottom-0.cursor-pointer")
+        return v.cssselect(".updates-body > div.d-grid > a.aw-item")
 
     def _parse_url_path(self, v: html.HtmlElement) -> str:
-        v0 = v.get("onclick")
-        v1 = ssc_rm_prefix(v0, "location.href=")
-        
-        return v1.strip("'")
+        return v.get("href")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".last-update-title")[0]
-        
-        return v0.text_content()
+        v0 = v.cssselect(".image__img")[0]
+
+        return v0.get("alt")
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".lazy[style]")[0]
-        v1 = v0.get("style")
-        v2 = ssc_rm_prefix(v1, "background-image: url(")
-        
-        return v2.rstrip(");")
+        v0 = v.cssselect(".image__img")[0]
+
+        return v0.get("src")
 
     def _parse_episode(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".text-truncate")[0]
+        v0 = v.cssselect(".aw-meta")[0]
         v1 = v0.text_content()
-        
-        return re.search("(\\d+)\\s", v1)[1]
+
+        return re.search("\\s(\\d+)\\s", v1)[1]
 
     def _parse_dub(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".text-gray-dark-6")[0]
+        v0 = v.cssselect(".aw-meta")[0]
         v1 = v0.text_content()
-        v2 = v1.replace(")", "")
-        
-        return v2.replace("(", "")
+
+        return re.search("(\\w+)\\s+—", v1)[1]
 
     def parse(self) -> list[T_PageOngoing]:
         return [
@@ -300,14 +293,14 @@ class PageOngoing:
 class PageSearch:
     """Get all search results by query
 
-        USAGE:
+    USAGE:
 
-            GET https://animego.one/search/anime
-            q={QUERY}
+        GET https://animego.one/search/anime
+        q={QUERY}
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.one/search/anime?q=LAIN
+        GET https://animego.one/search/anime?q=LAIN
 
 
     [
@@ -326,23 +319,23 @@ class PageSearch:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
-        return v.cssselect(".row > .col-ul-2")
+        return v.cssselect(".grid.ani-list > .ani-grid__item")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".text-truncate a[title]")[0]
-        
+        v0 = v.cssselect(".ani-grid__item-title a")[0]
+
         return v0.get("title")
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".lazy[data-original]")[0]
-        
-        return v0.get("data-original")
+        v0 = v.cssselect(".image__img")[0]
+
+        return v0.get("src")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".text-truncate a[href]")[0]
-        
-        return v0.get("href")
+        v0 = v.cssselect("ani-grid__item-title a")[0]
+        v1 = v0.get("href")
+
+        return f"https://animego.me{v1}"
 
     def parse(self) -> list[T_PageSearch]:
         return [
@@ -358,26 +351,26 @@ class PageSearch:
 class PageAnime:
     """Anime page information. anime path contains in SearchView.url or Ongoing.url
 
-        - id needed for next API requests
-        - raw_json used for extract extra metadata (unescape required)
+    - id needed for next API requests
+    - raw_json used for extract extra metadata (unescape required)
 
-        USAGE:
+    USAGE:
 
-            GET https://animego.one/anime/<ANIME_PATH>
+        GET https://animego.one/anime/<ANIME_PATH>
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.one/anime/eksperimenty-leyn-1114
+        GET https://animego.one/anime/eksperimenty-leyn-1114
 
 
-        ISSUES:
-            If blocked, you can try skip extract anime metadata and send api request:
+    ISSUES:
+        If blocked, you can try skip extract anime metadata and send api request:
 
-            id contains in url:
-                - id=1114 for https://animego.one/anime/eksperimenty-leyn-1114
-                - id=2589 for https://animego.org/anime/chelovek-muskul-2589
+        id contains in url:
+            - id=1114 for https://animego.one/anime/eksperimenty-leyn-1114
+            - id=2589 for https://animego.org/anime/chelovek-muskul-2589
 
-            GET 'https://animego.one/anime/{id}/player?_allow=true'
+        GET 'https://animego.one/anime/{id}/player?_allow=true'
 
 
     {
@@ -390,42 +383,27 @@ class PageAnime:
             "type": "String",
             "url": "String",
             "name": "String",
-            "contentRating": "String",
+            "alternateName": "String",
+            "image": "String",
             "description": "String",
+            "genre": "Array<String>",
+            "contentRating": "String",
+            "datePublished": "String",
+            "keywords": "String",
+            "creator": [
+                {
+                    "type": "String",
+                    "name": "String"
+                },
+                "..."
+            ],
             "aggregateRating": {
                 "type": "String",
                 "ratingCount": "Int",
                 "bestRating": "Int",
                 "ratingValue": "String"
             },
-            "startDate": "String",
-            "image": "String",
-            "genre": "Array<String>",
-            "alternativeHeadline": "Array<String>",
-            "director": [
-                {
-                    "type": "String",
-                    "url": "String",
-                    "name": "String"
-                },
-                "..."
-            ],
-            "actor": [
-                {
-                    "type": "String",
-                    "url": "String",
-                    "name": "String"
-                },
-                "..."
-            ],
-            "creator": [
-                {
-                    "type": "String",
-                    "url": "String",
-                    "name": "String"
-                },
-                "..."
-            ]
+            "numberOfEpisodes": "Int"
         }
     }"""
 
@@ -436,8 +414,8 @@ class PageAnime:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_title(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".anime-title h1")[0]
-        
+        v0 = v.cssselect(".entity__title h1")[0]
+
         return v0.text_content()
 
     def _parse_description(self, v: html.HtmlElement) -> str:
@@ -446,27 +424,27 @@ class PageAnime:
             v1 = v0.cssselect(".description")
             v2 = [e.text_content() for e in v1]
             v3 = "".join(v2)
-            
+
             return re.sub("(?:^\\s+)|(?:\\s+$)", "", v3)
         return ""
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect("#content img[src]")[0]
-        
+        v0 = v.cssselect(".d-sm-flex .image__picture img.image__img")[0]
+
         return v0.get("src")
 
     def _parse_id(self, v: html.HtmlElement) -> str:
-        v0 = v.cssselect(".br-2 .my-list-anime")[0]
-        v1 = v0.get("id")
-        
-        return v1.lstrip("my-list-")
+        v0 = v.cssselect('link[rel="canonical"]')[0]
+        v1 = v0.get("href")
+
+        return re.search("-(.?\\d{2,})", v1)[1]
 
     def _parse_raw_json(self, v: html.HtmlElement) -> J_Content:
         v0 = v.cssselect("script[type='application/ld+json']")[0]
         v1 = v0.text_content()
         v2 = v1.replace('"@type"', '"type"')
         v3 = v2.replace('"@context"', '"context"')
-        
+
         return json.loads(v3)
 
     def parse(self) -> T_PageAnime:
@@ -479,13 +457,24 @@ class PageAnime:
         }
 
 
-class EpisodesView:
-    """
+class Episodes:
+    """episodes signature example (exclude in film)
+    ```
+    <div class="scroll-snap-slider d-none d-lg-flex">
+        <div class="scroll-snap-slide player-video-bar__item user-select-none px-1"
+            data-episode-number="1" data-episode-type="1"
+            data-episode-title="Elaina, the Apprentice Witch" data-episode-released="2 октября 2020"
+            data-episode-description="" data-episode="21516">
+            ...
+    ```
+
 
     [
         {
-            "num": "String",
+            "num": "Int",
             "title": "String",
+            "type": "String",
+            "released": "String",
             "id": "String"
         },
         "..."
@@ -498,38 +487,56 @@ class EpisodesView:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
-        return v.cssselect("#video-carousel .mb-0")
+        return v.cssselect(".player-video-bar__item")
 
-    def _parse_num(self, v: html.HtmlElement) -> str:
-        
-        return v.get("data-episode")
+    def _parse_num(self, v: html.HtmlElement) -> int:
+        v0 = v.get("data-episode-number")
+        v1 = re.sub("[^\\d+]", "", v0)
+
+        return int(v1)
 
     def _parse_title(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-episode-title")
 
-    def _parse_id(self, v: html.HtmlElement) -> str:
-        
-        return v.get("data-id")
+    def _parse_type(self, v: html.HtmlElement) -> str:
+        return v.get("data-episode-type")
 
-    def parse(self) -> list[T_EpisodesView]:
+    def _parse_released(self, v: html.HtmlElement) -> str:
+        return v.get("data-episode-released")
+
+    def _parse_id(self, v: html.HtmlElement) -> str:
+        return v.get("data-episode")
+
+    def parse(self) -> list[T_Episodes]:
         return [
             {
                 "num": self._parse_num(el),
                 "title": self._parse_title(el),
+                "type": self._parse_type(el),
+                "released": self._parse_released(el),
                 "id": self._parse_id(el),
             }
             for el in self._split_doc(self._document)
         ]
 
 
-class EpisodeDubbersView:
-    """
+class Dubbers:
+    """dubbers signature:
+
+    ```
+    <div class="list-group pt-2 position-absolute w-100">
+        <button class="align-items-center d-flex gap-2 list-group-item list-group-item-action mb-1"
+                role="button" data-translation="2"><span class="text-truncate">AniLibria</span> <span
+                class="error__player d-none text-danger small text-nowrap">(ошибка)</span>
+        </button>
+    ...
+    ```
+
+
 
     {
-        "<dubber_id>": "<dubber_name>",
-        "<id>": "..."
+        "<k>": "String",
+        "<k_N>": "..."
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
@@ -539,54 +546,53 @@ class EpisodeDubbersView:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
-        return v.cssselect("#video-dubbing .mb-1")
+        return v.cssselect("button[data-translation]")
 
     def _parse_key(self, v: html.HtmlElement) -> str:
-        
-        return v.get("data-dubbing")
+        return v.get("data-translation")
 
     def _parse_value(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("span")[0]
         v1 = v0.text_content()
-        
-        return re.sub("^\\s+|\\s+$", "", v1)
 
-    def parse(self) -> T_EpisodeDubbersView:
+        return v1.strip(" ")
+
+    def parse(self) -> T_Dubbers:
         return {self._parse_key(el): self._parse_value(el) for el in self._split_doc(self._document)}
 
 
 class PageEpisode:
     """Representation episodes
 
-        NOTE:
-            film pages does not exist video-carousel feature: test by `#video-carousel` CSS selector
-            or match by '<div id="video-carousel"' substring
+    NOTE:
+        film pages does not exist select[name="series"] element.
 
-        Prepare:
-          1. get id from Anime object
-          2. GET 'https://animego.one/anime/{Anime.id}/player?_allow=true'
-          3. extract html from json by ['content'] key
-          4. OPTIONAL: unescape HTML
+    Prepare:
+      1. get id from Anime object
+      2. GET 'https://animego.me/player/{Anime.id}'
+      3. extract html from json by ['data']['content'] key
+      4. OPTIONAL: unescape HTML
 
-        EXAMPLE:
-            GET https://animego.one/anime/anime/1114//player?_allow=true
+    EXAMPLE:
+        GET https://animego.me/player/1114
 
 
     {
         "is_film": "Bool",
-        "dubbers": {
-            "<dubber_id>": "<dubber_name>",
-            "<id>": "..."
-        },
         "episodes": [
             {
-                "num": "String",
+                "num": "Int",
                 "title": "String",
+                "type": "String",
+                "released": "String",
                 "id": "String"
             },
             "..."
-        ]
+        ],
+        "dubbers": {
+            "<k>": "String",
+            "<k_N>": "..."
+        }
     }"""
 
     def __init__(self, document: Union[str, html.HtmlElement]) -> None:
@@ -598,30 +604,42 @@ class PageEpisode:
     def _parse_is_film(self, v: html.HtmlElement) -> bool:
         v0 = v
         with suppress(Exception):
-            assert not v0.cssselect("div#video-carousel"), ""
+            assert not v0.cssselect('select[name="series"]'), ""
             v1 = v0
-            
+
             return bool(v1 or v1 == 0)
         return True
 
-    def _parse_dubbers(self, v: html.HtmlElement) -> T_EpisodeDubbersView:
-        
-        return EpisodeDubbersView(v).parse()
+    def _parse_episodes(self, v: html.HtmlElement) -> list[T_Episodes]:
+        return Episodes(v).parse()
 
-    def _parse_episodes(self, v: html.HtmlElement) -> list[T_EpisodesView]:
-        
-        return EpisodesView(v).parse()
+    def _parse_dubbers(self, v: html.HtmlElement) -> T_Dubbers:
+        return Dubbers(v).parse()
 
     def parse(self) -> T_PageEpisode:
         return {
             "is_film": self._parse_is_film(self._document),
-            "dubbers": self._parse_dubbers(self._document),
             "episodes": self._parse_episodes(self._document),
+            "dubbers": self._parse_dubbers(self._document),
         }
 
 
-class EpisodeVideoPlayersView:
+class EpisodeVideos:
     """
+
+    signature:
+
+    ```
+     <button data-player="//aniboom.one/embed/z68qn1VdNvg?translation=2" data-provider="24"
+            data-ptranslation="2" data-provider-title="AniBoom" data-translation-title="AniLibria"
+            class="align-items-center d-flex gap-2 list-group-item list-group-item-action mb-1"
+            role="button"><span class="text-truncate">AniBoom</span> <span
+                class="error__player d-none text-danger small text-nowrap">(ошибка)</span></button>
+
+    ...
+    ```
+
+
 
     [
         {
@@ -639,25 +657,23 @@ class EpisodeVideoPlayersView:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
-        return v.cssselect("#video-players > .mb-1")
+        return v.cssselect("button[data-player]")
 
     def _parse_player(self, v: html.HtmlElement) -> str:
         v0 = v.get("data-player")
         v1 = re.sub("^https?", "", v0)
-        
+
         return f"https:{v1}"
 
     def _parse_data_provider(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-provider")
 
     def _parse_data_provide_dubbing(self, v: html.HtmlElement) -> str:
-        v0 = v.get("data-provide-dubbing")
-        
+        v0 = v.get("data-ptranslation")
+
         return re.sub("(?:^\\s+)|(?:\\s+$)", "", v0)
 
-    def parse(self) -> list[T_EpisodeVideoPlayersView]:
+    def parse(self) -> list[T_EpisodeVideos]:
         return [
             {
                 "player": self._parse_player(el),
@@ -671,25 +687,24 @@ class EpisodeVideoPlayersView:
 class PageEpisodeVideo:
     """Represent Episode object for film (it have not same signatures)
 
-        NOTE:
-            film pages does not exist video-carousel feature: test by `#video-carousel` CSS selector
-            or match by '<div id="video-carousel"' substring
+    NOTE:
+        film pages does not exist CSS selector `.player-video-bar__item` or `select[name="series"]`
 
-        Prepare:
-          1. get id from Anime object
-          2. GET 'https://animego.one/anime/{Anime.id}/player?_allow=true'
-          3. extract html from json by ['content'] key
-          4. OPTIONAL: unescape HTML
+    Prepare:
+      1. get id from Anime object
+      2. GET 'https://animego.one/player/{Anime.id}'
+      3. extract html from json by ['data']['content'] key
+      4. OPTIONAL: unescape HTML
 
-        EXAMPLE:
-            GET https://animego.one/anime/315/player?_allow=true
+    EXAMPLE:
+        GET https://animego.one/player/315
 
 
     {
         "is_film": "Bool",
         "dubbers": {
-            "<dubber_id>": "<dubber_name>",
-            "<id>": "..."
+            "<k>": "String",
+            "<k_N>": "..."
         },
         "videos": [
             {
@@ -710,19 +725,17 @@ class PageEpisodeVideo:
     def _parse_is_film(self, v: html.HtmlElement) -> bool:
         v0 = v
         with suppress(Exception):
-            assert not v0.cssselect("div#video-carousel"), ""
+            assert not v0.cssselect('select[name="series"]'), ""
             v1 = v0
-            
+
             return bool(v1 or v1 == 0)
         return True
 
-    def _parse_dubbers(self, v: html.HtmlElement) -> T_EpisodeDubbersView:
-        
-        return EpisodeDubbersView(v).parse()
+    def _parse_dubbers(self, v: html.HtmlElement) -> T_Dubbers:
+        return Dubbers(v).parse()
 
-    def _parse_videos(self, v: html.HtmlElement) -> list[T_EpisodeVideoPlayersView]:
-        
-        return EpisodeVideoPlayersView(v).parse()
+    def _parse_videos(self, v: html.HtmlElement) -> list[T_EpisodeVideos]:
+        return EpisodeVideos(v).parse()
 
     def parse(self) -> T_PageEpisodeVideo:
         return {
@@ -733,14 +746,25 @@ class PageEpisodeVideo:
 
 
 class SourceVideoView:
-    """
+    """Signature:
+
+    ```
+     <button data-player="//animego.me/cdn-iframe/40571/AnilibriaTV/1/2" data-provider="26"
+            data-ptranslation="2" data-provider-title="CVH" data-translation-title="AniLibria"
+            class="align-items-center d-flex gap-2 list-group-item list-group-item-action mb-1"
+            role="button"><span class="text-truncate">CVH</span> <span
+                class="error__player d-none text-danger small text-nowrap">(ошибка)</span></button>
+    ```
+
+
 
     [
         {
             "title": "String",
             "url": "String",
             "data_provider": "String",
-            "data_provide_dubbing": "String"
+            "data_provide_dubbing": "String",
+            "data_translation_title": "String"
         },
         "..."
     ]"""
@@ -752,25 +776,26 @@ class SourceVideoView:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
-        return v.cssselect("#video-players > span")
+        return v.cssselect("button[data-player]")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
-        
-        return v.text_content()
+        v0 = v.cssselect("span")[0]
+
+        return v0.text_content()
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.get("data-player")
-        
+
         return f"https:{v0}"
 
     def _parse_data_provider(self, v: html.HtmlElement) -> str:
-        
         return v.get("data-provider")
 
     def _parse_data_provide_dubbing(self, v: html.HtmlElement) -> str:
-        
-        return v.get("data-provide-dubbing")
+        return v.get("data-ptranslation")
+
+    def _parse_data_translation_title(self, v: html.HtmlElement) -> str:
+        return v.get("data-translation-title")
 
     def parse(self) -> list[T_SourceVideoView]:
         return [
@@ -779,74 +804,43 @@ class SourceVideoView:
                 "url": self._parse_url(el),
                 "data_provider": self._parse_data_provider(el),
                 "data_provide_dubbing": self._parse_data_provide_dubbing(el),
+                "data_translation_title": self._parse_data_translation_title(el),
             }
             for el in self._split_doc(self._document)
         ]
 
 
-class SourceDubbersView:
-    """
-
-    {
-        "<dubber_id>": "<dubber_name>",
-        "...": "..."
-    }"""
-
-    def __init__(self, document: Union[str, html.HtmlElement]) -> None:
-        if isinstance(document, html.HtmlElement):
-            self._document = document
-        elif isinstance(document, str):
-            self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
-
-    def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
-        return v.cssselect("#video-dubbing > span")
-
-    def _parse_key(self, v: html.HtmlElement) -> str:
-        
-        return v.get("data-dubbing")
-
-    def _parse_value(self, v: html.HtmlElement) -> str:
-        v0 = v.text_content()
-        v1 = re.sub("^\\s+", "", v0)
-        
-        return re.sub("\\s+$", "", v1)
-
-    def parse(self) -> T_SourceDubbersView:
-        return {self._parse_key(el): self._parse_value(el) for el in self._split_doc(self._document)}
-
-
 class PageSource:
-    """representation player urls
+    """representation player urls (episodes only)
 
-        Prepare:
-          1. get num and id from Episode
+    Prepare:
+      1. get num and id from Episode
 
-          2.
+      2.
 
-          GET https://animego.one/anime/series
-          dubbing=2&provider=24&episode={Episode.num}id={Episode.id}
+      GET https://animego.me/player/videos/{Episode.id}
 
-          3. extract html from json by ["content"] key
+      3. extract html from json by ["data"]["content"] key
 
-          4. OPTIONAL: unescape document
+      4. OPTIONAL: unescape document
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.one/anime/series?dubbing=2&provider=24&episode=2&id=15837
+        GET https://animego.one/anime/series?dubbing=2&provider=24&episode=2&id=15837
 
 
     {
         "dubbers": {
-            "<dubber_id>": "<dubber_name>",
-            "...": "..."
+            "<k>": "String",
+            "<k_N>": "..."
         },
         "videos": [
             {
                 "title": "String",
                 "url": "String",
                 "data_provider": "String",
-                "data_provide_dubbing": "String"
+                "data_provide_dubbing": "String",
+                "data_translation_title": "String"
             },
             "..."
         ]
@@ -858,12 +852,10 @@ class PageSource:
         elif isinstance(document, str):
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
-    def _parse_dubbers(self, v: html.HtmlElement) -> T_SourceDubbersView:
-        
-        return SourceDubbersView(v).parse()
+    def _parse_dubbers(self, v: html.HtmlElement) -> T_Dubbers:
+        return Dubbers(v).parse()
 
     def _parse_videos(self, v: html.HtmlElement) -> list[T_SourceVideoView]:
-        
         return SourceVideoView(v).parse()
 
     def parse(self) -> T_PageSource:

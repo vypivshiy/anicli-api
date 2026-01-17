@@ -22,8 +22,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -57,6 +55,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 T_PageUtils = TypedDict(
     "T_PageUtils",
     {
@@ -108,7 +107,7 @@ class PageUtils:
         v0 = v.cssselect('link[rel="canonical"], link[rel="alternate"] ')[0]
         v1 = v0.get("href")
         v2 = v1.rstrip("/")
-        
+
         return ssc_rm_suffix(v2, "/rss.xml")
 
     def parse(self) -> T_PageUtils:
@@ -120,10 +119,10 @@ class PageUtils:
 class PageOngoing:
     """Get all available ongoings from the main page
 
-        can be change domains, extract real domain from `link[rel="canonical"]` element
-        USAGE:
+    can be change domains, extract real domain from `link[rel="canonical"]` element
+    USAGE:
 
-            GET https://yummyanime.in/
+        GET https://yummyanime.in/
 
 
 
@@ -144,16 +143,14 @@ class PageOngoing:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".ksupdate_block a")
 
     def _parse_thumbnail_path(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".xfieldimage[src]")[0]
-        
+
         return v0.get("src")
 
     def _parse_url_path(self, v: html.HtmlElement) -> str:
-        
         return v.get("href")
 
     def _parse_episode(self, v: html.HtmlElement) -> int:
@@ -162,13 +159,13 @@ class PageOngoing:
             v1 = v0.cssselect(".cell-2")[0]
             v2 = v1.text_content()
             v3 = re.search("(\\d+)\\s", v2)[1]
-            
+
             return int(v3)
         return 1
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".xfieldimage[alt]")[0]
-        
+
         return v0.get("alt")
 
     def parse(self) -> list[T_PageOngoing]:
@@ -186,15 +183,15 @@ class PageOngoing:
 class PageSearch:
     """Get search results
 
-        USAGE:
+    USAGE:
 
-            POST https://yummyanime.in
-            do=search&subaction=search&story=<QUERY>
+        POST https://yummyanime.in
+        do=search&subaction=search&story=<QUERY>
 
-        EXAMPLE:
+    EXAMPLE:
 
-            POST https://yummyanime.in/index.php
-            do=search&subaction=search=from_page=0story=ван-пис
+        POST https://yummyanime.in/index.php
+        do=search&subaction=search=from_page=0story=ван-пис
 
 
     [
@@ -213,21 +210,19 @@ class PageSearch:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect("a.has-overlay")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".poster__title")[0]
-        
+
         return v0.text_content()
 
     def _parse_thumbnail_path(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".xfieldimage[data-src]")[0]
-        
+
         return v0.get("data-src")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
-        
         return v.get("href")
 
     def parse(self) -> list[T_PageSearch]:
@@ -244,13 +239,13 @@ class PageSearch:
 class PageAnime:
     """get anime page
 
-        USAGE:
+    USAGE:
 
-            GET https://yummyanime.in/<...>.html
+        GET https://yummyanime.in/<...>.html
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://yummyanime.in/4790-vedma-i-chudovische.html
+        GET https://yummyanime.in/4790-vedma-i-chudovische.html
 
 
 
@@ -269,14 +264,14 @@ class PageAnime:
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".anime__title h1")[0]
-        
+
         return v0.text_content()
 
     def _parse_alt_title(self, v: html.HtmlElement) -> Optional[str]:
         v0 = v
         with suppress(Exception):
             v1 = v0.cssselect(".anime__title .pmovie__original-title")[0]
-            
+
             return v1.text_content()
         return None
 
@@ -285,13 +280,13 @@ class PageAnime:
         with suppress(Exception):
             v1 = v0.cssselect(".page__text p")
             v2 = [e.text_content() for e in v1]
-            
+
             return "".join(v2)
         return ""
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".pmovie__poster .xfieldimage[data-src]")[0]
-        
+
         return v0.get("data-src")
 
     def parse(self) -> T_PageAnime:

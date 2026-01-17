@@ -22,8 +22,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -57,6 +55,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 T_PageOngoing = TypedDict(
     "T_PageOngoing",
     {
@@ -103,8 +102,8 @@ T_PageSource = TypedDict(
 class PageOngoing:
     """usage:
 
-        POST https://jut.su/anime/ongoing/
-        ajax_load=yes&start_from_page=1&show_search=&anime_of_user=
+    POST https://jut.su/anime/ongoing/
+    ajax_load=yes&start_from_page=1&show_search=&anime_of_user=
 
 
 
@@ -125,31 +124,30 @@ class PageOngoing:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".all_anime_global")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("a")[0]
         v1 = v0.get("href")
-        
+
         return f"https://jut.su{v1}"
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".aaname")[0]
-        
+
         return v0.text_content()
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".all_anime_image[style]")[0]
         v1 = v0.get("style")
-        
+
         return re.search("'(https?://.*?)'", v1)[1]
 
     def _parse_counts(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".aailines")
         v1 = [e.text_content() for e in v0]
         v2 = [i.strip("\r\n ") for i in v1]
-        
+
         return " ".join(v2)
 
     def parse(self) -> list[T_PageOngoing]:
@@ -166,12 +164,12 @@ class PageOngoing:
 
 class PageSearch:
     """
-        POST https://jut.su/anime/
-        ajax_load=yes&start_from_page=1&show_search=<QUERY>&anime_of_user=
+    POST https://jut.su/anime/
+    ajax_load=yes&start_from_page=1&show_search=<QUERY>&anime_of_user=
 
-        EXAMPLE:
-            POST https://jut.su/anime/
-            ajax_load=yes&start_from_page=1&show_search=LA&anime_of_user=
+    EXAMPLE:
+        POST https://jut.su/anime/
+        ajax_load=yes&start_from_page=1&show_search=LA&anime_of_user=
 
 
     [
@@ -191,31 +189,30 @@ class PageSearch:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".all_anime_global")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("a")[0]
         v1 = v0.get("href")
-        
+
         return f"https://jut.su{v1}"
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".aaname")[0]
-        
+
         return v0.text_content()
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".all_anime_image[style]")[0]
         v1 = v0.get("style")
-        
+
         return re.search("'(https?://.*?)'", v1)[1]
 
     def _parse_counts(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".aailines")
         v1 = [e.text_content() for e in v0]
         v2 = [i.strip("\r\n ") for i in v1]
-        
+
         return " ".join(v2)
 
     def parse(self) -> list[T_PageSearch]:
@@ -248,17 +245,16 @@ class EpisodesView:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".video")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.text_content()
-        
+
         return v0.strip(" ")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.get("href")
-        
+
         return f"https://jut.su{v0}"
 
     def parse(self) -> list[T_EpisodesView]:
@@ -273,10 +269,10 @@ class EpisodesView:
 
 class PageAnime:
     """
-        GET https://jut.su/<ANIME PATH>
+    GET https://jut.su/<ANIME PATH>
 
-        EXAMPLE:
-            GET https://jut.su/kime-no-yaiba/
+    EXAMPLE:
+        GET https://jut.su/kime-no-yaiba/
 
 
     {
@@ -301,23 +297,22 @@ class PageAnime:
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".anime_padding_for_title")[0]
         v1 = v0.text_content()
-        
+
         return re.search("Смотреть\\s*(.*?)\\s*все", v1)[1]
 
     def _parse_description(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".uv_rounded_bottom span")
         v1 = [e.text_content() for e in v0]
-        
+
         return " ".join(v1)
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".all_anime_title[style]")[0]
         v1 = v0.get("style")
-        
+
         return re.search("'(https?://.*?)'", v1)[1]
 
     def _parse_episodes(self, v: html.HtmlElement) -> list[T_EpisodesView]:
-        
         return EpisodesView(v).parse()
 
     def parse(self) -> T_PageAnime:
@@ -343,20 +338,17 @@ class SourceView:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect("#my-player > source")
 
     def _parse_key(self, v: html.HtmlElement) -> str:
         v0 = v
         with suppress(Exception):
-            
             return v0.get("res")
         return "null"
 
     def _parse_value(self, v: html.HtmlElement) -> Optional[str]:
         v0 = v
         with suppress(Exception):
-            
             return v0.get("src")
         return None
 
@@ -366,34 +358,34 @@ class SourceView:
 
 class PageSource:
     """
-        GET https://jut.su/<ANIME PATH>/<SEASON?>/episode-<NUM>.html
+    GET https://jut.su/<ANIME PATH>/<SEASON?>/episode-<NUM>.html
 
-        NOTE: VIDEO PLAY REQUEST SHOULD HAVE THE SAME USER-AGENT AS AN API CLIENT
+    NOTE: VIDEO PLAY REQUEST SHOULD HAVE THE SAME USER-AGENT AS AN API CLIENT
 
-        eg:
+    eg:
 
-        cl = Client(headers={"user-agent": "X"})
+    cl = Client(headers={"user-agent": "X"})
 
-        ...
+    ...
 
-        s = SourcePage(doc).parse()
+    s = SourcePage(doc).parse()
 
-        mpv s["url_1080"] # 403, FORBIDDEN
+    mpv s["url_1080"] # 403, FORBIDDEN
 
-        mpv s["url_1080"] --user-agent="Y" # 403, FORBIDDEN
+    mpv s["url_1080"] --user-agent="Y" # 403, FORBIDDEN
 
-        mpv s["url_1080"] --user-agent="X" # 200, OK
+    mpv s["url_1080"] --user-agent="X" # 200, OK
 
-        EXAMPLE:
-            GET https://jut.su/kime-no-yaiba/season-1/episode-1.html
+    EXAMPLE:
+        GET https://jut.su/kime-no-yaiba/season-1/episode-1.html
 
-        ISSUES:
-            CHECK 'null' KEY in 'video'. if it contains - videos not available
+    ISSUES:
+        CHECK 'null' KEY in 'video'. if it contains - videos not available
 
-            check block reasons regex patterns:
+        check block reasons regex patterns:
 
-            - 'block_video_text_str_everywhere\\+' - К сожалению, это видео недоступно.
-            - 'block_video_text_str\\+' - К сожалению, в России это видео недоступно.
+        - 'block_video_text_str_everywhere\\+' - К сожалению, это видео недоступно.
+        - 'block_video_text_str\\+' - К сожалению, в России это видео недоступно.
 
 
     {
@@ -409,7 +401,6 @@ class PageSource:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_videos(self, v: html.HtmlElement) -> T_SourceView:
-        
         return SourceView(v).parse()
 
     def parse(self) -> T_PageSource:

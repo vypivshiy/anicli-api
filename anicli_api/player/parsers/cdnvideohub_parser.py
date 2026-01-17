@@ -22,8 +22,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -57,6 +55,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 T_PageAnimegoIframe = TypedDict(
     "T_PageAnimegoIframe",
     {
@@ -86,20 +85,20 @@ T_PageParseCdnVideoData = TypedDict(
 class PageAnimegoIframe:
     """A parser for extracting parameters for the cdnvideohub API.
 
-        used in animego
+    used in animego
 
-        USAGE:
+    USAGE:
 
-            - data_title_id for 'id=' param
-            - data_publisher_id for 'pub=' param
-            - data_aggregator for 'aggr=' param
+        - data_title_id for 'id=' param
+        - data_publisher_id for 'pub=' param
+        - data_aggregator for 'aggr=' param
 
-        GET https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub={data_publisher_id}&aggr={data_aggregator}&id={id}
+    GET https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub={data_publisher_id}&aggr={data_aggregator}&id={id}
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://animego.me/cdn-iframe/60254/Dream%20Cast/1/1
-            Referer: https://animego.me
+        GET https://animego.me/cdn-iframe/60254/Dream%20Cast/1/1
+        Referer: https://animego.me
 
 
     {
@@ -122,27 +121,27 @@ class PageAnimegoIframe:
 
     def _parse_id(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player-cvh > video-player")[0]
-        
+
         return v0.get("id")
 
     def _parse_data_title_id(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player-cvh > video-player")[0]
-        
+
         return v0.get("data-title-id")
 
     def _parse_data_publisher_id(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player-cvh > video-player")[0]
-        
+
         return v0.get("data-publisher-id")
 
     def _parse_ident(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player-cvh > video-player")[0]
-        
+
         return v0.get("ident")
 
     def _parse_data_aggregator(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player-cvh > video-player")[0]
-        
+
         return v0.get("data-aggregator")
 
     def _parse_is_show_voice_only(self, v: html.HtmlElement) -> bool:
@@ -152,7 +151,7 @@ class PageAnimegoIframe:
             v2 = v1.get("is-show-voice-only")
             assert v2 != "true", ""
             v3 = v2
-            
+
             return bool(v3 or v3 == 0)
         return False
 
@@ -163,19 +162,19 @@ class PageAnimegoIframe:
             v2 = v1.get("id")
             assert v2 != "true", ""
             v3 = v2
-            
+
             return bool(v3 or v3 == 0)
         return False
 
     def _parse_episode(self, v: html.HtmlElement) -> int:
         v0 = v.cssselect(".player-cvh > video-player")[0]
         v1 = v0.get("episode")
-        
+
         return int(v1)
 
     def _parse_priority_voice(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player-cvh > video-player")[0]
-        
+
         return v0.get("priority-voice")
 
     def parse(self) -> T_PageAnimegoIframe:
@@ -195,7 +194,7 @@ class PageAnimegoIframe:
 class PageParseCdnVideoData:
     """universal extractor cdnvideohub API params
 
-        page should be contains <video-player> tag
+    page should be contains <video-player> tag
 
 
     {
@@ -214,27 +213,27 @@ class PageParseCdnVideoData:
 
     def _parse_id(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("video-player")[0]
-        
+
         return v0.get("id")
 
     def _parse_data_title_id(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("video-player")[0]
-        
+
         return v0.get("data-title-id")
 
     def _parse_data_publisher_id(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("video-player")[0]
-        
+
         return v0.get("data-publisher-id")
 
     def _parse_ident(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("video-player")[0]
-        
+
         return v0.get("ident")
 
     def _parse_data_aggregator(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("video-player")[0]
-        
+
         return v0.get("data-aggregator")
 
     def parse(self) -> T_PageParseCdnVideoData:

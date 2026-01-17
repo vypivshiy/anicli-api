@@ -21,8 +21,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -56,6 +54,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 T_PageOngoing = TypedDict(
     "T_PageOngoing",
     {
@@ -109,23 +108,22 @@ class PageOngoing:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".col-auto")
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("a[href]")[0]
-        
+
         return v0.get("href")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".col-auto .poster[title]")[0]
-        
+
         return v0.get("title")
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("img.swiper-lazy[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def parse(self) -> list[T_PageOngoing]:
@@ -141,15 +139,15 @@ class PageOngoing:
 
 class PageSearch:
     """
+    POST https://sameband.studio/index.php?do=search
+    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
+
+    NOTE:
+        search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
+
+    EXAMPLE:
         POST https://sameband.studio/index.php?do=search
-        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
-
-        NOTE:
-            search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
-
-        EXAMPLE:
-            POST https://sameband.studio/index.php?do=search
-        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
+    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
 
 
     [
@@ -168,23 +166,22 @@ class PageSearch:
             self._document = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _split_doc(self, v: html.HtmlElement) -> list[html.HtmlElement]:
-        
         return v.cssselect(".col-auto")
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".col-auto .poster[title]")[0]
-        
+
         return v0.get("title")
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("img.swiper-lazy[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def _parse_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".image[href]")[0]
-        
+
         return v0.get("href")
 
     def parse(self) -> list[T_PageSearch]:
@@ -200,11 +197,11 @@ class PageSearch:
 
 class PageAnime:
     """
-        GET https://sameband.studio/anime/<ANIME PATH>.html
+    GET https://sameband.studio/anime/<ANIME PATH>.html
 
-        EXAMPLE:
-            # https://sameband.studio/anime/20-госпожа-кагуя-3.html
-            GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
+    EXAMPLE:
+        # https://sameband.studio/anime/20-госпожа-кагуя-3.html
+        GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
 
 
     {
@@ -223,31 +220,31 @@ class PageAnime:
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("h1.m-0")[0]
-        
+
         return v0.text_content()
 
     def _parse_alt_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".help")[0]
         v1 = v0.text_content()
-        
+
         return re.sub("(?:^\\s+)|(?:\\s+$)", "", v1)
 
     def _parse_description(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".limiter span")
         v1 = [e.text_content() for e in v0]
-        
+
         return " ".join(v1)
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".image > img[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def _parse_player_url(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".player > .player-content > iframe[src]")[0]
         v1 = v0.get("src")
-        
+
         return f"https://sameband.studio{v1}"
 
     def parse(self) -> T_PageAnime:
@@ -263,34 +260,34 @@ class PageAnime:
 class PagePlaylistURL:
     """GET https://sameband.studio/pl/a/<PLAYLIST NAME>.html
 
-        EXAMPLE:
-            GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
+    EXAMPLE:
+        GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
 
 
-        url contains in AnimeView.player_url key:
+    url contains in AnimeView.player_url key:
 
-          playlist items signature (need manually provide json unmarshall logic):
+      playlist items signature (need manually provide json unmarshall logic):
 
-        ```
-            [
-                {
-                    "title": "<img src='/v/anime/...01 RUS_snapshot.jpg' class=playlist_poster><div class=playlist_duration>23:37</div>... 01",
-                    ### delimiter - ','
-                    "file": "[480p]/v/anime/... - 01 RUS_480p/... - 01 RUS_r480p.m3u8,[720p]/v/anime/.../... - 01 RUS_720p/... - 01 RUS_r720p.m3u8,[1080p]/v/anime/.../... -
-                    01 RUS_1080p/... - 01 RUS_r1080p.m3u8",
-                    ### thumbnails images for video
-                    "thumbnails": "/v/anime/.../thumbnails/... - 01 RUS.txt"  # contains
-                },
-                {
-                    ...
-                },
+    ```
+        [
+            {
+                "title": "<img src='/v/anime/...01 RUS_snapshot.jpg' class=playlist_poster><div class=playlist_duration>23:37</div>... 01",
+                ### delimiter - ','
+                "file": "[480p]/v/anime/... - 01 RUS_480p/... - 01 RUS_r480p.m3u8,[720p]/v/anime/.../... - 01 RUS_720p/... - 01 RUS_r720p.m3u8,[1080p]/v/anime/.../... -
+                01 RUS_1080p/... - 01 RUS_r1080p.m3u8",
+                ### thumbnails images for video
+                "thumbnails": "/v/anime/.../thumbnails/... - 01 RUS.txt"  # contains
+            },
+            {
                 ...
-            ]
-        ```
-        player script signature:
-        ...
-        <script>var player = new Playerjs({id:"player",file:"/v/list/....txt"});
-        ...
+            },
+            ...
+        ]
+    ```
+    player script signature:
+    ...
+    <script>var player = new Playerjs({id:"player",file:"/v/list/....txt"});
+    ...
 
 
     {
@@ -306,7 +303,7 @@ class PagePlaylistURL:
     def _parse_playlist_url(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
         v1 = re.search("Playerjs[^>]+file:\\s*[\\\"']([^>]+)[\\\"']", v0)[1]
-        
+
         return f"https://sameband.studio{v1}"
 
     def parse(self) -> T_PagePlaylistURL:

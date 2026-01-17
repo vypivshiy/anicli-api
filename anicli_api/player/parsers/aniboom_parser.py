@@ -22,8 +22,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -57,6 +55,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 J_Dash = TypedDict(
     "J_Dash",
     {
@@ -108,42 +107,42 @@ T_PageAniboom = TypedDict(
 class PageAniboom:
     """Extract MPD and M3U8 urls
 
-        NOTE: use data_parameters instead hls and dash keys for get urls
+    NOTE: use data_parameters instead hls and dash keys for get urls
 
-        Required `referer="https://animego.org/` HEADER (.me, .club?)
+    Required `referer="https://animego.org/` HEADER (.me, .club?)
 
-        USAGE:
-            1. GET <PLAYER_LINK> (e.g. https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30)
-            2. PARSE. If pre-unescape response before parse - css selector may not find attribute
-            3. For video playing, url required next headers:
+    USAGE:
+        1. GET <PLAYER_LINK> (e.g. https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30)
+        2. PARSE. If pre-unescape response before parse - css selector may not find attribute
+        3. For video playing, url required next headers:
 
-            - Referer="https://aniboom.one/"
-            - Accept-Language="ru-RU"  # INCREASE DOWNLOAD SPEED with this static value
-            - Origin="https://aniboom.one"
-        ISSUES:
-            - 403 Forbidden if request sent not from CIS region
-            - KEYS SHOULD BE STARTED IN Title Case else hls/mpd links returns 403 error
-            - Sometimes, aniboom backend missing MPD key and returns M3U8 url. Check this value before usage:
+        - Referer="https://aniboom.one/"
+        - Accept-Language="ru-RU"  # INCREASE DOWNLOAD SPEED with this static value
+        - Origin="https://aniboom.one"
+    ISSUES:
+        - 403 Forbidden if request sent not from CIS region
+        - KEYS SHOULD BE STARTED IN Title Case else hls/mpd links returns 403 error
+        - Sometimes, aniboom backend missing MPD key and returns M3U8 url. Check this value before usage:
 
-            https://github.com/vypivshiy/ani-cli-ru/issues/29
+        https://github.com/vypivshiy/ani-cli-ru/issues/29
 
-            Expected json signature (LOOK at dash.src and hls.src keys):
+        Expected json signature (LOOK at dash.src and hls.src keys):
 
-            { ...
-            "dash":"{"src":"https:.../abcdef.mpd",        "type":"application\\/dash+xml"}",
-            "hls":"{"src":"https:...\\/master_device.m3u8",
-            "type":"application\\/x-mpegURL"}"
+        { ...
+        "dash":"{"src":"https:.../abcdef.mpd",        "type":"application\\/dash+xml"}",
+        "hls":"{"src":"https:...\\/master_device.m3u8",
+        "type":"application\\/x-mpegURL"}"
 
-            ... }
+        ... }
 
-            MAYBE returns this:
+        MAYBE returns this:
 
-             { ...
-            "dash":"{"src":"https:...master_device.m3u8",        "type":"application\\/dash+xml"}",
-            "hls":"{"src":"https:...master_device.m3u8",
-            "type":"application\\/x-mpegURL"}"
+         { ...
+        "dash":"{"src":"https:...master_device.m3u8",        "type":"application\\/dash+xml"}",
+        "hls":"{"src":"https:...master_device.m3u8",
+        "type":"application\\/x-mpegURL"}"
 
-            ... }
+        ... }
 
 
     {
@@ -193,7 +192,7 @@ class PageAniboom:
         v5 = v4.replace("&quot;", '"')
         v6 = v5.replace('}"', "}")
         v7 = v6.replace('"{', "{")
-        
+
         return json.loads(v7)
 
     def _parse_hls(self, v: html.HtmlElement) -> str:
@@ -201,7 +200,7 @@ class PageAniboom:
         v1 = v0.get("data-parameters")
         v2 = v1.replace("\\", "")
         v3 = v2.replace("&quot;", '"')
-        
+
         return re.search('"hls":"{"src":"(https?.*?\\.m3u8)"', v3)[1]
 
     def _parse_dash(self, v: html.HtmlElement) -> str:
@@ -209,7 +208,7 @@ class PageAniboom:
         v1 = v0.get("data-parameters")
         v2 = v1.replace("\\", "")
         v3 = v2.replace("&quot;", '"')
-        
+
         return re.search('"dash":"{"src":"(https?.*?\\.(?:mpd|m3u8))"', v3)[1]
 
     def parse(self) -> T_PageAniboom:

@@ -40,7 +40,7 @@ def video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video"]:
                 type="mp4",
                 quality=quality,  # type: ignore (int)
                 url=video_url,  # type: ignore (str)
-                headers={"User-Agent": user_agent}
+                headers={"User-Agent": user_agent},
             )
         )
     # hls, dash - set max quality
@@ -66,7 +66,7 @@ async def a_video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video
                 type="mp4",
                 quality=quality,  # type: ignore (int)
                 url=video_url,  # type: ignore (str)
-                headers={"User-Agent": user_agent}
+                headers={"User-Agent": user_agent},
             )
         )
     # hls, dash - set max quality

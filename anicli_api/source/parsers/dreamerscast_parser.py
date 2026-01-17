@@ -38,8 +38,6 @@ else:
         raise ImportError(msg)
 from lxml import html
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-
 
 _RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
 _RE_UNICODE_ENTITY = re.compile(r"\\\\u([0-9a-fA-F]{4})")
@@ -73,6 +71,7 @@ def ssc_rm_prefix_and_suffix(v: str, p: str, s: str) -> str:
     return ssc_rm_suffix(ssc_rm_prefix(v, p), s)
 
 
+FALLBACK_HTML_STR = "<html><body></body></html>"
 T_PageAnime = TypedDict(
     "T_PageAnime",
     {
@@ -87,17 +86,17 @@ T_PageAnime = TypedDict(
 
 class PageAnime:
     """
-        Usage example:
+    Usage example:
 
-        GET https://dreamerscast.com/home/release/323-tensei-kizoku-kantei-skill-de-nariagaru-2
+    GET https://dreamerscast.com/home/release/323-tensei-kizoku-kantei-skill-de-nariagaru-2
 
-        Encoding (24.12.24 actual step-by-step)
+    Encoding (24.12.24 actual step-by-step)
 
-        decoding and extract playlist:
+    decoding and extract playlist:
 
-        - GET <player_js_url>
-        - unpack, extract encoded symbols
-        - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original player sources)
+    - GET <player_js_url>
+    - unpack, extract encoded symbols
+    - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original player sources)
 
 
     {
@@ -116,32 +115,32 @@ class PageAnime:
 
     def _parse_title(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect("h3")[0]
-        
+
         return v0.text_content()
 
     def _parse_description(self, v: html.HtmlElement) -> Optional[str]:
         v0 = v
         with suppress(Exception):
             v1 = v0.cssselect(".postDesc")[0]
-            
+
             return v1.text_content()
         return None
 
     def _parse_thumbnail(self, v: html.HtmlElement) -> str:
         v0 = v.cssselect(".details_poster img")[0]
         v1 = v0.get("src")
-        
+
         return f"https:{v1}"
 
     def _parse_player_js_encoded(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
-        
+
         return re.search('new Playerjs\\("(.*?)"\\)', v0)[1]
 
     def _parse_player_js_url(self, v: html.HtmlElement) -> str:
         v0 = html.tostring(v, encoding="unicode")
         v1 = re.search('<script[^>]+src="(/js/playerjs.*?)"', v0)[1]
-        
+
         return f"https://dreamerscast.com{v1}"
 
     def parse(self) -> T_PageAnime:
