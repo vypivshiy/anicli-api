@@ -25,9 +25,10 @@ class KodikAPIPayload(ItemSchema):
     pd_sign = R().re(r"var\s*pd_sign\s+=\s+['\"](.*?)['\"];")
     ref = R().re(r"var\s*ref\s+=\s+['\"](.*?)['\"];")
     ref_sign = R().re(r"var\s*ref_sign\s+=\s+['\"](.*?)['\"];")
-    type = R().re(r"videoInfo\.type\s*=\s*['\"](.*?)['\"];")
-    hash = R().re(r"videoInfo\.hash\s*=\s*['\"](.*?)['\"];")
-    id = R().re(r"videoInfo\.id\s*=\s*['\"](.*?)['\"];")
+    # kodik update variables ~01.02.26
+    type = R().re(r"vInfo\.type = ['\"](.*?)['\"];")
+    hash = R().re(r"vInfo\.hash = ['\"](.*?)['\"];")
+    id = R().re(r"vInfo\.id = ['\"](.*?)['\"];")
 
 
 class PageMainKodikMin(ItemSchema):
