@@ -199,8 +199,8 @@ class BaseAnime(HttpMixin):
 @define(kw_only=True)
 class BaseEpisode(HttpMixin):
     title: str
-    """episode name. If api or source not provided, default naming like: 
-    
+    """episode name. If api or source not provided, default naming like:
+
     - Episode {num}
     - Serie {num}
     - Эпизод {num}
@@ -235,7 +235,7 @@ class BaseEpisode(HttpMixin):
 class BaseSource(HttpMixin):
     title: str
     """Source name. If source/api provide multiple dubbers - named by dubber name + source (player).
-    
+
     If single dubber provide - named by source netloc
     """
     url: str
