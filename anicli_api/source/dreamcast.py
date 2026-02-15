@@ -204,6 +204,32 @@ class Search(_ApiInstancesMixin, BaseSearch):
     _async_api: DreamerscastAsync = field(alias="async_api")
     data: T_Release
 
+    def get_anime(self) -> "Anime":
+        resp = self.http.get(self.url)
+        data = PageAnime(resp.text).parse()
+        return Anime(
+            title=data["title"],
+            thumbnail=data["thumbnail"],
+            description=data["description"],  # type: ignore
+            player_js_encoded=data["player_js_encoded"],
+            player_js_url=data["player_js_url"],
+            **self._kwargs_http,
+            **self._kwargs_apis,
+        )
+
+    async def a_get_anime(self) -> "Anime":
+        resp = await self.http_async.get(self.url)
+        data = PageAnime(resp.text).parse()
+        return Anime(
+            title=data["title"],
+            thumbnail=data["thumbnail"],
+            description=data["description"],  # type: ignore
+            player_js_encoded=data["player_js_encoded"],
+            player_js_url=data["player_js_url"],
+            **self._kwargs_http,
+            **self._kwargs_apis,
+        )
+
 
 @define(kw_only=True)
 class Anime(_ApiInstancesMixin, BaseAnime):
