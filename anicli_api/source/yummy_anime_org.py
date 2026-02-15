@@ -188,10 +188,10 @@ class Source(BaseSource):
 
     # todo: move to player extractor (how?)
     def get_videos(self, **httpx_kwargs) -> list[Video]:
-        return video_playlist_from_vk_id(self.vk_id)
+        return video_playlist_from_vk_id(self.vk_id, user_agent=self._http.headers['User-Agent'])
 
     async def a_get_videos(self, **httpx_kwargs) -> list[Video]:
-        return await a_video_playlist_from_vk_id(self.vk_id)
+        return await a_video_playlist_from_vk_id(self.vk_id, user_agent=self._http_async.headers['User-Agent'])
 
 
 if __name__ == "__main__":
