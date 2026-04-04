@@ -9,7 +9,7 @@ from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, 
 # data about anime storage in iframe kodik player page
 from anicli_api.player.base import Video
 from anicli_api.source.parsers.yummy_anime_org_parser import PageOngoing, PageSearch, PageAnime, PageUtils
-from anicli_api.player.parsers.cdnvideohub_parser import PageParseCdnVideoData, T_PageParseCdnVideoData
+from anicli_api.player.parsers.cdnvideohub_parser import PageParseCdnVideoData, PageParseCdnVideoDataType
 from anicli_api.player.apis.cdnvideohub import CdnVideoHubSync, CdnVideoHubAsync, T_PlaylistItem
 from anicli_api.player.cdnvideohub import video_playlist_from_vk_id, a_video_playlist_from_vk_id
 
@@ -37,7 +37,7 @@ class Extractor(BaseExtractor):
         return [
             Ongoing(
                 title=i["title"],
-                url=full_url + i["url_path"],
+                url=i["url"],
                 thumbnail=full_url + i["thumbnail_path"],
                 episode=i["episode"],
                 **self._kwargs_http,
@@ -119,7 +119,7 @@ class Ongoing(BaseOngoing):
 
 @define(kw_only=True)
 class Anime(BaseAnime):
-    cdn_data: T_PageParseCdnVideoData
+    cdn_data: PageParseCdnVideoDataType
 
     def get_episodes(self) -> list["Episode"]:
         result = CdnVideoHubSync().get_playlist(
@@ -188,10 +188,10 @@ class Source(BaseSource):
 
     # todo: move to player extractor (how?)
     def get_videos(self, **httpx_kwargs) -> list[Video]:
-        return video_playlist_from_vk_id(self.vk_id, user_agent=self._http.headers['User-Agent'])
+        return video_playlist_from_vk_id(self.vk_id, user_agent=self._http.headers["User-Agent"])
 
     async def a_get_videos(self, **httpx_kwargs) -> list[Video]:
-        return await a_video_playlist_from_vk_id(self.vk_id, user_agent=self._http_async.headers['User-Agent'])
+        return await a_video_playlist_from_vk_id(self.vk_id, user_agent=self._http_async.headers["User-Agent"])
 
 
 if __name__ == "__main__":

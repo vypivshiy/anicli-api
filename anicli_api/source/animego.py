@@ -16,8 +16,8 @@ from anicli_api.source.parsers.animego_parser import (
     PageSource,
     PageEpisodeVideo,
     PageUtils,
-    J_Content,
-    T_EpisodeVideos,
+    ContentJson,
+    EpisodeVideosType,
 )
 
 logger = logging.getLogger("anicli-api")
@@ -37,7 +37,12 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://animego.me"
 
     def _extract_search(self, resp: str) -> list["Search"]:
-        return [Search(**d, **self._kwargs_http) for d in PageSearch(resp).parse()]
+        res = []
+        netloc = PageUtils(resp).parse()["url_canonical"]
+        for d in PageSearch(resp).parse():
+            url = netloc + d["url_path"]
+            res.append(Search(title=d["title"], thumbnail=d["thumbnail"], url=url, **self._kwargs_http))
+        return res
 
     @staticmethod
     def _remove_ongoings_dups(ongoings: list["Ongoing"]) -> list["Ongoing"]:
@@ -183,11 +188,11 @@ class Ongoing(BaseOngoing):
 @define(kw_only=True)
 class Anime(BaseAnime):
     id: str
-    raw_json: J_Content
+    raw_json: ContentJson
 
     def _extract(self, resp: str) -> list["Episode"]:
         # magic value:
-        if self.raw_json["type"].lower() == "movie":
+        if self.raw_json["@type"].lower() == "movie":
             film_data = PageEpisodeVideo(resp).parse()
             return [
                 Episode(
@@ -243,7 +248,7 @@ class Episode(BaseEpisode):
     dubbers: dict[str, str]
     id: str  # episode id (for extract videos required)
     _is_film: bool = field(alias="is_film", default=False)
-    _videos: list[T_EpisodeVideos] = field(alias="videos")
+    _videos: list[EpisodeVideosType] = field(alias="videos")
 
     def _extract(self, resp: str):
         data = PageSource(resp).parse()
