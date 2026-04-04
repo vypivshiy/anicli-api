@@ -1,0 +1,78 @@
+struct PageUtils {
+    @doc "helper stuct for extract canonical URL"
+    // hack: extact from RSS feed url
+    url {
+        css "link[rel=\"canonical\"], link[rel=\"alternate\"]"
+        attr href
+        rtrim "/"
+        rm-suffix "/rss.xml"
+    }
+}
+
+struct PageOngoing type=list {
+    @doc """
+    Get all available ongoings from the main page
+
+    can be change domains, use PageUtils struct or
+    extract from `link[rel="canonical"]` element
+    
+    USAGE:
+        GET https://yummyanime.in/
+    """
+
+    @split-doc { css-all "a.grid-item" }
+
+    thumbnail_path { css "img[data-src]"; attr data-src }
+    url { attr href }
+    // maybe not exist episode number in element, set 1 as default
+    episode {
+        css ".poster__label"; text
+        re #"(\d+)\s"#; to-int
+        fallback 1
+    }
+    title { css "h3"; text; trim }
+}
+
+struct PageSearch type=list {
+    @doc """
+    Get search results
+
+    USAGE:
+
+        POST https://yummyanime.in
+        do=search&subaction=search&story=<QUERY>
+
+    EXAMPLE:
+
+        POST https://yummyanime.in/index.php
+        do=search&subaction=search=from_page=0story=ван-пис
+    """
+
+    @split-doc { css-all "a.has-overlay" }
+
+    title { css ".poster__title"; text }
+    thumbnail_path { css ".xfieldimage[data-src]"; attr data-src }
+    url { attr href }
+}
+
+struct PageAnime {
+    @doc """
+    get anime page
+
+    USAGE:
+
+        GET https://yummyanime.in/<...>.html
+
+    EXAMPLE:
+
+        GET https://yummyanime.in/4790-vedma-i-chudovische.html
+    """
+
+    title { css ".anime__title h1"; text }
+    alt-title { 
+        css ".anime__title .pmovie__original-title"; text
+        fallback #null
+    }
+    description { css-all ".page__text"; text; join ""; fallback "" }
+    thumbnail { css ".pmovie__poster .xfieldimage[data-src]"; attr data-src }
+}

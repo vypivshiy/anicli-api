@@ -1,0 +1,268 @@
+@doc """
+universal parser for kodik.info/serial entrypoint
+"""
+
+json UrlParams {
+    d str
+    d_sign str
+    pd str
+    pd_sign str
+    ref str
+    ref_sign str
+    advert_debug bool
+    min_age int
+    first_url bool
+}
+
+// URL PARAMS
+define P-D=#"var\s*domain\s+=\s+['\"](.*?)['\"];"#
+define P-D_SIGN=#"var\s*d_sign\s+=\s+['\"](.*?)['\"];"#
+define P-PD=#"var\s*pd\s+=\s+['\"](.*?)['\"];"#
+define P-PD_SIGN=#"var\s*pd_sign\s+=\s+['\"](.*?)['\"];"#
+define P-REF=#"var\s*ref\s+=\s+['\"](.*?)['\"];"#
+define P-REF_SIGN=#"var\s*ref_sign\s+=\s+['\"](.*?)['\"];"#
+define P-TYPE=#"vInfo\.type = ['\"](.*?)['\"];"#
+define P-HASH=#"vInfo\.hash = ['\"](.*?)['\"];"#
+define P-ID=#"vInfo\.id = ['\"](.*?)['\"];"#
+
+struct KodikAPIPayload {
+    @doc "payload for Kodik API request"
+
+    @init {
+        raw-html { raw }
+    }
+
+    d { @raw-html; re P-D }
+    d_sign { @raw-html; re P-D_SIGN }
+    pd { @raw-html; re P-PD }
+    pd_sign { @raw-html; re P-PD_SIGN }
+    ref { @raw-html; re P-REF }
+    ref_sign { @raw-html; re P-REF_SIGN }
+    type { @raw-html; re P-TYPE }
+    hash { @raw-html; re P-HASH }
+    id { @raw-html; re P-ID }
+}
+
+
+define RE-URL_PARAMS=#"var\s*urlParams\s*=\s*['\"](\{.*\})['\"]"#
+
+struct PageMainKodikMin {
+    @doc """
+    Universal parser for extract minimal data for next API reuqest
+
+    For extract full detailed information (about attached playlists) use:
+
+    - MainKodikSerialPage for serials, OVA
+    - MainKodikVideoPage for films
+
+    USAGE:
+
+        1. GET <kodik-page-player>
+        2. add base_url to <player_js_path>
+        3. extract API (<API_PATH>) path from javascript file (use MainKodikAPIPath)
+        3.1 decode <API_PATH> path (base64 cipher)
+        4. <api_payload> required extra constant keys
+            - bad_user = (true or false)
+            - cdn_is_working = true
+            - info "{}"
+        4.1 required headers:
+            - origin="https://<NETLOC>" // player page
+            - referer=<PLAYER_LINK> // FIRST URL player entrypoint
+            - accept= "application/json, text/javascript, */*; q=0.01"
+        4.2 POST <kodik-base-url> + /<API_PATH>
+           data=<api_payload> (<JSON>) + headers
+        5. extract urls from ['links'] key
+        6. video urls encoded in ROT_13 + BASE64 ciphers
+
+    EXAMPLE:
+
+        - GET https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
+        - GET https://aniqit.com/video/72755/dc966c03a7cb719dac577d8004a9b091/720p
+        - GET https://kodik.info/seria/1133512/04d5f7824ba3563bd78e44a22451bb45/720p
+
+     ISSUES:
+
+        - kodik maybe have another netloc (e.g.: anivod)
+        - 403 Forbidden if request sent not from CIS region
+        - 404 DELETED: eg: https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p
+        - 500 Internal server error: eg: https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p ('Cyberpunk: Edgerunners' ep5 Anilibria dub)
+
+    """
+
+    url_params { raw; re RE-URL_PARAMS; jsonify UrlParams }
+    api_payload { nested KodikAPIPayload }
+    player_js_path {
+        css #"head > script[type="text/javascript"][src*="assets/js"]"#
+        attr src
+    }
+}
+
+struct SeasonBox type=list {
+    /*
+    tag signature:
+    <option value="1" data-serial-id="56718" data-serial-hash="710546f4fc603bdd8c41a7e790a2828c"
+    data-title="1 СЃРµР·РѕРЅ" selected="selected"
+    data-other-translation="false" data-translation-title="РљРћРњРќРђРўРђ Р”РР”Р">1 СЃРµР·РѕРЅ</option>
+    */
+    @split-doc {
+        css-all ".serial-panel > .serial-seasons-box option"
+    }
+
+    value { attr value }
+    data-serial-id { attr data-serial-id }
+    data-serial-hash { attr data-serial-hash }
+    data-title { attr data-title }
+    data-translation-title { attr data-translation-title }
+}
+
+struct SeriesBox type=list {
+    /*
+    tag signature:
+    <option value="1" data-id="1258425" data-hash="3b688251930a4ebb3821be95d9a30362"
+    data-title="1 СЃРµСЂРёСЏ" data-other-translation="false">1 СЃРµСЂРёСЏ</option>
+    */
+    @split-doc { css-all ".serial-panel > .serial-series-box option" }
+
+    value { attr value }
+    data-hash { attr data-hash }
+    data-title { attr data-title }
+}
+
+struct SeriesOptionItem type=list {
+    /*
+    tag signature:
+
+    <option value="1" data-id="1258425"
+    data-hash="3b688251930a4ebb3821be95d9a30362"
+    data-title="1 СЃРµСЂРёСЏ" data-other-translation="false">1 СЃРµСЂРёСЏ
+    </option>
+    */
+
+    @split-doc { css-all option }
+
+    value { attr value }
+    data-id { attr data-id }
+    data-hash { attr data-hash }
+    data-title { attr data-title }
+}
+
+struct SeriesOptions type=dict {
+    /*
+    tag signature
+
+    <div class="series-options">
+        <div class="season-1">
+            <option value="1" data-id="1258425"
+            data-hash="3b688251930a4ebb3821be95d9a30362"
+            data-title="1 СЃРµСЂРёСЏ" data-other-translation="false">1 СЃРµСЂРёСЏ
+            </option>
+        </div>
+    </div>
+    */
+    @split-doc { css-all ".serial-panel > .series-options div" }
+    @key { attr class }
+    @value { nested SeriesOptionItem }
+}
+
+struct TranslationsBox type=list {
+    /*
+    tag signature:
+    <option value="2822" data-id="2822" data-translation-type="voice" data-media-id="56791"
+    data-media-hash="c1adc4138bed1a558fee47f70403788a" data-media-type="serial"
+    data-title="AniBaza" data-episode-count="12">AniBaza (12 СЌРї.)</option>
+    */
+    @split-doc { css-all ".serial-panel > .serial-translations-box option" }
+
+    value { attr value }
+    data-id { attr data-id }
+    data-translation-type { attr data-translation-type }
+    data-media-id { attr data-media-id }
+    data-media-hash { attr data-media-hash }
+    data-media-type { attr data-media-type }
+    data-title { attr data-title }
+    // one-peace contains this value in "1~1122" format
+    // fix it for avoid convert type issues
+    data-episode-count { attr data-episode-count; re #"(\d+)$"# }
+}
+
+struct PageMainKodikSerial {
+    @doc """
+    First extract data entrypoint for kodik.../serial/ entrypoint path
+
+
+    EXAMPLE:
+        GET - https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
+    """
+    url_params { raw; re RE-URL_PARAMS; jsonify UrlParams }
+    api_payload { nested KodikAPIPayload }
+    player_js_path {
+        css #"head > script[type="text/javascript"][src*="assets/js"]"#
+        attr src
+    }
+    thumbnails {
+        raw
+        re #"var\s*thumbnails\s*=\s*\[(.*?)\];"#
+        repl "\"" ""
+        split ","
+        trim
+        fmt "https:{{}}"
+    }
+    season_box { nested SeasonBox }
+    series_box { nested SeriesBox }
+    series_options { nested SeriesOptions }
+    translations_box { nested TranslationsBox }
+}
+
+struct MovieTranslationBox type=list {
+    @doc "PageMainKodikVideo /video/ (film) segment"
+    /* tag signature:
+
+    <option
+    value="1060"
+    data-id="1060"
+    data-translation-type="voice"
+    data-media-id="96215"
+    data-media-hash="e4b73601a7b886679e1625172689bcf9"
+    data-media-type="video"
+    data-title="MiraiDUB"
+    >MiraiDUB</option>
+    */
+    @split-doc { css-all ".movie-panel > .movie-translations-box option" }
+
+    value { attr value }
+    data-id { attr data-id }
+    data-translation-type { attr data-translation-type }
+    data-media-id { attr data-media-id }
+    data-media-hash { attr data-media-hash }
+    data-media-type { attr data-media-type }
+    data-title { attr data-title }
+}
+
+struct PageMainKodikVideo {
+    @doc """
+    First extract data entrypoint for kodik.../video/ entrypoint path (FILMS, less often OVA)
+
+    required for extract videos via kodik API
+
+    EXAMPLE:
+
+        - GET https://kodik.info/video/9935/313bc89421b094f6f374cc7420e00ad1/720p?translations=false&min_age=16 (Кланнад фильм)
+        - GET https://kodik.info/video/72755/dc966c03a7cb719dac577d8004a9b091/720p?translations=false&min_age=16 (Вайолет Эвергарден. Фильм)
+    """
+    url_params { raw; re RE-URL_PARAMS; jsonify UrlParams }
+    api_payload { nested KodikAPIPayload }
+    player_js_path {
+        css #"head > script[type="text/javascript"][src*="assets/js"]"#
+        attr src
+    }
+    // WARNING: correct translate code broken, use direct extract path via regexp
+    /*
+    js api path signature examples:
+    ... $.ajax({type:"POST",url:atob("L2Z0b3I="),cache:! ...
+    ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !...
+    */
+    api-path {
+        raw;
+        re #"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)"#
+    }
+}

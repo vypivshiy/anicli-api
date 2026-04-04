@@ -1,0 +1,79 @@
+
+
+/* tag signature:
+<div class="player-cvh">
+<video-player
+    id="pcvh"
+    data-title-id="60254"  // id=
+    data-publisher-id="746"  // pub=746
+    ident="cvh"
+    data-aggregator="mali"  // aggr=
+    is-show-voice-only="true"
+    is-show-banner="true"
+    episode="1"
+    priority-voice="Dream Cast"
+></video-player>
+*/
+struct PageAnimegoIframe {
+// backport for actual realisation
+// need delete it in next revisions and use `PageParseCdnVideoData`
+    @doc """
+A parser for extracting parameters for the cdnvideohub API.
+
+used in animego
+
+USAGE:
+
+    - data_title_id for 'id=' param
+    - data_publisher_id for 'pub=' param
+    - data_aggregator for 'aggr=' param
+
+GET https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub={data_publisher_id}&aggr={data_aggregator}&id={id}
+
+EXAMPLE:
+
+    GET https://animego.me/cdn-iframe/60254/Dream%20Cast/1/1
+    Referer: https://animego.me
+"""
+
+    @init {
+        tag { css ".player-cvh > video-player" }
+    }
+
+    id { @tag; attr id }
+    data-title-id { @tag; attr data-title-id }
+    data-publisher-id { @tag; attr data-publisher-id }
+    ident { @tag; attr ident }
+    data-aggregator { @tag; attr data-aggregator }
+    is-show-voice-only { 
+        @tag; attr is-show-voice-only
+        assert { eq "true" }
+        to-bool
+        fallback #false
+    }
+    is-show-banner {
+        @tag; attr is_show_banner
+        assert { eq "true" }
+        to-bool
+        fallback #false
+    }
+    episode { @tag; attr episode; to-int }
+    priority-voice { @tag; attr priority-voice }
+}
+
+struct PageParseCdnVideoData {
+    @doc """
+    universal extractor cdnvideohub API params
+
+    page should be contains <video-player> tag
+    """
+    @init {
+        tag { css "video-player" }
+    }
+
+    id { @tag; attr id }
+    data-title-id { @tag; attr data-title-id }
+    data-publisher-id { @tag; attr data-publisher-id }
+    ident { @tag; attr ident }
+    data-aggregator { @tag; attr data-aggregator }
+}

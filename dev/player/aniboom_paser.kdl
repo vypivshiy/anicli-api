@@ -1,40 +1,44 @@
-from ssc_codegen import D, ItemSchema, Json
+define EXPR-DATA {
+    css "#video[data-parameters]"
+    attr "data-parameters"
+}
 
+json Dash {
+    src str
+    type str
+}
 
-class Dash(Json):
-    src: str
-    type: str
+json Hls {
+    src str
+    type str
+}
 
+json DataParameters {
+    id str
+    error str
+    domain str
+    cdn str
+    counter str
+    duration str
+    poster str
+    thumbnails str
+    dash Dash
+    hls Hls
+    quality bool
+    qualityVideo int
+    vast bool
+    country str
+    platform str
+    rating str
+    nshowbl bool
+    limitRate bool
+    aBlocklimitRate bool
+}
 
-class Hls(Json):
-    src: str
-    type: str
-
-
-class DataParameters(Json):
-    id: str
-    error: str
-    domain: str
-    cdn: str
-    counter: str
-    duration: str
-    poster: str
-    thumbnails: str
-    dash: Dash
-    hls: Hls
-    quality: bool
-    qualityVideo: int
-    vast: bool
-    country: str
-    platform: str
-    rating: str
-    nshowbl: bool
-    limitRate: bool
-    aBlocklimitRate: bool
-
-
-class PageAniboom(ItemSchema):
-    """Extract MPD and M3U8 urls
+struct PageAniboom {
+    @doc """
+    
+    Extract MPD and M3U8 urls
 
     NOTE: use data_parameters instead hls and dash keys for get urls
 
@@ -76,36 +80,41 @@ class PageAniboom(ItemSchema):
         ... }
     """
 
-    data_parameters = (
-        D()
-        .css("#video[data-parameters]")
-        .attr("data-parameters")
-        # unescape json
-        .repl("\\", "")
-        .repl("&quot;}", "}")
-        .repl("&quot;{", "{")
-        .repl("&quot;", '"')
-        # if backend parser try automatically unquote raw json
-        # fix it
-        .repl('}"', "}")
-        .repl('"{', "{")
-    ).jsonify(DataParameters)
+    @init {
+        expr-data { EXPR-DATA }
+    }
 
-    # backport for old API impl realizations
-    hls = (
-        D()
-        .css("#video")
-        .attr("data-parameters")
-        .repl("\\", "")
-        .repl("&quot;", '"')
-        .re(r'"hls":"{"src":"(https?.*?\.m3u8)"')
-    )
-
-    dash = (
-        D()
-        .css("#video[data-parameters]")
-        .attr("data-parameters")
-        .repl("\\", "")
-        .repl("&quot;", '"')
-        .re(r'"dash":"{"src":"(https?.*?\.(?:mpd|m3u8))"')
-    )
+    data_parameters {
+        @expr-data
+        // unescape json
+        repl {
+            "\\" ""
+            "&quot;}" "}"
+            "&quot;{" "{"
+            "&quot;" "\""
+        }
+        repl {
+            "}\"" "}"
+            "\"{" "}"
+        }
+        jsonify DataParameters
+    }
+    // backport for old API impl realizations
+    hls {
+        @expr-data
+        repl {
+            "\\" ""
+            "&quot;" "\""
+        }
+        re #""hls":"{"src":"(https?.*?\.m3u8)""#
+    }
+    dash {
+        @expr-data
+        repl {
+            "\\" ""
+            "&quot;" "\""
+        }
+        // aniboom player bug: this field maybe returns hls url. 
+        re #""dash":"{"src":"(https?.*?\.(?:mpd|m3u8))""#
+    }
+}

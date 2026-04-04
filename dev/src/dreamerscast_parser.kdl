@@ -1,4 +1,6 @@
-"""Thanks https://github.com/barsikus007 for researches and decoder impl
+@doc """
+
+Thanks https://github.com/barsikus007 for researches and decoder impl
 
 NOTE: for extract Search and Ongoing items use rest-api requests
 
@@ -15,14 +17,13 @@ Search:
 For extract playlist required reverse obfuscated playlist data and obfuscated javascript player
 """
 
-from ssc_codegen import D, R, ItemSchema
 
+define FMT-URL="https://dreamerscast.com{{}}"
+define RE-PLAYER-JS-ENCODED=#"new Playerjs\("(.*?)"\)"#
+define RE-PLAYER-JS-URL=#"<script[^>]+src="(/js/playerjs.*?)""#
 
-FMT_URL = "https://dreamerscast.com" + "{{}}"
-
-
-class PageAnime(ItemSchema):
-    """
+struct PageAnime {
+    @doc """
     Usage example:
 
     GET https://dreamerscast.com/home/release/323-tensei-kizoku-kantei-skill-de-nariagaru-2
@@ -36,11 +37,9 @@ class PageAnime(ItemSchema):
     - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original player sources)
     """
 
-    title = D().css("h3::text")
-    description = D(None).css(".postDesc::text")
-    thumbnail = D().css(".details_poster img::attr(src)").fmt("https:{{}}")
-
-    # opfuscated playlist
-    player_js_encoded = R().re(r'new Playerjs\("(.*?)"\)')
-    # obfuscated javscript file (required for decode `player_js_encoded`)
-    player_js_url = R().re(r'<script[^>]+src="(/js/playerjs.*?)"').fmt(FMT_URL)
+    title { css "h3"; text }
+    description { css ".postDesc"; text; fallback #null }
+    thumbnail { css ".details_poster img"; attr src; fmt "https:{{}}" }
+    player_js_encoded { raw; re RE-PLAYER-JS-ENCODED}
+    player_js_url { raw; re RE-PLAYER-JS-URL; fmt FMT-URL}
+}

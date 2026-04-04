@@ -14,7 +14,7 @@ ref: https://gunshowcomic.com/513
 
 ## Базовые требования к модулям для anicli-api 
 
-* поддержка python 3.8 (на момент написания не полностью похоронили основные модули, возможно в будущем будет поддержка прекращена)
+* поддержка от python 3.9
 * упрощённое документирование реализаций парсеров:
   * REST API — через swagger
   * SSR — через selector schema codegen
@@ -46,7 +46,7 @@ HTTP-клиент генерируется на базе [swagger api](https://s
    * Не забудьте удалить неиспользуемые схемы из `components`, чтобы ещё больше сжать схему
    * для более удобной минификации API конфигурации, можете конвертировать в `.yaml` через [openapi-converter](https://openapi-converter.com/json-to-yaml)
    * чем меньше получится схема - тем будет выше точность генерации (в примере с aniliberty удалось сжать в 5 раз: с 300кб до 60кб)!
-3. Рекомендуется использовать модели с большим контекстом: `GLM-4.6`, `DeepSeek`, `Qwen3-Coder`, `Qwen3-Max`, `Sonnet-4.5` и др
+3. Рекомендуется использовать модели с большим контекстом: `GLM-4.6`, `DeepSeek`, `Qwen3-Coder`, `Qwen3-Max`, `Sonnet-4.6` и др
 4. Пример промпта см. в [`llm_openapi.md`](llm_openapi.md) — генерируем код, проверяем, фиксим мелкие баги, недочёты.
 
 ### Собираем swagger конфиг самостоятельно
@@ -163,15 +163,22 @@ ScreenshotSizes:
 
 ## Генерация парсеров для SSR сервисов
 
-Если REST API нет, работаем с HTML-документом через DSL-транспилер [selector_schema_codegen](https://github.com/vypivshiy/selector_schema_codegen/).
+Если REST API нет, работаем с HTML-документом через DSL-транспилер [selector_schema_codegen](https://github.com/vypivshiy/selector_schema_codegen/tree/features-kdl).
 
 Чеклист проверки SSR:
 
-* Откройте devtools → Network:
+* Откройте devtools, Network:
    * Нет REST или GraphQL вызовов, относящихся к сервису;
    * сервер отдаёт полный HTML.
 * Сохраните страницу локально (`Save page as...`) и откройте её в браузере.
    * Если структура совпадает — это SSR.
+
+
+установка:
+
+```bash
+uv tool install git+https://github.com/vypivshiy/selector_schema_codegen@features-kdl
+```
 
 ### Code of Conventions
 
@@ -180,273 +187,113 @@ ScreenshotSizes:
 
 Пример документации (DSL перенесёт её в код):
 
-```python
-# src/animego.py
-class PageAnime(ItemSchema):
-    """Anime page information. anime path contains in SearchView.url or Ongoing.url
+```kdl
+json AggregateRating {
+    type str "@type"
+    ratingCount int
+    bestRating int
+    ratingValue str
+}
+
+json Director {
+    type str "@type"
+    url str
+    name str
+}
+
+json Actor {
+    type str "@type"
+    url str
+    name str
+}
+
+json Creator {
+    type str "@type"
+    name str
+}
+
+json Content {
+    context str "@context"
+    type str "@type"
+    url str
+    name str
+    alternateName str
+    image str
+    description str
+    genre (array)str
+    contentRating str
+    datePublished str
+    keywords str
+    creator (array)Creator
+    aggregateRating AggregateRating
+    numberOfEpisodes int
+}
+
+struct PageAnime {
+    @doc """
+    Anime page information. anime path contains in SearchView.url or Ongoing.url
+
+    - id needed for next API requests
+    - raw_json used for extract extra metadata (unescape required)
 
     USAGE:
+
         GET https://animego.one/anime/<ANIME_PATH>
 
     EXAMPLE:
+
         GET https://animego.one/anime/eksperimenty-leyn-1114
 
+
     ISSUES:
-        If blocked, you can try to skip metadata extraction and send API request:
-        id = 1114 for https://animego.one/anime/eksperimenty-leyn-1114
+        If blocked, you can try skip extract anime metadata and send api request:
+
+        id contains in url:
+            - id=1114 for https://animego.one/anime/eksperimenty-leyn-1114
+            - id=2589 for https://animego.org/anime/chelovek-muskul-2589
+
+        GET 'https://animego.one/anime/{id}/player?_allow=true'
     """
 
-class PageEpisode(ItemSchema):
-    """Representation episodes
-
-    NOTE:
-        film pages do not contain <div id="video-carousel"> element
-    """
-```
-
-### Брифинг по синтаксису
-
->[!tip]
-> Это краткий брифинг, подробнее [см оригинальный репозиторий](https://github.com/vypivshiy/selector_schema_codegen) 
-
-* Основные выражения
-
-Частично напоминает jquery, используется для декларативного описания КАК извлекать данные в поле из документа
-
-```python
-from ssc_codegen import D
-
-# извлечение текста
-D().css("title::text")
-
-# список текстов
-D().css_all("p::text")
-
-# атрибуты
-D().css("a::attr(href)")
-D().css_all("a::attr(href)")
-
-# работа с текстом
-D().css("a::attr(href)").ltrim('/')
-D().css_all("a::attr(href)").ltrim('/')
-```
-
-* Значения по умолчанию
-
-  * Используется, если некоторые значения могут отсутствовать, но не критично влияют на работу проекта.
-  * Если значение поля зависит от работы проекта - не добавляйте значение по умолчанию - пусть падает код с ошибкой.
-
-```python
-# вернуть пустую строку с описанием тайтла если он отсуствует
-# сокращенные варианты, можно описать как D().default('')...
-description = D('').css(".description::text").re_trim()
-
-# или None
-description = D(None).css(".description::text").re_trim()
-
-# для списков, ставить `[]` по умолчанию
-tags = D([]).css_all(".tags a::text")
-```
-
-* Сокращения
-
-```python
-from ssc_codegen import D, N, R
-
-D()  # обычное поле
-R()  # alias D().raw() — работа с корневым HTML как со строкой
-N()  # nested-парсер (вложенная структура, пример будет далее)
-```
-
-* Проверка типов
-
-Перед генерацией кода, ssc-gen проверяет типы в chain вызовах
-
-Краткая таблица переходов:
-
-| Выражение                       | Возвращаемый тип | Описание                |
-| ------------------------------- | ---------------- | ----------------------- |
-| `D()`                           | `DOCUMENT`       | Корень документа        |
-| `R()` / `D().raw()`             | `STRING`         | HTML как строка         |
-| `D().css(...)`                  | `DOCUMENT`       | Первый элемент          |
-| `D().css(...).text()`           | `STRING`         | Текст                   |
-| `D().css_all(...)`              | `LIST_DOCUMENT`  | Список элементов        |
-| `D().css_all(...).text()`       | `LIST_STRING`    | Тексты всех элементов   |
-| `D().css_all(...).attr("href")` | `LIST_STRING`    | Атрибуты всех элементов |
-
-Пример ошибки:
-
-```python
-# Wrong: 'ltrim("/")' expected [STRING, LIST_STRING], got DOCUMENT
-D().css("a[href]").ltrim('/')
-
-# Correct
-D().css("a[href]::attr(href)").ltrim('/')
-```
-
-### Использования схем
-
-* ItemSchema
-
-Используется для извлечения одного объекта (словаря).
-
-```python
-class PageAnime(ItemSchema):
-    title = D().css("h3::text")
-    description = D(None).css(".postDesc::text")
-    thumbnail = D().css(".details_poster img::attr(src)").fmt("https:{{}}")
-    player_js_encoded = R().re(r'new Playerjs\("(.*?)"\)')
-    player_js_url = R().re(r'<script[^>]+src="(/js/playerjs.*?)"').fmt(FMT_URL)
-```
-
-Пример возвращаемого значения:
-
-```python
-{
-  "title": "Легенда о героях",
-  "description": "Фэнтези о...",
-  "thumbnail": "https://site/img/poster.jpg",
-  "player_js_encoded": "encoded_value",
-  "player_js_url": "/js/player.js"
+    title { css ".entity__title h1"; text }
+    // maybe missing description eg:
+    // https://animego.org/anime/chelovek-muskul-2589
+    description {
+        css-all ".description"; text
+        join ""
+        trim
+        fallback ""
+    }
+    thumbnail {
+        css ".d-sm-flex .image__picture img.image__img"
+        attr src
+    }
+    id {
+        css "link[rel=\"canonical\"]"; attr href
+        re #"-(.?\d{2,})"#
+    }
+    raw-json {
+        css "script[type='application/ld+json']"; text
+        jsonify Content
+    }
 }
 ```
 
-* ListSchema
+запуск генерации через скрипт
 
-Используется для списков.
-`__SPLIT_DOC__` определяет, **как разбить документ на элементы списка**. Должен возвращать `LIST_DOCUMENT` тип
+`./scripts/generate.sh`
 
-```python
-class PageSearch(ListSchema):
-    __SPLIT_DOC__ = D().css_all(".row > .col-ul-2")
+Если ошибок в синтаксисе нет - успешно сегенрирует
 
-    title = D().css(".text-truncate a[title]::attr(title)")
-    thumbnail = D().css(".lazy[data-original]::attr(data-original)")
-    url = D().css(".text-truncate a[href]::attr(href)")
-```
+### briefing
 
-Пример возвращаемого значения:
+TODO
 
-```python
-[
-  {"title": "One Piece", "thumbnail": ".../1.jpg", "url": "/anime/one-piece"},
-  {"title": "Naruto", "thumbnail": ".../2.jpg", "url": "/anime/naruto"},
-  ...
-]
-```
+### vibecoding
 
-* DictSchema
+>[!note] PoC skill
 
-Извлекает пары ключ–значение из HTML.
+В проект встроен линтер, по экспериментам в агентах помогает генерировать валидный синтаксис
 
-```python
-class SeriesOptionItem(ListSchema):
-    __SPLIT_DOC__ = D().css_all("option")
+https://github.com/vypivshiy/selector_schema_codegen/tree/features-kdl/.agents/skills/kdl-schema-dsl
 
-    value = D().attr("value")
-    data_id = D().attr("data-id")
-
-class SeriesOptions(DictSchema):
-    __SPLIT_DOC__ = D().css_all(".serial-panel > .series-options div")
-
-    __KEY__ = D().attr("class")  # всегда должен возврашать `STRING`
-    __VALUE__ = N().sub_parser(SeriesOptionItem)
-```
-
-Пример возвращаемого значения:
-
-```python
-{
-  "subtitles": [{"value": "ru", "data_id": "100"}, ...],
-  "voice": [{"value": "jp", "data_id": "101"}, ... ],
-  ...
-}
-```
-
-* Nested. Вложенные структуры.
-
-Позволяет вкладывать один парсер в другой через `N().sub_parser(ClassSchema)`.
-
-```python
-class KodikAPIPayload(ItemSchema):
-    d = R().re(r"var\s*domain\s+=\s+['\"](.*?)['\"];")
-    d_sign = R().re(r"var\s*d_sign\s+=\s+['\"](.*?)['\"];")
-
-class PageMainKodikMin(ItemSchema):
-    api_payload = N().sub_parser(KodikAPIPayload)
-    player_js_path = D().css('head > script[src*="assets/js"]::attr(src)')
-```
-
-
-Пример возвращаемого значения:
-
-```python
-{
-  "api_payload": {"d": "kodik.cc", "d_sign": "abcd1234"},
-  "player_js_path": "/assets/js/main.js"
-}
-```
-
-* JSON внутри HTML
-
-Если HTML содержит JSON данные и их извлечь относительно легко — его можно извлечь через `.jsonify()`.
-
-Шаблон можно сгенерировать через:
-
-```bash
-ssc-gen json-gen jsn_file.json -o jsn_gen.py
-```
-
-* jsn_file.json - подготовленный валидный json 
-* jsn_gen.py - вывод сгенерированного шаблона для аннотации
-
-```python
-import re
-
-class UrlParams(Json):
-    d: str
-    d_sign: str
-    pd: str
-    pd_sign: str
-    ref: str
-    ref_sign: str
-    advert_debug: bool
-    min_age: int
-    first_url: bool
-
-# TIP: можно использовать VERBOSE режим (re.X), чтобы упростить описание регулярного выражения.
-# или описывайте строкой:
-# url_params = R().re(r"var\s*urlParams\s*=\s*['\"](\{.*\})['\"]")
-RE_EXTRACT_JSON = re.compile(r"""
-  var\s*urlParams\s*=\s*['\"]
-  (\{.*\})  # json data in urlParams variable
-  ['\"]
-""", re.X)
-
-class PageMainKodikMin(ItemSchema):
-    url_params = R().re(RE_EXTRACT_JSON).jsonify(UrlParams)
-```
-
-Пример возвращаемого значения
-
-```python
-{
-  "url_params": {
-    "d": "kodik.cc",
-    "d_sign": "abcd",
-    "pd": "xyz",
-    "pd_sign": "defg",
-    "ref": "spam",
-    "ref_sign": "egg",
-    "advert_debug": False,
-    "min_age": 16,
-    "first_url": True
-  }
-}
-```
-
-### Генерация кода
-
-Запустить скрипт сборки [/scripts/generate.sh](/scripts/generate.sh)
-
-По умолчанию сгенерирует python код с backend lxml если ошибок в DSL нет

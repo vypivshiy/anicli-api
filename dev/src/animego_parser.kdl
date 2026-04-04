@@ -1,0 +1,310 @@
+
+define EXPR_IS_FILM {
+    assert {
+        not { css "select[name=\"series\"]" }
+    }
+    to-bool
+    fallback #true
+}
+
+
+struct PageUtils {
+    @doc """
+    helper structure for extract correct url
+    this provider can be replace domains
+    """
+    url_canonical {
+        css "link[rel=\"canonical\"]"
+        attr href
+        rtrim "/"
+        rm-suffix "/search/anime" // search page endpoint
+    }
+}
+
+struct PageOngoing type=list {
+    @doc """
+    Get all available ongoings from the main page
+
+    GET https://animego.one
+
+    NOTE: animego can change the domain, so only the path is returned.
+    To get the real url, extract the value using the selector 'link[rel="canonical"]::attr(href)'
+    """
+
+    @split-doc { css-all ".updates-body > div.d-grid > a.aw-item" }
+
+    url-path { attr href }
+    title { css ".image__img"; attr alt }
+    thumbnail { css ".image__img"; attr src }
+
+    /*
+    signature: 
+    Серия 2 · Субтитры — Сегодня, 21:50
+    */
+    episode { css ".aw-meta"; text; re #"\s(\d+)\s"# }
+    dub { css ".aw-meta"; text; re #"(\w+)\s+—"# }
+}
+
+
+struct PageSearch type=list {
+    @doc """
+    Get all search results by query
+
+    USAGE:
+
+        GET https://animego.one/search/anime
+        q={QUERY}
+
+    EXAMPLE:
+
+        GET https://animego.one/search/anime?q=LAIN
+    """
+    @split-doc { css-all ".grid.ani-list .ani-grid__item" }
+    title { css "a.ani-grid__item-picture img"; attr alt }
+    thumbnail { css ".image__img"; attr src }
+    // this path. save name for backport
+    url-path { css ".ani-grid__item-title a"; attr href }
+}
+
+/*
+Anime Page json structure
+*/
+
+json AggregateRating {
+    @type str
+    ratingCount int
+    bestRating int
+    ratingValue str
+}
+
+json Director {
+    @type str
+    url str
+    name str
+}
+
+json Actor {
+    @type str
+    url str
+    name str
+}
+
+json Creator {
+    @type str
+    name str
+}
+
+json Content {
+    @context str
+    @type str
+    url str
+    name str
+    alternateName str
+    image str
+    description str
+    genre (array)str
+    contentRating str
+    datePublished str
+    keywords str
+    creator (array)Creator
+    aggregateRating AggregateRating
+    numberOfEpisodes int
+}
+
+struct PageAnime {
+    @doc """
+    Anime page information. anime path contains in SearchView.url or Ongoing.url
+
+    - id needed for next API requests
+    - raw_json used for extract extra metadata (unescape required)
+
+    USAGE:
+
+        GET https://animego.one/anime/<ANIME_PATH>
+
+    EXAMPLE:
+
+        GET https://animego.one/anime/eksperimenty-leyn-1114
+
+
+    ISSUES:
+        If blocked, you can try skip extract anime metadata and send api request:
+
+        id contains in url:
+            - id=1114 for https://animego.one/anime/eksperimenty-leyn-1114
+            - id=2589 for https://animego.org/anime/chelovek-muskul-2589
+
+        GET 'https://animego.one/anime/{id}/player?_allow=true'
+    """
+
+    title { css ".entity__title h1"; text }
+    // maybe missing description eg:
+    // https://animego.org/anime/chelovek-muskul-2589
+    description {
+        css-all ".description"; text
+        join ""
+        trim
+        fallback ""
+    }
+    thumbnail {
+        css ".d-sm-flex .image__picture img.image__img"
+        attr src
+    }
+    id {
+        css "link[rel=\"canonical\"]"; attr href
+        re #"-(.?\d{2,})"#
+    }
+    raw-json {
+        css "script[type='application/ld+json']"; text
+        jsonify Content
+    }
+}
+
+struct Episodes type=list {
+    @doc """
+    episodes signature example (exclude in film)
+    ```
+    <div class="scroll-snap-slider d-none d-lg-flex">
+        <div class="scroll-snap-slide player-video-bar__item user-select-none px-1"
+            data-episode-number="1" data-episode-type="1"
+            data-episode-title="Elaina, the Apprentice Witch" data-episode-released="2 октября 2020"
+            data-episode-description="" data-episode="21516">
+            ...
+    ```
+    """
+
+    @split-doc { css-all ".player-video-bar__item" }
+    num { attr data-episode-number; re-sub #"\D"# ""; to-int }
+    title { attr data-episode-title }
+    type { attr data-episode-type }
+    released { attr data-episode-released }
+    id { attr data-episode }
+}
+
+struct Dubbers type=dict {
+    /*
+    dubbers elements signature:
+
+    ```
+    <div class="list-group pt-2 position-absolute w-100">
+        <button class="align-items-center d-flex gap-2 list-group-item list-group-item-action mb-1"
+                role="button" data-translation="2"><span class="text-truncate">AniLibria</span> <span
+                class="error__player d-none text-danger small text-nowrap">(ошибка)</span>
+        </button>
+    ...
+    ```
+    */
+    @split-doc { css-all "button[data-translation]" }
+    @key { attr "data-translation" }
+    @value { css span; text; trim }
+}
+
+struct PageEpisode {
+    @doc """
+    Representation episodes
+
+    NOTE:
+        film pages does not exist select[name="series"] element.
+
+    Prepare:
+      1. get id from Anime object
+      2. GET 'https://animego.me/player/{Anime.id}'
+      3. extract html from json by ['data']['content'] key
+      4. OPTIONAL: unescape HTML
+
+    EXAMPLE:
+        GET https://animego.me/player/1114
+    """
+
+    is-film { EXPR_IS_FILM }
+    episodes { nested Episodes }
+    dubbers { nested Dubbers }
+}
+
+struct EpisodeVideos type=list {
+    /*
+    film elements signature:
+
+    ```
+     <button data-player="//aniboom.one/embed/z68qn1VdNvg?translation=2" data-provider="24"
+            data-ptranslation="2" data-provider-title="AniBoom" data-translation-title="AniLibria"
+            class="align-items-center d-flex gap-2 list-group-item list-group-item-action mb-1"
+            role="button"><span class="text-truncate">AniBoom</span> <span
+                class="error__player d-none text-danger small text-nowrap">(ошибка)</span></button>
+    ...
+    ```
+    */
+    @split-doc { css-all "button[data-player]" }
+    
+    player { attr "data-player"; re-sub #"^https?"# ""; fmt "https:{{}}" }
+    data-provider { attr "data-provider" }
+    data-provide-dubbing { attr "data-ptranslation"; trim }
+}
+
+struct PageEpisodeVideo {
+    @doc """
+    Represent Episode object for film (it have not same signatures)
+
+    NOTE:
+        film pages does not exist CSS selector `.player-video-bar__item` or `select[name="series"]`
+
+    Prepare:
+      1. get id from Anime object
+      2. GET 'https://animego.one/player/{Anime.id}'
+      3. extract html from json by ['data']['content'] key
+      4. OPTIONAL: unescape HTML
+
+    EXAMPLE:
+        GET https://animego.one/player/315
+    """
+
+    is-film { EXPR_IS_FILM }
+    dubbers { nested Dubbers }
+    videos { nested EpisodeVideos }
+}
+
+struct SourceVideoView type=list {
+    /*
+    sources Signature:
+
+    ```
+     <button data-player="//animego.me/cdn-iframe/40571/AnilibriaTV/1/2" data-provider="26"
+            data-ptranslation="2" data-provider-title="CVH" data-translation-title="AniLibria"
+            class="align-items-center d-flex gap-2 list-group-item list-group-item-action mb-1"
+            role="button"><span class="text-truncate">CVH</span> <span
+                class="error__player d-none text-danger small text-nowrap">(ошибка)</span></button>
+    ```
+    */
+    @split-doc { css-all "button[data-player]" }
+
+    title { css span; text }
+    url { attr data-player; fmt "https:{{}}" }
+    data-provider { attr "data-provider" }
+    data-provide-dubbing { attr "data-ptranslation"; trim }
+    data_translation_title { attr "data-translation-title" }
+}
+
+
+struct PageSource {
+    @doc """
+    representation player urls (episodes only)
+
+    Prepare:
+      1. get num and id from Episode
+
+      2.
+
+      GET https://animego.me/player/videos/{Episode.id}
+
+      3. extract html from json by ["data"]["content"] key
+
+      4. OPTIONAL: unescape document
+
+    EXAMPLE:
+
+        GET https://animego.one/anime/series?dubbing=2&provider=24&episode=2&id=15837
+    """
+
+    dubbers { nested Dubbers }
+    videos { nested SourceVideoView }
+}
