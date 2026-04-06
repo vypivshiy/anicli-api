@@ -1,0 +1,142 @@
+
+transform extract-netloc accept=STRING return=STRING {
+    py {
+        import "from urllib.parse import urlsplit"
+        code "{{NXT}} = \"https://\" + urlsplit({{PRV}}).netloc"
+    }
+}
+
+struct PageUtils {
+    @doc "helper struct for extract actual url"
+
+    url { css "meta[property=\"og:url\"]"; attr content; transform extract-netloc }
+}
+
+
+struct PageOngoing type=list {
+    @doc """
+    Get all available ongoings from the main page
+
+    USAGE
+        GET https://hdrezka-home.tv/?filter=last&genre=82
+    """
+
+    @split-doc { css-all ".b-content__inline_item" }
+
+    title { css ".b-content__inline_item-link a"; text; trim }
+    // maybe exclude tag. eg: OVA, films
+    // https://hdrezka-home.tv/animation/adventures/88408-devushki-i-tanki-bitva-komandirov-ova-2024.html
+    season { css "span.info"; text; fallback "" }
+    thumbnail { css ".b-content__inline_item img[src]"; attr src }
+    url { css "a[href]"; attr href }
+}
+
+
+struct PageSearch type=list {
+    @doc """
+    USAGE
+        GET https://hdrezka-home.tv/search/
+        do=search&subaction=search&q={query}
+
+    EXAMPLE
+    https://hdrezka-home.tv/search/?do=search&subaction=search&q=isekai
+    """
+    /* sig:
+    <div class="b-content__inline_item" 
+    data-id="88313" 
+    data-url="https://hdrezka-home.tv/animation/....html"> ... </div> 
+    */ 
+    @split-doc { 
+                css-all ".b-content__inline_item"
+                // do not collect non-anime items
+                filter {
+                    has-attr data-url
+                    attr-contains data-url "/animation/"
+                } }
+
+    title { css ".b-content__inline_item-link a"; text; trim }
+    season { css "span.info"; text }
+    thumbnail { css ".b-content__inline_item img[src]"; attr src }
+    url { css "a[href]"; attr href }
+
+}
+
+struct Translation type=list {
+    @split-doc { css-all "#translators-list > li.b-translator__item"}
+
+    title { attr "title" }
+    data-translator_id { attr "data-translator_id" }
+}
+
+struct SeasonBox type=list {
+    @split-doc {
+        css-all "#simple-seasons-tabs > .b-simple_season__item"
+    }
+    data-tab_id { attr "data-tab_id" }
+    title { text; trim }
+}
+
+struct Episode type=list {
+    @split-doc {
+        css-all ".b-simple_episodes__list .b-simple_episode__item"
+    }
+
+    data-id { attr data-id; to-int }
+    data-season_id { attr data-season_id; to-int }
+    data-episode_id { attr data-episode_id; to-int }
+    title { text; trim }
+
+}
+
+struct PageAnime {
+    @doc """
+    USAGE
+        GET https://hdrezka-home.tv/animation/<NAME>.html
+
+    EXAMPLE
+        GET https://hdrezka-home.tv/animation/drama/20157-eksperimenty-leyn-1998.html
+
+    NOTE: 
+        1. videos required post extract manually
+
+        videos item format (comma separated):
+        "[{int}p (Ultra)?]https://...manifest.m3u8 or https://...mp4,[...."
+
+        2. for extract episodes, use next endpoint:
+
+        POST /ajax/get_cdn_series/?t=1775300155352 HTTP/1.1
+        Host: hdrezka-home.tv
+        X-Requested-With: XMLHttpRequest
+        Origin: https://hdrezka-home.tv
+        Connection: keep-alive
+        Referer: https://hdrezka-home.tv/animation/fiction/88328-daybaster-dotyanis-do-neba-2-2004.html
+    
+        id=88328&translator_id=56&season=1&episode=2&favs=aaaaaaaa-bbbb-cccc-dddd-0123456789ab&action=get_stream
+
+        > id, translator_id, season, episode search in 'episode_list', 'season_box', 'translation-list' structs, favs from favs field
+    """
+
+    title { css ".b-post__title h1"; text }
+    description {css ".b-post__description_text"; text }
+    thumbnail { css "img[data-caption-title][src]"; attr src }
+    favs { css "input#ctrl_favs[value]"; attr value }
+    
+    // EPISODE DATA
+    translation-list { nested Translation }
+    season_box { nested SeasonBox }
+    episode_list { nested Episode }
+
+    /* fallback if include only one dubber and translation-list is empty
+    script part signature example:
+    sof.tv.initCDNSeriesEvents(88431, 477, 1, 1, false, \'hdrezka-home.tv\', false, false,
+    ( data-id, translation_id, season, episode ... )
+    */  
+    translation_id {
+        css-all "script"
+        filter { text-contains "sof.tv.initCDNSeriesEvents" }
+        first
+        text
+        re #"initCDNSeriesEvents\(\s*\d+\s*,\s*(\d+)"#
+    }
+
+}
