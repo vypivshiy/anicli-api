@@ -244,7 +244,7 @@ class Source(BaseSource):
                 # apologize, include only mp4 or m3u8
                 else:
                     type_ = "m3u8"
-                videos.append(Video(type=type_, quality=int(quality), url=url, headers={"Referrer": self.url}))
+                videos.append(Video(type=type_, quality=int(quality), url=url, headers={"Referer": self.url}))
         return videos
 
     def get_videos(self, **httpx_kwargs):
