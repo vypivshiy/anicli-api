@@ -183,11 +183,11 @@ if __name__ == '__main__':
 | animego         | https://animego.org      | SSR  | many    | источники kodik, animego, не работает на IP отличных от СНГ и стран прибалтики               |
 | anilibria       | https://aniliberty.top   | API  | author  | старое название, актуальное aniliberty                                                       |
 | animevost       | https://animevost.org    | API  | author  |                                                                                              |
-| jutsu           | https://jut.su           | SSR  | once    | Перешли на платную подписку.                                                                 |
 | sameband        | https://sameband.studio  | SSR  | author  |                                                                                              |
 | yummy_anime_org | https://yummyanime.in    | SSR  | many    |                                                                                              |
 | yummy_anime     | https://site.yummyani.me | API  | many    |                                                                                              |
 | anilib_me       | https://animelib.org     | API  | many    | **(???), при чрезмерной эксплуатации могут дать бан по ip (API запросы возвращают код 403)** |
+| hdrezka         | https://hdrezka-home.tv  | SSR  | once    |                                                                                              |
 
 ## players description
 
@@ -202,10 +202,10 @@ if __name__ == '__main__':
 | sibnet              | 480                                                             |                                                                                                                                                                                                       |
 | anilibria           | 720, иногда 1080                                                |                                                                                                                                                                                                       |
 | animevost           | 720                                                             |                                                                                                                                                                                                       |
-| jutsu               | 1080                                                            | Запуск видео в сторонних плеерах зависим от используемого user-agent заголовка в API интерфейсе. Некоторые тайтлы заблокированы на территории РФ                                                      |
 | sameband            | 1080                                                            |                                                                                                                                                                                                       |
 | anilib              | 1080, 2060 (4k)                                                 | требуется авторизация для доступа к оригинальному плееру, добавить заголовок `Authorization: Bearer ...`. Авторизация через ВК работает на старом домене                                              |
 | okcdn (cdnvideohub) | 1080, 2060 (4k?)                                                | [streamlink/streamlink/issues/6369](https://github.com/streamlink/streamlink/issues/6369#issuecomment-2565443159): IP адрес и user-agent плеера должны совпадать с user-agent и IP, откуда шёл запрос из объектов Extractor |
+| hdrezka             |            1080|      |
 
 ## See also
 
