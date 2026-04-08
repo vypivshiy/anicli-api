@@ -6,8 +6,7 @@ import base64
 import json
 import re
 import urllib.parse
-from typing import Any
-from typing_extensions import TypedDict
+from typing import Any, TypedDict
 
 
 # parsed result type
