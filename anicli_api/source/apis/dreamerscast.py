@@ -2,10 +2,15 @@
 # There may be inaccuracies in the data types of the fields.
 from __future__ import annotations
 
-from typing import Optional, Union, Any, Generic, TypeVar
-from typing_extensions import TypedDict, NamedTuple
+import sys
+from typing import Optional, Union, Any, Generic, TypeVar, TypedDict
 import httpx
 
+if sys.version_info >= (3, 11):
+    # generics in NamedTuple use support
+    from typing import NamedTuple
+else:
+    from typing_extensions import NamedTuple
 
 # Type Variables
 T = TypeVar("T")
