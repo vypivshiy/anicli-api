@@ -1,4 +1,83 @@
 
+json Preroll {
+    url: str
+    priority int
+}
+
+json Vast {
+    preroll (array)str
+    prerolls (array)Preroll
+    pauseroll (array)str
+    pauserolls (array)Preroll // same structure
+}
+
+json Item {
+    cvhId str
+    name str
+    vkId str
+    voiceStudio str
+    voiceType str
+    season int
+    episode int
+}
+
+json CdnVideoHubResponse {
+    titleName str
+    isSerial bool
+    items (array)Item
+    trailers str? // unknown type
+    vast Vast
+}
+
+json CdnVideoHubError {
+    // 	{"error": "wrong pub"}	
+    error str
+}
+
+json VideoSource {
+    hlsUrl str
+    dashUrl str
+    mpegQhdUrl str
+    mpeg2kUrl str
+    mpeg4kUrl str
+    mpegHighUrl str
+    mpegFullHdUrl str
+    mpegMediumUrl str
+    mpegLowUrl str
+    mpegLowestUrl str
+    mpegTinyUrl str
+}
+
+
+json CdnVideoFromIdResponse {
+    unitedVideoId int
+    duration int
+    failoverHost str
+    thumbUrl str
+    sources VideoSource
+}
+
+(rest)struct CdnVideoHubAPI {
+    @doc "get required arguments from PageParseCdnVideoData structure"
+
+    @request \
+        name=get-params-from-page \
+        response=CdnVideoHubResponse \
+        """
+        curl 'https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub={{pub}}&aggr={{aggr}}&id={{id}}' \
+        -H 'Accept: application/json, text/plain, */*'
+        """
+    // required pass user-agent where used in original code
+    @request \
+        name=from_vkid \
+        response=CdnVideoFromIdResponse \
+        """
+        curl https://plapi.cdnvideohub.com/api/v1/player/sv/video/{{id}}
+        -H 'Accept: application/json, text/plain, */*'
+        """
+
+    @error 400 CdnVideoHubError
+}
 
 /* tag signature:
 <div class="player-cvh">
@@ -39,6 +118,7 @@ EXAMPLE:
     @init {
         tag { css ".player-cvh > video-player" }
     }
+    @request "curl https://plapi.cdnvideohub.com/api/v1/player/sv/playlist?pub={{data_publisher_id}}&aggr={{data_aggregator}}&id={{id}}"
 
     id { @tag; attr id }
     data-title-id { @tag; attr data-title-id }

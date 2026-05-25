@@ -1,0 +1,334 @@
+@doc """
+Aniliberty REST API client (https://aniliberty.top/api/v1).
+
+API docs: https://aniliberty.top/api/docs/v1
+No authentication required.
+"""
+
+
+// ── Leaf JSON schemas ──────────────────────────────────────────
+
+json TypedValue {
+    value str?
+    description str?
+}
+
+json ReleaseName {
+    main str
+    english str?
+    alternative str?
+}
+
+// Basic image: genre images, avatars (no src)
+json Image {
+    preview str
+    thumbnail str
+}
+
+json ImageOptimized {
+    preview str
+    thumbnail str
+    optimized Image
+}
+
+// Poster / episode preview (has src)
+json PosterImage {
+    src str
+    preview str
+    thumbnail str
+}
+
+json Poster {
+    src str
+    preview str
+    thumbnail str
+    optimized PosterImage
+}
+
+json AgeRating {
+    value str
+    label str
+    description str
+    is_adult bool
+}
+
+json PublishDay {
+    value int?
+    description str?
+}
+
+json EpisodeSkip {
+    start int?
+    stop int?
+}
+
+json Genre {
+    id int
+    name str
+    image ImageOptimized
+    total_releases int
+}
+
+
+json Episode {
+    id str
+    name str?
+    ordinal float
+    opening EpisodeSkip
+    ending EpisodeSkip
+    preview Poster
+    hls_480 str
+    hls_720 str
+    hls_1080 str?
+    duration int
+    sort_order int
+    release_id int
+    name_english str?
+    updated_at str
+    rutube_id str?
+    youtube_id str?
+}
+
+
+// ── Pagination ─────────────────────────────────────────────────
+
+json PaginationLinks {
+    previous str?
+    next str?
+}
+
+json Pagination {
+    total int
+    count int
+    per_page int
+    current_page int
+    total_pages int
+    links PaginationLinks
+}
+
+json Meta {
+    pagination Pagination
+}
+
+
+// ── Release variants ───────────────────────────────────────────
+
+define JSON-RELEASE-ITEM {
+    id int
+    type TypedValue
+    year int?
+    name ReleaseName
+    alias str
+    season TypedValue
+    poster Poster
+    publish_day PublishDay
+    fresh_at str
+    created_at str
+    updated_at str
+    is_ongoing bool
+    age_rating AgeRating
+    description str
+    notification str?
+    episodes_total int
+    external_player str?
+    is_in_production bool
+    is_blocked_by_geo bool
+    is_blocked_by_copyrights bool
+    added_in_users_favorites int
+    average_duration_of_episode int
+    added_in_planned_collection int
+    added_in_watched_collection int
+    added_in_watching_collection int
+    added_in_postponed_collection int
+    added_in_abandoned_collection int
+}
+
+// Base release — top-level array response for /app/search/releases
+json ReleaseSearch array=#true {
+    JSON-RELEASE-ITEM
+}
+
+// Catalog release item (base + genres)
+
+
+json CatalogRelease {
+    JSON-RELEASE-ITEM
+    genres (array)Genre
+}
+
+json CatalogReleasesResponse {
+    data (array)CatalogRelease
+    meta Meta
+}
+
+
+// ── Release detail ─────────────────────────────────────────────
+
+json MemberRole {
+    value str
+    description str
+}
+
+json MemberUser {
+    id int
+    avatar ImageOptimized
+}
+
+json Member {
+    id str
+    role MemberRole
+    nickname str
+    user MemberUser
+}
+
+json Sponsor {
+    id str
+    title str
+    description str
+    url_title str
+    url str
+}
+
+// Full release: base + genres + members + episodes + sponsors
+json ReleaseDetail {
+    JSON-RELEASE-ITEM
+    genres (array)Genre
+    members (array)Member
+    episodes (array)Episode
+    sponsors (array)Sponsor
+}
+
+
+// ── Episode detail ─────────────────────────────────────────────
+
+// Nested release inside episode detail (base + episodes, no genres)
+json EpisodeRelease {
+    JSON-RELEASE-ITEM
+    episodes (array)Episode
+}
+
+// Episode detail: episode fields + nested release
+json EpisodeDetail {
+    id str
+    name str?
+    ordinal float
+    opening EpisodeSkip
+    ending EpisodeSkip
+    preview Poster
+    hls_480 str
+    hls_720 str
+    hls_1080 str?
+    duration int
+    sort_order int
+    release_id int
+    name_english str?
+    updated_at str
+    rutube_id str?
+    youtube_id str?
+    release EpisodeRelease
+}
+
+
+// ── Utility schemas ────────────────────────────────────────────
+
+// Sparse fieldset from ?include=id,episodes
+json ReleaseEpisodes {
+    id int
+    episodes (array)Episode
+}
+
+json AppStatusRequest {
+    ip str
+    country str
+    iso_code str
+    timezone str
+}
+
+json AppStatus {
+    request AppStatusRequest
+    is_alive bool
+    available_api_endpoints (array)str
+}
+
+// Error body: {"message": "..."}
+json ApiError { message str }
+
+
+// ── REST struct ────────────────────────────────────────────────
+
+(rest)struct AnilibertyApi {
+    @doc """
+    Aniliberty API client.
+    """
+
+    @request \
+        name=search-catalog \
+        doc="Search releases via catalog endpoint with filter." \
+        response=CatalogReleasesResponse \
+        """
+        GET /api/v1/anime/catalog/releases?f[search]={{search}}&page={{page:int?}}&limit={{limit:int?}} HTTP/1.1
+        Host: aniliberty.top
+        Accept: application/json
+        """
+
+    @request \
+        name=ongoing-catalog \
+        doc="List ongoing/newest releases with pagination." \
+        response=CatalogReleasesResponse \
+        """
+        GET /api/v1/anime/catalog/releases?page={{page:int?}}&limit={{limit:int?}} HTTP/1.1
+        Host: aniliberty.top
+        Accept: application/json
+        """
+
+    @request \
+        name=search \
+        doc="Search releases via dedicated search endpoint. Returns bare array." \
+        response=ReleaseSearch \
+        """
+        GET /api/v1/app/search/releases?query={{query}} HTTP/1.1
+        Host: aniliberty.top
+        Accept: application/json
+        """
+
+    @request \
+        name=get-release doc="Get full release detail with episodes, members, genres." \
+        response=ReleaseDetail \
+        """
+        GET /api/v1/anime/releases/{{id:int}} HTTP/1.1
+        Host: aniliberty.top
+        Accept: application/json
+        """
+
+    @request \
+        name=get-release-episodes \
+        doc="Get episodes for a release (sparse fieldset)." \
+        response=ReleaseEpisodes \ 
+        """
+        GET /api/v1/anime/releases/{{id:int}}?include=id,episodes HTTP/1.1
+        Host: aniliberty.top
+        Accept: application/json
+        """
+
+    @request \
+        name=get-episode \
+        doc="Get single episode by id with nested release." \
+        response=EpisodeDetail \
+        """
+        GET /api/v1/anime/releases/episodes/{{episode_id}} HTTP/1.1
+        Host: aniliberty.top
+        Accept: application/json
+        """
+
+    @request \
+        name=app-status \
+        doc="Check API availability." \
+        response=AppStatus \
+        """
+        GET /api/v1/app/status HTTP/1.1
+        Host: aniliberty.top
+        Accept: application/json
+        """
+
+    @error 404 ApiError
+}

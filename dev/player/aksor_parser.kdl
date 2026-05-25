@@ -1,0 +1,71 @@
+/* example valid response:
+{
+  "id": "be348c0423c77acd06f24bcbee51c5fc",
+  "anime_id": 10818,
+  "episode": "1",
+  "studio_name": "Art-Dublyazh",
+  "is_subtitle": false,
+  "language": "ru",
+  "opening_start": 0,
+  "opening_length": 0,
+  "ending_start": 0,
+  "ending_length": 0,
+  "date": 1723558576,
+  "qualities": {
+    "q1080": "https://p3-nazarick-cdn.aksor.tv/static13/video/a10818/Art-Dublyazh/01/1080.mpd",
+    "q360": null,
+    "q480": null,
+    "q720": null,
+    "q2k": null,
+    "q4k": null
+  },
+  "next_ep_id": "6e497a9db21b99162350c5153bd25a48"
+}
+*/
+
+json Qualities {
+    q1080 str?
+    q360 str?
+    q480 str?
+    q720 str?
+    q2k str?
+    q4k str?
+}
+
+json AksorAPIResponse {
+    id str
+    anime_id int
+    episode str
+    studio_name str
+    is_subtitle bool
+    language str
+    opening_start int
+    opening_length int
+    ending_start int
+    ending_length int
+    date int
+    qualities Qualities
+    next_ep_id str
+}
+
+json AksorAPIError {
+    // {"detail":"Video not found"}
+    detail str
+}
+
+(rest)struct AksorPlayerApi {
+    @doc """
+    
+    USAGE:
+        GET https://player.aksor.tv/video/6e497a9db21b99162350c5153bd25a48
+    """
+    
+    @request \
+        response=AksorAPIResponse \
+        """
+        curl 'https://player.aksor.tv/api/video/{{video-id}}' \
+            -H 'Accept: application/json' \
+            -H 'Referer: https://old.yummyani.me/'
+        """
+    @error 404 AksorAPIError
+}

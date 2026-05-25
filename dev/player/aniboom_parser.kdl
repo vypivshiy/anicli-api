@@ -18,16 +18,17 @@ json DataParameters {
     error str
     domain str
     cdn str
-    counter str
+    counter str @omitempty
     duration str
     poster str
     thumbnails str
-    dash Dash
+    dash Dash @omitempty
     hls Hls
     quality bool
     qualityVideo int
     vast bool
     country str
+    city str
     platform str
     rating str
     nshowbl bool
@@ -36,7 +37,7 @@ json DataParameters {
 }
 
 struct PageAniboom {
-    @doc """
+    @doc #"""
     
     Extract MPD and M3U8 urls
 
@@ -78,25 +79,32 @@ struct PageAniboom {
         \"type\":\"application\\\/x-mpegURL\"}"
 
         ... }
-    """
+    """#
 
-    @init {
-        expr-data { EXPR-DATA }
-    }
+    @init { expr-data { EXPR-DATA } }
+
+    // NOTE: should be configured client
+    // TODO: pass animego referrer
+    @request """
+    curl {{url-aniboom-player}} \
+    -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' \
+    -H 'Referer: https://animego.me/'
+    """
 
     data_parameters {
         @expr-data
+        unescape
         // unescape json
-        repl {
-            "\\" ""
-            "&quot;}" "}"
-            "&quot;{" "{"
-            "&quot;" "\""
-        }
-        repl {
-            "}\"" "}"
-            "\"{" "}"
-        }
+        // repl {
+        //     "\\" ""
+        //     "&quot;}" "}"
+        //     "&quot;{" "{"
+        //     "&quot;" "\""
+        // }
+        // repl {
+        //     "}\"" "}"
+        //     "\"{" "}"
+        // }
         jsonify DataParameters
     }
     // backport for old API impl realizations

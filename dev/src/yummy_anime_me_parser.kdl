@@ -1,0 +1,291 @@
+@doc """
+REST API client for YummyAnime (https://yummy-anime.ru).
+
+API base: https://api.yani.tv
+Swagger UI: https://yummy-anime.ru/api/swagger
+
+All responses use {"response": <data>} envelope.
+Errors (on HTTP 200) use {"error": "...", "error_title": "...", "error_code": N, "error_name": "..."}.
+No authentication required.
+"""
+
+
+// ── Leaf JSON schemas ────────────────────────────────────────────────────────
+
+json Poster {
+    fullsize str
+    big str
+    small str
+    medium str
+    huge str
+    mega str
+}
+
+json Rating {
+    average float
+    counters int
+    kp_rating float
+    anidub_rating int
+    myanimelist_rating float
+    worldart_rating float
+    shikimori_rating float
+}
+
+json MinAge {
+    value int
+    title_long str
+    title str
+}
+
+json AnimeStatus {
+    value int
+    title str
+    alias str
+    class str
+}
+
+json AnimeType {
+    name str
+    value int
+    shortname str
+    alias str
+}
+
+json RemoteIds {
+    worldart_id int
+    shikimori_id int
+    anidub_id int
+    anilibria_alias str
+    myanimelist_id int
+    kp_id int
+    worldart_type str
+    sr_id int
+}
+
+json Top {
+    category int
+    global int
+}
+
+json GenreShort {
+    title str
+    url str
+    id int
+    alias str
+}
+
+json Episodes {
+    count int
+    aired int
+    next_date int
+    prev_date int
+}
+
+json VideoData {
+    player str
+    dubbing str
+    player_id int
+}
+
+json SkipInfo {
+    time int
+    length int
+}
+
+json Skips {
+    opening SkipInfo @omitempty
+    ending SkipInfo @omitempty
+}
+
+json Genre {
+    title str
+    href str
+    value int
+    more_titles (array)str
+    group_id int
+}
+
+json GenreGroup {
+    title str
+    id int
+}
+
+json TypeCount {
+    count int
+    type AnimeType
+}
+
+
+// ── Mid-level JSON schemas ───────────────────────────────────────────────────
+
+json ScheduleItem {
+    description str
+    poster Poster
+    title str
+    anime_url str
+    anime_id int
+    episodes Episodes
+}
+
+json AnimeItem {
+    description str
+    poster Poster
+    title str
+    anime_url str
+    anime_id int
+    rating Rating
+    genres (array)GenreShort
+    year int
+    min_age MinAge
+    views int
+    season int
+    anime_status AnimeStatus
+    type AnimeType
+    remote_ids RemoteIds
+    top Top
+    blocked_in (array)str
+}
+
+json VideoItem {
+    video_id int
+    data VideoData
+    number str
+    date int
+    iframe_url str
+    index int
+    skips Skips
+    views int
+    duration int
+}
+
+json GenreDetail {
+    title str
+    id int
+    alias str
+    url str
+    description str
+    sub_genres (array)GenreShort
+}
+
+
+// ── Envelope JSON schemas ────────────────────────────────────────────────────
+
+json AnimeListResponse { response (array)AnimeItem }
+json ScheduleResponse { response (array)ScheduleItem }
+json VideoListResponse { response (array)VideoItem }
+json GenresData { genres (array)Genre; groups (array)GenreGroup }
+json GenresResponse { response GenresData }
+json CatalogData { genres GenresData; types (array)TypeCount; data (array)AnimeItem }
+json CatalogResponse { response CatalogData }
+json GenreDetailResponse { response GenreDetail }
+json TypeCountsResponse { response (array)TypeCount }
+
+
+// ── Error schema ─────────────────────────────────────────────────────────────
+json ApiError {
+    error str
+    error_title str
+    error_code int
+    error_name str
+}
+
+
+// ── REST struct ──────────────────────────────────────────────────────────────
+
+struct YummyAnimeApi type=rest {
+    @doc """
+    YummyAnime API client (api.yani.tv).
+    """
+
+    @request \
+        name=search-anime \
+        doc="Search anime by query with pagination." \
+        response=AnimeListResponse \
+        """
+        GET /anime?q={{q:str}}&offset={{offset:int?}}&limit={{limit:int?}} HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \
+        name=anime-by-ids doc="Filter anime by IDs. Returns items with genres." \ 
+        response=AnimeListResponse \
+        """
+        GET /anime?ids={{ids:int[]}} HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \
+        name=search-dedicated \
+        doc="Quick search (min 3 chars). Same shape as search-anime." \
+        response=AnimeListResponse \
+        """
+        GET /search?q={{q:str}} HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \ 
+        name=schedule \
+        doc="Current ongoing schedule." \
+        response=ScheduleResponse \
+        """
+        GET /anime/schedule HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \
+        name=anime-videos \
+        doc="Episodes/videos for a specific anime by id." \
+        response=VideoListResponse \
+        """
+        GET /anime/{{id:int}}/videos HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \
+        name=catalog \
+        doc="Full catalog with genres, types, and anime data." \
+        response=CatalogResponse \ 
+        """
+        GET /anime/catalog HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \
+        name=list-genres \
+        doc="All genres with groups." \
+        response=GenresResponse \
+        """
+        GET /anime/genres HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \
+        name=genre-by-slug \
+        doc="Genre detail by slug (e.g. 'senen')." \
+        response=GenreDetailResponse \
+        """
+        GET /anime/genres/{{slug:str}} HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    @request \
+        name=counts-by-type \
+        doc="Anime counts grouped by type." \
+        response=TypeCountsResponse \ 
+        """
+        GET /anime/counts/types HTTP/1.1
+        Host: api.yani.tv
+        Accept: application/json
+        """
+
+    // match by `error` field
+    @error 200 ApiError error 
+}

@@ -22,6 +22,98 @@ define FMT-URL="https://dreamerscast.com{{}}"
 define RE-PLAYER-JS-ENCODED=#"new Playerjs\("(.*?)"\)"#
 define RE-PLAYER-JS-URL=#"<script[^>]+src="(/js/playerjs.*?)""#
 
+/*
+{
+	"0": {
+		"id": 554,
+		"russian": "Re:Zero. Жизнь с нуля в альтернативном мире 4",
+		"original": "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+		"image": "//cache.dreamerscast.com/releases/554/731ade93-e9aa-4b71-9f5f-b5cc7ba9abc0.webp",
+		"wall": null,
+		"description": null,
+		"status": null,
+		"type": "TV",
+		"dateissue": 2026,
+		"season": "Весна",
+		"genres": "Психологическое, Драма, Фэнтези, Исекай",
+		"studio": "White Fox",
+		"duration": 0,
+		"series": 2,
+		"currentSeries": 19,
+		"dubbers": "Алина Рин, Airis, Inferno_Phantom, Lelik_time, Mirona, Orru, Sergei Vasya, SteycheR",
+		"timers": "Тяныч",
+		"user": null,
+		"url": "/home/release/554-re-zero-kara-hajimeru-isekai-seikatsu-4",
+		"views": 0,
+		"rating": "4,6",
+		"date": null,
+		"update": null
+	}
+}
+*/
+json Release {
+    id int
+    russian str? // maybe missing
+    original str
+    image str
+    wall str?
+    description str?
+    status str?
+    type str
+    dateissue int
+    season str
+    genres str
+    studio str
+    duration int
+    series int
+    currentSeries int
+    dubbers str
+    timers str
+    user str?
+    url str
+    views int
+    rating str // float `,` delimeter
+    date str?
+    update str?
+}
+
+json DreamCastResponse {
+    releases (array)Release
+    count int
+}
+
+(rest)struct DreamcastAPI {
+
+    @request \
+        name="search" \
+        response=DreamCastResponse \
+        """
+        curl 'https://dreamerscast.com/' \
+            --compressed \
+            -X POST \
+            -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            -H 'Origin: https://dreamerscast.com' \
+            -H 'Referer: https://dreamerscast.com/' \
+            --data-raw 'search={{query}}&status=&pageSize=16&pageNumber=1'
+    """
+    // same as search endpoint, but wout {{query}} value
+    @request \
+        name="ongoing" \
+        response=DreamCastResponse \
+        """
+        curl 'https://dreamerscast.com/' \
+            --compressed \
+            -X POST \
+            -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
+            -H 'X-Requested-With: XMLHttpRequest' \
+            -H 'Origin: https://dreamerscast.com' \
+            -H 'Referer: https://dreamerscast.com/' \
+            --data-raw 'search=&status=&pageSize=16&pageNumber=1'
+    """
+}
+
+
 struct PageAnime {
     @doc """
     Usage example:
@@ -35,6 +127,12 @@ struct PageAnime {
     - GET <player_js_url>
     - unpack, extract encoded symbols
     - by <player_js_encoded> and <player_js_url> values decrypt it (implement logic from original player sources)
+    """
+
+    @request """
+    GET {{url-path}} HTTP/2
+    Host: dreamerscast.com
+    Referer: https://dreamerscast.com/
     """
 
     title { css "h3"; text }

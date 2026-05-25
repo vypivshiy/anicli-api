@@ -1,20 +1,23 @@
 
 define FMT-URL="https://sameband.studio{{}}"
 
-struct PageOngoing type=list {
+(list)struct PageOngoing {
     @doc """
     USAGE: 
     GET https://sameband.studio/novinki
     """
 
     @split-doc { css-all .col-auto }
+    @request """
+    curl https://sameband.studio/novinki
+    """
 
     url { css "a[href]"; attr href }
     title { css ".col-auto .poster[title]"; attr title }
     thumbnail { css "img.swiper-lazy[src]"; attr src; fmt FMT-URL }
 }
 
-struct PageSearch type=list {
+(list)struct PageSearch {
     @doc """
     USAGE:
         POST https://sameband.studio/index.php?do=search
@@ -24,8 +27,14 @@ struct PageSearch type=list {
         search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
 
     EXAMPLE:
+
         POST https://sameband.studio/index.php?do=search
-    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
+        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
+    """
+    @request """
+    curl -X POST "https://sameband.studio/index.php?do=search" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        --data "do=search&subaction=search&search_start=0&full_search=0&result_from=1&story={{query}}"
     """
 
     @split-doc { css-all .col-auto }
@@ -42,14 +51,17 @@ struct PageAnime {
         GET https://sameband.studio/anime/<ANIME PATH>.html
 
     EXAMPLE:
-        # https://sameband.studio/anime/20-госпожа-кагуя-3.html
-        GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
+        curl https://sameband.studio/anime/20-госпожа-кагуя-3.html
+        curl https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
     """
 
-    title { css h1.m-0; text }
-    alt-title { css .help; text }
-    description { css-all ".limiter span"; text; join " " }
+    title { css h1.p-0.m-0; text }
+    description { css-all ".limiter p"; text; join " " }
     thumbnail { css ".image > img[src]"; attr src; fmt FMT-URL }
+
+    @request """
+    curl {{anime-page-url}}
+    """
     /*
     url for access playlist
     
@@ -64,6 +76,31 @@ struct PageAnime {
     player-url { css ".player > .player-content > iframe[src]"; attr src; fmt FMT-URL }
     
 }
+
+
+(array)json Playlist {
+    /* ITEM signature:
+    "title": "<img src='/v/anime/...01 RUS_snapshot.jpg' class=playlist_poster><div class=playlist_duration>23:37</div>... 01",
+    ### delimiter - ','
+    "file": "[480p]/v/anime/... - 01 RUS_480p/... - 01 RUS_r480p.m3u8,[720p]/v/anime/.../... - 01 RUS_720p/... - 01 RUS_r720p.m3u8,[1080p]/v/anime/.../... -
+    01 RUS_1080p/... - 01 RUS_r1080p.m3u8",
+    ### thumbnails images for video
+    "thumbnails": "/v/anime/.../thumbnails/... - 01 RUS.txt"  # contains
+        */
+    title str
+    file str
+    thumbnails str
+}
+
+(rest)struct PlaylistTxtAPI {
+    @request \ 
+    name=playlist \ 
+    response=Playlist \
+    """
+    curl {{playlist-txt-url}}
+    """
+}
+
 
 struct PagePlaylistURL {
     @doc #"""
@@ -102,6 +139,11 @@ struct PagePlaylistURL {
         <script>var player = new Playerjs({id:"player",file:"/v/list/....txt"});
         ```
     """#
+
+    @request """
+    curl {{player-url}}
+    """
+
     playlist_url {
         raw
         re #"Playerjs[^>]+file:\s*[\"']([^>]+)[\"']"#

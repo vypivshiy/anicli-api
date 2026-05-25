@@ -1,6 +1,6 @@
 struct PageUtils {
     @doc "helper stuct for extract canonical URL"
-    // hack: extact from RSS feed url
+    // hack: extract from RSS feed url
     url {
         css "link[rel=\"canonical\"], link[rel=\"alternate\"]"
         attr href
@@ -9,7 +9,7 @@ struct PageUtils {
     }
 }
 
-struct PageOngoing type=list {
+(list)struct PageOngoing {
     @doc """
     Get all available ongoings from the main page
 
@@ -21,6 +21,7 @@ struct PageOngoing type=list {
     """
 
     @split-doc { css-all "a.grid-item" }
+    @request "curl https://yummyanime.in"
 
     thumbnail_path { css "img[data-src]"; attr data-src }
     url { attr href }
@@ -33,9 +34,11 @@ struct PageOngoing type=list {
     title { css "h3"; text; trim }
 }
 
-struct PageSearch type=list {
+(list)struct PageSearch {
     @doc """
     Get search results
+
+    NOTE: works only with cyrillic search queries
 
     USAGE:
 
@@ -49,6 +52,16 @@ struct PageSearch type=list {
     """
 
     @split-doc { css-all "a.has-overlay" }
+    @request """
+    curl 'https://yummyanime.in/index.php?do=search' \
+    -X POST \
+    -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -H 'Origin: https://yummyanime.in' \
+    -H 'Referer: https://yummyanime.in/' \
+    -H 'Upgrade-Insecure-Requests: 1' \
+    --data-raw 'do=search&subaction=search&from_page=0&story={{query}}'
+    """
 
     title { css ".poster__title"; text }
     thumbnail_path { css ".xfieldimage[data-src]"; attr data-src }
@@ -67,6 +80,8 @@ struct PageAnime {
 
         GET https://yummyanime.in/4790-vedma-i-chudovische.html
     """
+    @request "curl {{full-url}}"
+    @request name=from-slug "curl https://yummyanime.in/{{slug}}"
 
     title { css ".anime__title h1"; text }
     alt-title { 

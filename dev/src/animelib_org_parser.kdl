@@ -1,0 +1,379 @@
+@doc """
+Animelib.org REST API client (cdnlibs.org backend).
+Base URL: https://api.cdnlibs.org/api
+Auth: Bearer token optional. Required for animelib player video URLs;
+      kodik player works without auth.
+"""
+
+
+// ── Leaf JSON schemas ─────────────────────────────────────────────────────────
+
+json Cover {
+    filename str
+    thumbnail str
+    default str
+    md str
+}
+
+json Background { filename str; url str; }
+json AgeRestriction { id int; label str; }
+json AnimeType { id int; label str; }
+json AnimeStatus { id int; label str; }
+json Moderated { id int; label str; }
+
+json Rating {
+    average str
+    average_formatted str "averageFormated"
+    votes int
+    votes_formatted str "votesFormated"
+    user int
+}
+
+
+json Views {
+    total int
+    short str
+    formatted str "formated"
+}
+
+
+json Genre {
+    id int
+    name str
+    adult bool
+    alert bool
+}
+
+json Tag {
+    id int
+    name str
+    adult bool
+    alert bool
+}
+
+json Subscription {
+    is_subscribed bool "is_subscribed"
+    source_type str "source_type"
+    source_id int "source_id"
+    relation str?
+}
+
+json Avatar { filename str; url str; }
+json Premium { enabled bool }
+json Time { value int; formatted str; }
+json ItemsCount { uploaded int; total int; }
+json TranslationType { id int; label str; }
+json EpisodeStatus { id str; label str; abbr str? }
+
+
+json Stat {
+    value float
+    formatted str "formated"
+    short str
+    label str
+    tag str
+}
+
+json Quality {
+    href str
+    quality int
+    bitrate int
+}
+
+json Pagination {
+    first str
+    last str?
+    prev str?
+    next str
+}
+
+json PaginationMeta {
+    current_page int "current_page"
+    from_val int "from"
+    path str
+    per_page int "per_page"
+    to int
+    seed str
+}
+
+json ErrorToast { type str; message str }
+
+json ApiError {
+    error str?
+    toast ErrorToast @omitempty //? maybe null/empty
+}
+
+
+// ── Mid-level JSON schemas ────────────────────────────────────────────────────
+
+json Team {
+    id int
+    slug str
+    slug_url str "slug_url"
+    model str
+    name str
+    cover Cover
+    donate_enabled str? "donate_enabled"
+}
+
+json TeamWithStats {
+    id int
+    slug str
+    slug_url str "slug_url"
+    model str
+    name str
+    cover Cover
+    donate_enabled str? "donate_enabled"
+    stats (array)Stat
+}
+
+json Publisher {
+    id int
+    slug str
+    slug_url str "slug_url"
+    model str
+    name str
+    rus_name str? "rus_name"
+    cover Cover
+    subscription Subscription
+}
+
+json Author {
+    id int
+    slug str
+    slug_url str "slug_url"
+    model str
+    name str
+    rus_name str? "rus_name"
+    alt_name str? "alt_name"
+    cover Cover
+    subscription Subscription
+    confirmed str?
+    user_id int "user_id"
+}
+
+json User {
+    id int
+    username str
+    avatar Avatar
+    last_online_at str? "last_online_at"
+    premium Premium
+}
+
+json MetadataCountCharacters {
+    main int "Main"
+    supporting int "Supporting"
+}
+
+json MetadataCountReviews {
+    neutral int
+    positive int
+    negative int
+    all int
+}
+
+json MetadataCount {
+    branches int
+    characters MetadataCountCharacters
+    reviews MetadataCountReviews
+    relations int
+    people int
+    covers int
+}
+
+json MetadataCommentsDisabled {
+    media bool
+    content bool
+}
+
+json Metadata {
+    close_comments int "close_comments"
+    comments_disabled MetadataCommentsDisabled "comments_disabled"
+    count MetadataCount
+}
+
+json Video {
+    id int
+    quality (array)Quality
+}
+
+json Player {
+    id int
+    episode_id int "episode_id"
+    player str
+    translation_type TranslationType "translation_type"
+    team TeamWithStats
+    created_at str "created_at"
+    views int
+    src str
+    // included if player == "animelib" else excluded field
+    video Video 
+}
+
+
+// ── Top-level item JSON schemas ───────────────────────────────────────────────
+
+json AnimeListItem {
+    id int
+    name str
+    rus_name str "rus_name"
+    eng_name str "eng_name"
+    model str
+    slug str
+    slug_url str "slug_url"
+    cover Cover
+    age_restriction AgeRestriction "ageRestriction"
+    site int
+    anime_type AnimeType "type"
+    release_date str "releaseDate"
+    rating Rating
+    content_marking (array)str "content_marking"
+    status AnimeStatus
+    release_date_string str "releaseDateString"
+    shiki_rate float? "shiki_rate"
+}
+
+json AnimeDetail {
+    id int
+    name str
+    rus_name str "rus_name"
+    eng_name str "eng_name"
+    model str
+    slug str
+    slug_url str "slug_url"
+    cover Cover
+    age_restriction AgeRestriction "ageRestriction"
+    site int
+    anime_type AnimeType "type"
+    release_date str "releaseDate"
+    rating Rating
+    content_marking (array)str "content_marking"
+    status AnimeStatus
+    release_date_string str "releaseDateString"
+    other_names (array)str "otherNames"
+    background Background
+    summary str
+    close_view int "close_view"
+    views Views
+    is_licensed bool "is_licensed"
+    moderated Moderated
+    teams (array)Team
+    genres (array)Genre
+    tags (array)Tag
+    publisher (array)Publisher
+    franchise (array)str
+    authors (array)Author
+    user User
+    metadata Metadata
+    time Time
+    items_count ItemsCount "items_count"
+    episodes_schedule (array)str "episodes_schedule"
+    shikimori_href str "shikimori_href"
+    shiki_rate float "shiki_rate"
+}
+
+json EpisodeListItem {
+    id int
+    model str
+    name str
+    number str
+    number_secondary str "number_secondary"
+    season str
+    status EpisodeStatus
+    anime_id int "anime_id"
+    created_at str "created_at"
+    item_number int "item_number"
+    type str
+}
+
+json EpisodeDetail {
+    id int
+    model str
+    name str
+    number str
+    number_secondary str "number_secondary"
+    season str
+    status EpisodeStatus
+    anime_id int "anime_id"
+    created_at str "created_at"
+    item_number int "item_number"
+    type str
+    players (array)Player
+}
+
+// ── Response envelope JSON schemas ────────────────────────────────────────────
+
+json AnimeListResponse {
+    data (array)AnimeListItem
+    links Pagination
+    meta PaginationMeta
+}
+
+json CountryMeta { country str }
+
+
+json AnimeDetailResponse {
+    data AnimeDetail
+    meta CountryMeta
+}
+
+json EpisodeListResponse { data (array)EpisodeListItem }
+json EpisodeDetailResponse { data EpisodeDetail }
+
+
+// ── REST struct ───────────────────────────────────────────────────────────────
+
+(rest)struct AnimelibOrgApi {
+    @doc """
+    Animelib.org API client (cdnlibs.org backend).
+
+    Generated methods (Python, --http-client httpx):
+        list_anime(client, *, fields=None, site_id=None, q=None, status=None, sort_by=None, page=None)
+        get_anime(client, *, slug_url, fields=None)
+        list_episodes(client, *, anime_id=None)
+        get_episode(client, *, id)
+    """
+
+    @request \
+        name=list-anime \
+        doc="Search or list anime with optional filters, ongoings, and pagination." \
+        response=AnimeListResponse \
+        """
+        GET /anime?fields={{fields:str[]?|bracket}}&site_id={{site_id:int[]?|bracket}}&q={{q:str?}}&status={{status:int[]?|bracket}}&sort_by={{sort_by:str?}}&page={{page:int?}} HTTP/1.1
+        Host: api.cdnlibs.org
+        Accept: application/json
+        """
+
+    @request \
+        name=get-anime \
+        doc="Get anime details by slug_url (e.g. '316--serial-experiments-lain-anime')." \ 
+        response=AnimeDetailResponse \ 
+        """
+        GET /anime/{{slug_url}}?fields={{fields:str[]?|bracket}} HTTP/1.1
+        Host: api.cdnlibs.org
+        Accept: application/json
+        """
+
+    @request \
+        name=list-episodes \
+        doc="List episodes for an anime by slug_url." \
+        response=EpisodeListResponse \
+        """
+        GET /episodes?anime_id={{anime_id:str?}} HTTP/1.1
+        Host: api.cdnlibs.org
+        Accept: application/json
+        """
+
+    @request \
+        name=get-episode \ 
+        doc="Get episode details with player and dubbing info by episode ID." \
+        response=EpisodeDetailResponse \
+        """
+        GET /episodes/{{id:int}} HTTP/1.1
+        Host: api.cdnlibs.org
+        Accept: application/json
+        """
+
+    @error 404 ApiError
+    @error 400 ApiError
+}

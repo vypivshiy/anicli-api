@@ -88,7 +88,8 @@ struct PageMainKodikMin {
         - 500 Internal server error: eg: https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p ('Cyberpunk: Edgerunners' ep5 Anilibria dub)
 
     """
-
+    @request "curl {{kodik-player-url}}"
+    
     url_params { raw; re RE-URL_PARAMS; jsonify UrlParams }
     api_payload { nested KodikAPIPayload }
     player_js_path {
@@ -97,7 +98,7 @@ struct PageMainKodikMin {
     }
 }
 
-struct SeasonBox type=list {
+(list)struct SeasonBox {
     /*
     tag signature:
     <option value="1" data-serial-id="56718" data-serial-hash="710546f4fc603bdd8c41a7e790a2828c"
@@ -115,7 +116,7 @@ struct SeasonBox type=list {
     data-translation-title { attr data-translation-title }
 }
 
-struct SeriesBox type=list {
+(list)struct SeriesBox {
     /*
     tag signature:
     <option value="1" data-id="1258425" data-hash="3b688251930a4ebb3821be95d9a30362"
@@ -128,7 +129,7 @@ struct SeriesBox type=list {
     data-title { attr data-title }
 }
 
-struct SeriesOptionItem type=list {
+(list)struct SeriesOptionItem {
     /*
     tag signature:
 
@@ -146,7 +147,7 @@ struct SeriesOptionItem type=list {
     data-title { attr data-title }
 }
 
-struct SeriesOptions type=dict {
+(dict)struct SeriesOptions{
     /*
     tag signature
 
@@ -164,7 +165,7 @@ struct SeriesOptions type=dict {
     @value { nested SeriesOptionItem }
 }
 
-struct TranslationsBox type=list {
+(list)struct TranslationsBox {
     /*
     tag signature:
     <option value="2822" data-id="2822" data-translation-type="voice" data-media-id="56791"
@@ -193,6 +194,8 @@ struct PageMainKodikSerial {
     EXAMPLE:
         GET - https://kodik.info/serial/64218/890744b309ec026d43742995d0d49cd7/720p?season=1&episode=1
     """
+    @request "curl {{kodik-player-url}}"
+
     url_params { raw; re RE-URL_PARAMS; jsonify UrlParams }
     api_payload { nested KodikAPIPayload }
     player_js_path {
@@ -213,7 +216,7 @@ struct PageMainKodikSerial {
     translations_box { nested TranslationsBox }
 }
 
-struct MovieTranslationBox type=list {
+(list)struct MovieTranslationBox {
     @doc "PageMainKodikVideo /video/ (film) segment"
     /* tag signature:
 
@@ -239,16 +242,27 @@ struct MovieTranslationBox type=list {
 }
 
 struct PageMainKodikVideo {
-    @doc """
+    @doc #"""
     First extract data entrypoint for kodik.../video/ entrypoint path (FILMS, less often OVA)
 
     required for extract videos via kodik API
+
+    for get actual kodik api path extract from player_js_path endpoint by regex `"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)"`
+
+    inner js expected content:
+
+    ```
+    ... $.ajax({type:"POST",url:atob("L2Z0b3I="),cache:! ...
+    ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !...
+    ```
 
     EXAMPLE:
 
         - GET https://kodik.info/video/9935/313bc89421b094f6f374cc7420e00ad1/720p?translations=false&min_age=16 (Кланнад фильм)
         - GET https://kodik.info/video/72755/dc966c03a7cb719dac577d8004a9b091/720p?translations=false&min_age=16 (Вайолет Эвергарден. Фильм)
-    """
+    """#
+    @request "curl {{kodik-player-url}}"
+    
     url_params { raw; re RE-URL_PARAMS; jsonify UrlParams }
     api_payload { nested KodikAPIPayload }
     player_js_path {
@@ -261,8 +275,8 @@ struct PageMainKodikVideo {
     ... $.ajax({type:"POST",url:atob("L2Z0b3I="),cache:! ...
     ... $.ajax({type: 'POST', url:atob('L3RyaQ=='),cache: !...
     */
-    api-path {
-        raw;
-        re #"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)"#
-    }
+    // api-path {
+    //     raw;
+    //     re #"\$\.ajax[^)]+atob\([\"\'](\w+=)[\'\"]\)"#
+    // }
 }

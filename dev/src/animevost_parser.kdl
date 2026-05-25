@@ -1,0 +1,68 @@
+json Item {
+    id int
+    title str
+    description str
+    genre str
+    year str
+    urlImagePreview str
+    screenImage (array)str
+    isFavorite int // 0/1
+    isLikes int // 0/1
+    rating float
+    votes int
+    timer float
+    type str
+    director str
+    series str
+}
+
+json State { status str; rek int; page int; count int }
+// json Data { items (array)Item }
+json SearchResponse { state State; data (array)Item }
+
+
+(array)json PlaylistResponse {
+    name str
+    hd str
+    std str
+    preview str
+}
+json ResponseError { status str?; error str }
+
+
+(rest)struct AnimeVostAPI {
+    @request \
+        name=search \
+        response=SearchResponse \
+        """
+        curl -X POST "https://api.animevost.org/v1/search" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "name={{query}}"
+        """
+    
+    /* for ongoings recommended:
+    page=1; quanity=20
+    */
+    @request \
+        name=last \
+        response=SearchResponse \ 
+        """
+        curl -X GET "https://api.animevost.org/v1/last?page={{page:int}}&quantity={{quantity:int}}"
+        """
+
+    @request \
+        name=playlist \
+        response=PlaylistResponse \ 
+        """
+        curl -X POST "https://api.animevost.org/v1/playlist" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "id={{id:int}}"
+        """
+
+    // exclude status field
+    @error 404 ResponseError
+
+    // playlist specific error
+    @error 200 ResponseError "error" 
+
+}
