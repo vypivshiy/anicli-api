@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from urllib.parse import urlsplit
 from anicli_api.typing import MutableSequence, TypedDict
@@ -12,6 +12,8 @@ from anicli_api._http import (  # noqa: F401
     HTTPSync,
 )
 from anicli_api.player import ALL_DECODERS
+from anicli_api.player import video_playlist_from_vk_id as cdnvideohub_playlist_from_vkid
+from anicli_api.player import a_video_playlist_from_vk_id as async_cdnvideohub_playlist_from_vkid
 
 if TYPE_CHECKING:
     from httpx import AsyncClient, Client
@@ -241,16 +243,30 @@ class BaseSource(HttpMixin):
     url: str
     """player (source) url"""
 
+    cdn_videohub_vk_id: Optional[str] = None
+    """special field for cdnvideohub source"""
+
     @property
     def _all_video_extractors(self):
         """helper property for helps dynamic match decoder parser by player url"""
         return ALL_DECODERS
+
+    @property
+    def _cdn_videohub_extractor(self):
+        return cdnvideohub_playlist_from_vkid
+
+    @property
+    def _async_cdn_videohub_extractor(self):
+        return async_cdnvideohub_playlist_from_vkid
 
     def get_videos(self, **httpx_kwargs) -> MutableSequence["Video"]:
         """get direct video information for direct play
 
         :param httpx_kwargs: httpx.Client configuration
         """
+        if self.cdn_videohub_vk_id:
+            return cdnvideohub_playlist_from_vkid(self.http, self.cdn_videohub_vk_id)
+
         for extractor in self._all_video_extractors:
             if self.url == extractor():
                 return extractor(**httpx_kwargs).parse(self.url)
@@ -262,6 +278,9 @@ class BaseSource(HttpMixin):
 
         :param httpx_kwargs: httpx.AsyncClient configuration
         """
+        if self.cdn_videohub_vk_id:
+            return await async_cdnvideohub_playlist_from_vkid(self.http_async, self.cdn_videohub_vk_id)
+
         for extractor in self._all_video_extractors:
             if self.url == extractor():
                 return await extractor(**httpx_kwargs).a_parse(self.url)  # type: ignore

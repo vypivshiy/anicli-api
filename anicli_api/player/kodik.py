@@ -6,8 +6,9 @@ from base64 import b64decode
 from urllib.parse import urlsplit
 from httpx import Response
 
-from .base import BaseVideoExtractor, Video, url_validator
-from .parsers.kodik_parser import PageMainKodikMin
+
+from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
+from anicli_api.player.parsers.kodik_parser import PageMainKodikMin
 
 __all__ = ["Kodik"]
 _URL_EQ = re.compile(r"https://(www\.)?\w{5,32}\.\w{2,6}/(?:serial?|season|video|film)/\d+/\w+/\d{3,4}p")
@@ -24,6 +25,7 @@ class Kodik(BaseVideoExtractor):
 
     @kodik_validator
     def parse(self, url: str, **kwargs) -> list[Video]:
+        # result = PageMainKodikMin.fetch(self.http, kodik_player_url=url)
         response = self.http.get(url)
         if self._is_unhandled_error_response(response):
             return []

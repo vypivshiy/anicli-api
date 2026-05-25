@@ -1,15 +1,30 @@
 from __future__ import annotations
 import logging
 import re
+from typing import List, cast
+
+from httpx import AsyncClient, Client
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
-from anicli_api.player.parsers.cdnvideohub_parser import PageAnimegoIframe
-from anicli_api.player.apis.cdnvideohub import CdnVideoHubSync, CdnVideoHubAsync
+from anicli_api.player.parsers.cdnvideohub_parser import (
+    PageParseCdnVideoData,
+    CdnVideoHubAPI,
+    CdnVideoFromIdResponseJson,
+    CdnVideoHubResponseJson,
+)
 
 
 __all__ = ["CdnVideoHub", "video_playlist_from_vk_id", "a_video_playlist_from_vk_id"]
 # url validator pattern
-_URL_EQ = re.compile(r"https?://(www\.)?animego\.\w+/cdn\-iframe/\d+/[\w\s]+/\d+/\d+")
+# TODO: generic url parse add
+# TODO: mov extract CDN data to animego
+_URL_EQ = re.compile(
+    r"""
+https?://(www\.)?animego\.\w+/cdn\-iframe/\d+/[\w\s]+/\d+/\d+
+
+""",
+    re.X,
+)
 # url validate decorator
 player_validator = url_validator(_URL_EQ)
 logger = logging.getLogger("anicli-api")  # type: ignore
@@ -20,26 +35,33 @@ _RESOLUTION_MAPPING = {
     "mpegMediumUrl": 480,
     "mpegHighUrl": 720,
     "mpegFullHdUrl": 1080,
-    "mpegQhdUrl": 1440,  # TODO maybe wrong value ???
-    "mpeg2kUrl": 1440,  # ???
-    "mpeg4kUrl": 2160,  # ???
+    "mpegQhdUrl": 1440,
+    "mpeg2kUrl": 2048,
+    "mpeg4kUrl": 4096,
 }
 
 
-def video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video"]:
-    result = CdnVideoHubSync().get_video_by_id(id=vkid).data["sources"]
-    hls_video = result.pop("hlsUrl")
-    dash_video = result.pop("dashUrl")
-    videos = []
-    for key, video_url in result.items():
-        if not video_url:
+def video_playlist_from_vk_id(http_client: Client, vkid: str) -> list["Video"]:
+    user_agent = http_client.headers["User-Agent"]
+    result = CdnVideoHubAPI.from_vkid(http_client, id=vkid)
+    if not result.is_ok:
+        return []
+    value = result.value
+    value = cast(CdnVideoFromIdResponseJson, value)
+    sources = value["sources"]
+    # late add this
+    hls_video = sources.pop("hlsUrl")
+    dash_video = sources.pop("dashUrl")
+    videos: List[Video] = []
+    for key, video in sources.items():
+        if not video:
             continue
         quality = _RESOLUTION_MAPPING.get(key, 0)
         videos.append(
             Video(
                 type="mp4",
                 quality=quality,  # type: ignore (int)
-                url=video_url,  # type: ignore (str)
+                url=video,  # type: ignore (str)
                 headers={"User-Agent": user_agent},
             )
         )
@@ -52,20 +74,27 @@ def video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video"]:
     return videos
 
 
-async def a_video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video"]:
-    result = (await CdnVideoHubAsync().get_video_by_id(id=vkid)).data["sources"]
-    hls_video = result.pop("hlsUrl")
-    dash_video = result.pop("dashUrl")
-    videos = []
-    for key, video_url in result.items():
-        if not video_url:
+async def a_video_playlist_from_vk_id(http_client: AsyncClient, vkid: str) -> list["Video"]:
+    user_agent = http_client.headers["User-Agent"]
+    result = await CdnVideoHubAPI.async_from_vkid(http_client, id=vkid)
+    if not result.is_ok:
+        return []
+    value = result.value
+    value = cast(CdnVideoFromIdResponseJson, value)
+    sources = value["sources"]
+    # late add this
+    hls_video = sources.pop("hlsUrl")
+    dash_video = sources.pop("dashUrl")
+    videos: List[Video] = []
+    for key, video in sources.items():
+        if not video:
             continue
         quality = _RESOLUTION_MAPPING.get(key, 0)
         videos.append(
             Video(
                 type="mp4",
                 quality=quality,  # type: ignore (int)
-                url=video_url,  # type: ignore (str)
+                url=video,  # type: ignore (str)
                 headers={"User-Agent": user_agent},
             )
         )
@@ -81,12 +110,6 @@ async def a_video_playlist_from_vk_id(vkid: str, user_agent: str) -> list["Video
 class CdnVideoHub(BaseVideoExtractor):
     URL_RULE = _URL_EQ
 
-    def __init__(self, **httpx_kwargs):
-        super().__init__(**httpx_kwargs)
-
-        self.sync_api = CdnVideoHubSync(headers=dict(self.http.headers), timeout=self.http.timeout)  # type: ignore
-        self.async_api = CdnVideoHubAsync(headers=dict(self.a_http.headers), timeout=self.a_http.timeout)  # type: ignore
-
     @staticmethod
     def _parse_url_parts(url: str) -> tuple[str, str, str, str]:
         # eg signature url
@@ -96,79 +119,54 @@ class CdnVideoHub(BaseVideoExtractor):
         id_, dubber_name, season, episode_num = path.strip().split("/")
         return id_, dubber_name, season, episode_num
 
-    def _extract_videos_common(self, resp3_data, user_agent: str):
-        """Common logic for extracting videos from API response data."""
-        if resp3_data.success:
-            hls_video = resp3_data.data["sources"].pop("hlsUrl")
-            dash_video = resp3_data.data["sources"].pop("dashUrl")
-            videos = []
-            # https://github.com/streamlink/streamlink/issues/6369#issuecomment-2565443159
-            # play or stream a video from OKCDN, the IP address and **user-agent** of the last request must match.
-            for key, video_url in resp3_data.data["sources"].items():
-                if not video_url:
-                    continue
-                quality = _RESOLUTION_MAPPING.get(key, 0)
-                videos.append(
-                    Video(
-                        type="mp4",
-                        quality=quality,  # type: ignore (int)
-                        url=video_url,  # type: ignore (str)
-                        headers={"User-Agent": user_agent},
-                    )
-                )
-            # hls, dash - set max quality
-            if videos:
-                videos.sort(key=lambda i: i.quality)
-                max_quality = sorted(videos, key=lambda i: i.quality, reverse=True)[0].quality
-                videos.append(
-                    Video(type="m3u8", quality=max_quality, url=hls_video, headers={"User-Agent": user_agent})
-                )  # type: ignore
-                videos.append(
-                    Video(type="mpd", quality=max_quality, url=dash_video, headers={"User-Agent": user_agent})
-                )  # type: ignore
-            return videos
-        return []
-
     @player_validator
     def parse(self, url: str, **kwargs) -> list[Video]:
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
         response = self.http.get(url, headers={"referer": "https://animego.me"})
-        options = PageAnimegoIframe(response.text).parse()
-        resp2 = self.sync_api.get_playlist(
-            pub=int(options["data_publisher_id"]), aggr=options["data_aggregator"], id=int(options["data_title_id"])
+        options = PageParseCdnVideoData(response.text).parse()
+        resp = CdnVideoHubAPI.get_params_from_page(
+            self.http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["id"]
         )
-        if resp2.success:
-            for data in resp2.data["items"]:
-                if (
-                    data["episode"] == int(episode_num)
-                    and data["season"] == int(season)
-                    and data["voiceStudio"] == dubber_name
-                ):
-                    resp3 = self.sync_api.get_video_by_id(id=data["vkId"])
-                    return self._extract_videos_common(resp3, user_agent=self.http.headers["User-Agent"])
-            else:
-                logger.warning("[cdnvideohub] failed get videos candidates")
+        if not resp.is_ok:
+            # TODO: handle errors
+            return []
+        value = resp.value
+        value = cast(CdnVideoHubResponseJson, value)
+        for data in value["items"]:
+            if (
+                data["episode"] == int(episode_num)
+                and data["season"] == int(season)
+                and data["voiceStudio"] == dubber_name
+            ):
+                vkid = data["vkId"]
+                return video_playlist_from_vk_id(self.http, vkid=vkid)
+
+        logger.warning("[cdnvideohub] failed get videos candidates")
         return []
 
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> list[Video]:
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
-        response = self.http.get(url, headers={"referer": "https://animego.me"})
-        options = PageAnimegoIframe(response.text).parse()
-        resp2 = await self.async_api.get_playlist(
-            pub=int(options["data_publisher_id"]), aggr=options["data_aggregator"], id=int(options["data_title_id"])
+        response = await self.a_http.get(url, headers={"referer": "https://animego.me"})
+        options = PageParseCdnVideoData(response.text).parse()
+        resp = await CdnVideoHubAPI.async_get_params_from_page(
+            self.a_http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["id"]
         )
-        if resp2.success:
-            for data in resp2.data["items"]:
-                if (
-                    data["episode"] == int(episode_num)
-                    and data["season"] == int(season)
-                    and data["voiceStudio"] == dubber_name
-                ):
-                    resp3 = await self.async_api.get_video_by_id(id=data["vkId"])
-                    return self._extract_videos_common(resp3, user_agent=self.a_http.headers["User-Agent"])
-            else:
-                logger.warning("[cdnvideohub] failed get videos candidates")
+        if not resp.is_ok:
+            # TODO: handle errors
+            return []
+        value = resp.value
+        value = cast(CdnVideoHubResponseJson, value)
+        for data in value["items"]:
+            if (
+                data["episode"] == int(episode_num)
+                and data["season"] == int(season)
+                and data["voiceStudio"] == dubber_name
+            ):
+                vkid = data["vkId"]
+                return video_playlist_from_vk_id(self.http, vkid=vkid)
+
+        logger.warning("[cdnvideohub] failed get videos candidates")
         return []
 
 
