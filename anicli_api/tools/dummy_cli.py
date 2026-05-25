@@ -77,7 +77,10 @@ def _anime_entry(a: "BaseAnime"):
     eps = a.get_episodes()
     if not _is_empty(eps):
         return
-    print(a)
+    print(a.title)
+    print("=" * len(a.title))
+    if a.description:
+        print(a.description)
     print("choice episode")
     item: "BaseEpisode" = _choice(eps, "EPISODE")
 
