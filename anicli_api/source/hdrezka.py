@@ -1,106 +1,103 @@
 from __future__ import annotations
 
 import logging
-from typing import TypedDict
+from typing import cast, TypedDict
 from time import time
+import re
 
 from attr import field, define
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
-from anicli_api.source.parsers.hdrezka_parser import PageAnime, PageOngoing, PageSearch, PageUtils
+from anicli_api.source.parsers.hdrezka_parser import PageAnime, PageOngoing, PageSearch, HdrezkaCdnSeriesAPI
 
 # types
-from anicli_api.source.parsers.hdrezka_parser import SeasonBoxType, EpisodeType, TranslationType
+from anicli_api.source.parsers.hdrezka_parser import EpisodeType, PageAnimeType, HdrezkaCdnResponseJson
 from anicli_api.player.base import Video
 
 logger = logging.getLogger("anicli-api")
 
 
-class HdrezkaResponse(TypedDict):
-    success: bool
-    message: str
-    premium_content: int
-    url: str
-    quality: str
-    subtitle: bool
-    subtitle_lns: bool
-    subtitle_def: bool
-    thumbnails: str
+class HdrezkaApiPayload(TypedDict):
+    id: int
+    translator_id: str
+    season: int
+    favs: str
+    episode: int
+    action: str
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://hdrezka-home.tv"
-    ONGOING_PARAMS = {"filter": "last", "genre": "82"}
-    #
-    SEARCH_PARAMS = {"do": "search", "subaction": "search", "q": ""}
 
-    def _parse_search(self, resp: str):
-        data = PageSearch(resp).parse()
+    def search(self, query: str):
+        result = PageSearch.fetch(self.http, query=query).parse()
         return [
-            Search(title=f"{i['title']} {i['season']}", url=i["url"], thumbnail=i["thumbnail"], **self._kwargs_http)
-            for i in data
+            Search(
+                title=f"{data['title']} {data['season']}",
+                url=data["url"],
+                thumbnail=data["thumbnail"],
+                **self._kwargs_http,
+            )
+            for data in result
         ]
 
-    def _parse_ongoing(self, resp: str):
-        data = PageOngoing(resp).parse()
+    async def a_search(self, query: str):
+        result = (await PageSearch.async_fetch(self.http_async, query=query)).parse()
         return [
-            Ongoing(title=f"{i['title']} {i['season']}", url=i["url"], thumbnail=i["thumbnail"], **self._kwargs_http)
-            for i in data
+            Search(
+                title=f"{data['title']} {data['season']}",
+                url=data["url"],
+                thumbnail=data["thumbnail"],
+                **self._kwargs_http,
+            )
+            for data in result
         ]
-
-    def search(self, query):
-        params = self.SEARCH_PARAMS.copy()
-        params["q"] = query
-        resp = self.http.get(self.BASE_URL + "/search/", params=params)
-        return self._parse_search(resp.text)
-
-    async def a_search(self, query):
-        params = self.SEARCH_PARAMS.copy()
-        params["q"] = query
-        resp = await self.http_async.get(self.BASE_URL + "/search/", params=params)
-        return self._parse_search(resp.text)
 
     def ongoing(self):
-        resp = self.http.get(self.BASE_URL, params=self.ONGOING_PARAMS)
-        return self._parse_ongoing(resp.text)
+        result = PageOngoing.fetch(self.http).parse()
+        return [
+            Ongoing(
+                title=f"{data['title']} {data['season']}",
+                url=data["url"],
+                thumbnail=data["thumbnail"],
+                **self._kwargs_http,
+            )
+            for data in result
+        ]
 
     async def a_ongoing(self):
-        resp = await self.http_async.get(self.BASE_URL, params=self.ONGOING_PARAMS)
-        return self._parse_ongoing(resp.text)
+        result = (await PageOngoing.async_fetch(self.http_async)).parse()
+        return [
+            Ongoing(
+                title=f"{data['title']} {data['season']}",
+                url=data["url"],
+                thumbnail=data["thumbnail"],
+                **self._kwargs_http,
+            )
+            for data in result
+        ]
 
 
 @define(kw_only=True)
 class Search(BaseSearch):
     def get_anime(self):
-        resp = self.http.get(self.url)
-        data = PageAnime(resp.text).parse()
-        url = PageUtils(resp.text).parse()["url"]
+        data = PageAnime.fetch_from_url(self.http, anime_url=self.url).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
             description=data["description"],
-            translation_list=data["translation_list"],
-            translation_id=data["translation_id"],
-            episode_list=data["episode_list"],
-            season_box=data["season_box"],
-            favs=data["favs"],
-            url=url,
+            data=data,
+            url=Extractor.BASE_URL,
             **self._kwargs_http,
         )
 
     async def a_get_anime(self):
-        resp = await self.http_async.get(self.url)
-        data = PageAnime(resp.text).parse()
-        url = PageUtils(resp.text).parse()["url"]
+        data = (await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url)).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
             description=data["description"],
-            translation_list=data["translation_list"],
-            translation_id=data["translation_id"],
-            episode_list=data["episode_list"],
-            season_box=data["season_box"],
-            favs=data["favs"],
-            url=url,
+            data=data,
+            url=Extractor.BASE_URL,
             **self._kwargs_http,
         )
 
@@ -108,66 +105,39 @@ class Search(BaseSearch):
 @define(kw_only=True)
 class Ongoing(BaseOngoing):
     def get_anime(self):
-        resp = self.http.get(self.url)
-        data = PageAnime(resp.text).parse()
-        url = PageUtils(resp.text).parse()["url"]
+        data = PageAnime.fetch_from_url(self.http, anime_url=self.url).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
             description=data["description"],
-            translation_list=data["translation_list"],
-            translation_id=data["translation_id"],
-            episode_list=data["episode_list"],
-            season_box=data["season_box"],
-            favs=data["favs"],
-            url=url,
+            data=data,
+            url=Extractor.BASE_URL,
             **self._kwargs_http,
         )
 
     async def a_get_anime(self):
-        resp = await self.http_async.get(self.url)
-        data = PageAnime(resp.text).parse()
-        url = PageUtils(resp.text).parse()["url"]
+        data = (await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url)).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
             description=data["description"],
-            translation_list=data["translation_list"],
-            translation_id=data["translation_id"],
-            episode_list=data["episode_list"],
-            season_box=data["season_box"],
-            favs=data["favs"],
-            url=url,
+            data=data,
+            url=Extractor.BASE_URL,
             **self._kwargs_http,
         )
 
 
 @define(kw_only=True)
 class Anime(BaseAnime):
-    _translation_list: list[TranslationType] = field(alias="translation_list")
-    _translation_id: str = field(alias="translation_id")
-    _season_box: list[SeasonBoxType] = field(alias="season_box")
-    _episode_list: list[EpisodeType] = field(alias="episode_list")
-    _favs: str = field(alias="favs")
+    data: PageAnimeType
     _url: str = field(alias="url")
 
     # note: lazy create instances: every episode required send API request
     def get_episodes(self):
-        eps = []
-        for i, e in enumerate(self._episode_list, 1):
-            eps.append(
-                Episode(
-                    title=e["title"],
-                    episode=e,
-                    translation_list=self._translation_list,
-                    translation_id=self._translation_id,
-                    season_box=self._season_box,
-                    ordinal=i,
-                    favs=self._favs,
-                    url=self._url,
-                    **self._kwargs_http,
-                )
-            )
+        eps = [
+            Episode(title=e["title"], data=self.data, data_episode=e, ordinal=i, **self._kwargs_http)
+            for i, e in enumerate(self.data["episode_list"])
+        ]
         return eps
 
     async def a_get_episodes(self):
@@ -176,50 +146,44 @@ class Anime(BaseAnime):
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    _translation_list: list[TranslationType] = field(alias="translation_list")
-    _translation_id: str = field(alias="translation_id")
-    _season_box: list[SeasonBoxType] = field(alias="season_box")
-    _episode: EpisodeType = field(alias="episode")
-    _favs: str = field(alias="favs")
-    _url: str = field(alias="url")
+    data: PageAnimeType
+    data_episode: EpisodeType
 
     def get_sources(self):
-        sources = []
-        if not self._translation_list:
-            payload = {
-                "id": self._episode["data_id"],
-                "translator_id": self._translation_id,
-                "season": self._episode["data_season_id"],
-                "favs": self._favs,
-                "episode": self._episode["data_episode_id"],
-                "action": "get_stream",
-            }
+        # single translation option allowed
+        if not self.data["translation_list"]:
             return [
                 Source(
-                    title="hdrezka",  # how extract dubber name in this case?
-                    url=self._url,  # stub, real url generated in Source object
-                    api_payload=payload,
+                    title="hdrezka",
+                    url=Extractor.BASE_URL,
+                    api_payload={
+                        "id": self.data_episode["data_id"],
+                        "translator_id": self.data["translation_id"],
+                        "season": self.data_episode["data_season_id"],
+                        "favs": self.data["favs"],
+                        "episode": self.data_episode["data_episode_id"],
+                        "action": "get_stream",
+                    },
                     **self._kwargs_http,
                 )
             ]
 
-        for translation in self._translation_list:
-            payload = {
-                "id": self._episode["data_id"],
-                "translator_id": translation["data_translator_id"],
-                "season": self._episode["data_season_id"],
-                "favs": self._favs,
-                "episode": self._episode["data_episode_id"],
-                "action": "get_stream",
-            }
-            sources.append(
-                Source(
-                    title=f"{translation['title']}",
-                    url=self._url,  # stub, real url generated in Source object
-                    api_payload=payload,
-                    **self._kwargs_http,
-                )
+        sources = [
+            Source(
+                title=f"{translation['title']}",
+                url=Extractor.BASE_URL,  # stub, real url generated in Source object
+                api_payload={
+                    "id": self.data_episode["data_id"],
+                    "translator_id": translation["data_translator_id"],
+                    "season": self.data_episode["data_season_id"],
+                    "favs": self.data["favs"],
+                    "episode": self.data_episode["data_episode_id"],
+                    "action": "get_stream",
+                },
+                **self._kwargs_http,
             )
+            for translation in self.data["translation_list"]
+        ]
         return sources
 
     async def a_get_sources(self):
@@ -228,16 +192,16 @@ class Episode(BaseEpisode):
 
 @define(kw_only=True)
 class Source(BaseSource):
-    _api_payload: dict[str, str] = field(alias="api_payload")  # todo: typing
+    _api_payload: HdrezkaApiPayload = field(alias="api_payload")  # todo: typing
 
     def _parse_videos(self, raw_urls: str) -> list["Video"]:
         videos = []
         for part in raw_urls.split(","):
             # item signature:
             # "[{int}p (Ultra)?]https://...manifest.m3u8 or https://...mp4"
-            quality, raw_urls = part.split("]", 1)
-            quality = quality.split("p", 1)[0].replace("[", "")
-            urls = raw_urls.split(" or ", 1)
+            quality = re.search(r"\[.*?(\d+).*?\]", part)[1]  # type: ignore
+            url = part.split("]", 1)[1]
+            urls = url.split(" or ", 1)
             for url in urls:
                 if url.endswith(".mp4"):
                     type_ = "mp4"
@@ -248,16 +212,28 @@ class Source(BaseSource):
         return videos
 
     def get_videos(self, **httpx_kwargs):
-        resp = self.http.post(
-            self.url + "/ajax/get_cdn_series/", params={"t": int(time() - 40)}, data=self._api_payload, **httpx_kwargs
+        result = HdrezkaCdnSeriesAPI.fetch(
+            self.http,
+            timestamp=int(time() - 40),
+            **self._api_payload,
         )
-        data: HdrezkaResponse = resp.json()
-        return self._parse_videos(data["url"])
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(HdrezkaCdnResponseJson, value)
+        return self._parse_videos(value["url"])
 
     async def a_get_videos(self, **httpx_kwargs):
-        resp = await self.http_async.post(self.url + "/ajax/get_cdn_series/", data=self._api_payload, **httpx_kwargs)
-        data: HdrezkaResponse = resp.json()
-        return self._parse_videos(data["url"])
+        result = await HdrezkaCdnSeriesAPI.async_fetch(
+            self.http_async,
+            timestamp=int(time() - 40),
+            **self._api_payload,
+        )
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(HdrezkaCdnResponseJson, value)
+        return self._parse_videos(value["url"])
 
 
 if __name__ == "__main__":

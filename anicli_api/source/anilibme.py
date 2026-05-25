@@ -1,365 +1,317 @@
 from __future__ import annotations
+from typing import List, cast
 
-from typing import TYPE_CHECKING
 
-from attrs import define, field
+from attrs import define
 
-from anicli_api.typing import TypedDict
-from anicli_api._http import HTTPAsync, HTTPSync
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
-from anicli_api.source.apis.animelib_org import (
-    AnimeliborgAPISync,
-    AnimeliborgAPIAsync,
-    T_AnimeListItem,
-    T_AnimeDetail,
-    T_EpisodeListItem,
-    T_Player,
+from anicli_api.source.parsers.animelib_org_parser import AnimelibOrgApi
+
+# types
+from anicli_api.source.parsers.animelib_org_parser import (
+    AnimeListResponseJson,
+    AnimeDetailResponseJson,
+    EpisodeListItemJson,
+    PlayerJson,
+    AnimeListItemJson,
+    AnimeDetailJson,
+    EpisodeListResponseJson,
+    EpisodeDetailResponseJson,
 )
 
-if TYPE_CHECKING:
-    from httpx import AsyncClient, Client
-
-
-T_KW_APIS = TypedDict("T_KW_APIS", {"sync_api": AnimeliborgAPISync, "async_api": AnimeliborgAPIAsync})
 
 # consts for API requests
 # params constants
 _SEARCH_ANIME_FIELD_PARAMS = ["rate", "rate_avg", "releaseDate"]
-_GET_ANIME_FIELD_PARAMS = [
-    "background",
-    "eng_name",
-    "otherNames",
-    "summary",
-    "releaseDate",
-    "type_id",
-    "caution",
-    "views",
-    "close_view",
-    "rate_avg",
-    "rate",
-    "genres",
-    "tags",
-    "teams",
-    "user",
-    "franchise",
-    "authors",
-    "publisher",
-    "userRating",
-    "moderated",
-    "metadata",
-    "metadata.count",
-    "metadata.close_comments",
-    "anime_status_id",
-    "time",
-    "episodes",
-    "episodes_count",
-    "episodesSchedule",
-    "shiki_rate",
-]
 _SITE_ID = [1, 3]
 
 
 class Extractor(BaseExtractor):
     BASE_URL = "https://api.cdnlibs.org/api/"
 
-    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
-        super().__init__(http_client=http_client, http_async_client=http_async_client)
-        self._sync_api = AnimeliborgAPISync(client=http_client)
-        self._async_api = AnimeliborgAPIAsync(client=http_async_client)
-
-    @property
-    def sync_api(self) -> AnimeliborgAPISync:
-        return self._sync_api
-
-    @property
-    def async_api(self) -> AnimeliborgAPIAsync:
-        return self._async_api
-
-    @property
-    def _kwargs_api(self) -> T_KW_APIS:
-        """shortcut for pass API objects arguments in kwargs style"""
-        return {"sync_api": self.sync_api, "async_api": self.async_api}
-
     def search(self, query: str) -> list["Search"]:
-        result = self.sync_api.get_anime(fields=_SEARCH_ANIME_FIELD_PARAMS, site_id=_SITE_ID, q=query)
-        results = []
-        if result.success and result.data:
-            for data in result.data["data"]:
-                results.append(
-                    Search(
-                        title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
-                        thumbnail=data["cover"]["default"],
-                        url=data["slug_url"],  # stub
-                        data=data,
-                        **self._kwargs_http,
-                        **self._kwargs_api,
-                    )
-                )
+        result = AnimelibOrgApi.list_anime(
+            self.http, fields=["rate", "rate_avg", "releaseDate"], site_id=[1, 3], q=query
+        )
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(AnimeListResponseJson, value)
+        results = [
+            Search(
+                title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
+                thumbnail=data["cover"]["default"],
+                url=data["slug_url"],  # stub
+                data=data,
+                **self._kwargs_http,
+            )
+            for data in value["data"]
+        ]
         return results
 
     async def a_search(self, query: str) -> list["Search"]:
-        result = await self.async_api.get_anime(fields=_SEARCH_ANIME_FIELD_PARAMS, site_id=_SITE_ID, q=query)
-        results = []
-        if result.success and result.data:
-            for data in result.data["data"]:
-                results.append(
-                    Search(
-                        title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
-                        thumbnail=data["cover"]["default"],
-                        url=data["slug_url"],  # stub
-                        data=data,
-                        **self._kwargs_http,
-                        **self._kwargs_api,
-                    )
-                )
+        result = await AnimelibOrgApi.async_list_anime(
+            self.http_async, fields=["rate", "rate_avg", "releaseDate"], site_id=[1, 3], q=query
+        )
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(AnimeListResponseJson, value)
+        results = [
+            Search(
+                title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
+                thumbnail=data["cover"]["default"],
+                url=data["slug_url"],  # stub
+                data=data,
+                **self._kwargs_http,
+            )
+            for data in value["data"]
+        ]
         return results
 
     def ongoing(self) -> list["Ongoing"]:
-        result = self.sync_api.get_anime(
+        # status - magic enum. sorts by ongoings
+        result = AnimelibOrgApi.list_anime(
+            self.http,
             fields=["rate", "rate_avg", "userBookmark"],
-            site_id=_SITE_ID,  # magic enum - sorty by ongoings
+            site_id=[1, 3],
             status=[1],
             sort_by="last_episode_at",
         )
-        results = []
-        if result.success and result.data:
-            for data in result.data["data"]:
-                results.append(
-                    Ongoing(
-                        title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
-                        thumbnail=data["cover"]["default"],
-                        url=data["slug_url"],  # stub
-                        data=data,
-                        **self._kwargs_http,
-                        **self._kwargs_api,
-                    )
-                )
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(AnimeListResponseJson, value)
+        results = [
+            Ongoing(
+                title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
+                thumbnail=data["cover"]["default"],
+                url=data["slug_url"],  # stub
+                data=data,
+                **self._kwargs_http,
+            )
+            for data in value["data"]
+        ]
         return results
 
     async def a_ongoing(self) -> list["Ongoing"]:
-        result = await self.async_api.get_anime(
+        # status - magic enum. sorts by ongoings
+        result = await AnimelibOrgApi.async_list_anime(
+            self.http_async,
             fields=["rate", "rate_avg", "userBookmark"],
-            site_id=_SITE_ID,  # magic enum - sorty by ongoings
+            site_id=[1, 3],
             status=[1],
             sort_by="last_episode_at",
         )
-        results = []
-        if result.success and result.data:
-            for data in result.data["data"]:
-                results.append(
-                    Ongoing(
-                        title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
-                        thumbnail=data["cover"]["default"],
-                        url=data["slug_url"],  # stub
-                        data=data,
-                        **self._kwargs_http,
-                        **self._kwargs_api,
-                    )
-                )
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(AnimeListResponseJson, value)
+        results = [
+            Ongoing(
+                title=data.get("rus_name", "") or data.get("name", "") or data.get("eng_name", ""),
+                thumbnail=data["cover"]["default"],
+                url=data["slug_url"],  # stub
+                data=data,
+                **self._kwargs_http,
+            )
+            for data in value["data"]
+        ]
         return results
 
 
-class _ApiInstancesMixin:
-    _sync_api: AnimeliborgAPISync
-    _async_api: AnimeliborgAPIAsync
-
-    @property
-    def _kwargs_apis(self) -> T_KW_APIS:
-        return {"sync_api": self.sync_api, "async_api": self.async_api}
-
-    @property
-    def sync_api(self) -> AnimeliborgAPISync:
-        return self._sync_api
-
-    @property
-    def async_api(self) -> AnimeliborgAPIAsync:
-        return self._async_api
-
-
 @define(kw_only=True)
-class Search(_ApiInstancesMixin, BaseSearch):
-    _sync_api: AnimeliborgAPISync = field(alias="sync_api")
-    _async_api: AnimeliborgAPIAsync = field(alias="async_api")
-    data: T_AnimeListItem
+class Search(BaseSearch):
+    data: AnimeListItemJson
 
     def get_anime(self) -> "Anime":
-        result = self.sync_api.get_anime_by_slug_url(self.data["slug_url"])
-        data = result.data["data"]
+        result = AnimelibOrgApi.get_anime(self.http, slug_url=self.data["slug_url"])
+        if not result.is_ok:
+            return
+        value = result.value
+        value = cast(AnimeDetailResponseJson, value)
+        data = value["data"]
         return Anime(
             title=self.title,
             thumbnail=data["cover"]["default"],
-            # maybe missing key
             description=data.get("summary", ""),
             data=data,
-            **self._kwargs_apis,
             **self._kwargs_http,
         )
 
     async def a_get_anime(self) -> BaseAnime:
-        result = await self.async_api.get_anime_by_slug_url(self.data["slug_url"])
-        data = result.data["data"]
-
+        result = await AnimelibOrgApi.async_get_anime(self.http_async, slug_url=self.data["slug_url"])
+        if not result.is_ok:
+            return
+        value = result.value
+        value = cast(AnimeDetailResponseJson, value)
+        data = value["data"]
         return Anime(
             title=self.title,
             thumbnail=data["cover"]["default"],
             description=data.get("summary", ""),
             data=data,
-            **self._kwargs_apis,
             **self._kwargs_http,
         )
 
 
 @define(kw_only=True)
-class Ongoing(_ApiInstancesMixin, BaseOngoing):
-    _sync_api: AnimeliborgAPISync = field(alias="sync_api")
-    _async_api: AnimeliborgAPIAsync = field(alias="async_api")
-    data: T_AnimeListItem
+class Ongoing(BaseOngoing):
+    data: AnimeListItemJson
 
     def get_anime(self) -> "Anime":
-        result = self.sync_api.get_anime_by_slug_url(self.data["slug_url"])
-        data = result.data["data"]
+        result = AnimelibOrgApi.get_anime(self.http, slug_url=self.data["slug_url"])
+        if not result.is_ok:
+            return
+        value = result.value
+        value = cast(AnimeDetailResponseJson, value)
+        data = value["data"]
         return Anime(
             title=self.title,
             thumbnail=data["cover"]["default"],
             description=data.get("summary", ""),
             data=data,
-            **self._kwargs_apis,
             **self._kwargs_http,
         )
 
-    async def a_get_anime(self) -> "Anime":
-        result = await self.async_api.get_anime_by_slug_url(self.data["slug_url"])
-        data = result.data["data"]
+    async def a_get_anime(self) -> BaseAnime:
+        result = await AnimelibOrgApi.async_get_anime(self.http_async, slug_url=self.data["slug_url"])
+        if not result.is_ok:
+            return
+        value = result.value
+        value = cast(AnimeDetailResponseJson, value)
+        data = value["data"]
         return Anime(
             title=self.title,
             thumbnail=data["cover"]["default"],
             description=data.get("summary", ""),
             data=data,
-            **self._kwargs_apis,
             **self._kwargs_http,
         )
 
 
 @define(kw_only=True)
-class Anime(_ApiInstancesMixin, BaseAnime):
-    _sync_api: AnimeliborgAPISync = field(alias="sync_api")
-    _async_api: AnimeliborgAPIAsync = field(alias="async_api")
-    data: T_AnimeDetail
+class Anime(BaseAnime):
+    data: AnimeDetailJson
 
     def get_episodes(self) -> list["Episode"]:
-        result = self.sync_api.get_episodes(self.data["slug_url"])
-        results = []
-        if result.success and result.data:
-            for data in result.data["data"]:
-                results.append(
-                    Episode(
-                        title=data.get("name", "") or "Episode",  # maybe empty string
-                        ordinal=int(data["number"]),
-                        data=data,
-                        **self._kwargs_http,
-                        **self._kwargs_apis,
-                    )
-                )
+        result = AnimelibOrgApi.list_episodes(self.http, anime_id=self.data["slug_url"])
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(EpisodeListResponseJson, value)
+        results = [
+            Episode(
+                title=data.get("name", "") or "Episode",  # maybe empty string
+                ordinal=int(data["number"]),
+                data=data,
+                **self._kwargs_http,
+            )
+            for data in value["data"]
+        ]
         return results
 
     async def a_get_episodes(self) -> list["Episode"]:
-        result = await self.async_api.get_episodes(self.data["slug_url"])
-        results = []
-        if result.success and result.data:
-            for data in result.data["data"]:
-                results.append(
-                    Episode(
-                        title=data.get("name", "") or "Episode",  # maybe empty string
-                        ordinal=int(data["number"]),
-                        data=data,
-                        **self._kwargs_http,
-                        **self._kwargs_apis,
-                    )
-                )
+        result = await AnimelibOrgApi.async_list_episodes(self.http_async, anime_id=self.data["slug_url"])
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(EpisodeListResponseJson, value)
+        results = [
+            Episode(
+                title=data.get("name", "") or "Episode",  # maybe empty string
+                ordinal=int(data["number"]),
+                data=data,
+                **self._kwargs_http,
+            )
+            for data in value["data"]
+        ]
         return results
 
 
 @define(kw_only=True)
-class Episode(_ApiInstancesMixin, BaseEpisode):
-    _sync_api: AnimeliborgAPISync = field(alias="sync_api")
-    _async_api: AnimeliborgAPIAsync = field(alias="async_api")
-    data: T_EpisodeListItem
+class Episode(BaseEpisode):
+    data: EpisodeListItemJson
 
     def get_sources(self) -> list["Source"]:
-        result = self.sync_api.get_episode_by_id(str(self.data["id"]))
-        results = []
-        for data in result.data["data"]["players"]:
+        result = AnimelibOrgApi.get_episode(self.http, id=self.data["id"])
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(EpisodeDetailResponseJson, value)
+        results: List[Source] = []
+        for data in value["data"]["players"]:
+            # //kodik.com/...
             if data["player"].lower() == "kodik":
-                # '//kodik.com/...'
                 results.append(
                     Source(
                         title=data["team"]["name"],
-                        url="https:" + data["src"],  # stub resolved in ,
+                        url="https:" + data["src"],  # stub
                         data=data,
                         **self._kwargs_http,
-                        **self._kwargs_apis,
                     )
                 )
+            # spawned if provide auth token
+            # NOTE: not implemented change reserve servers
+            # https://api.cdnlibs.org/api/constants?
+            # fields[]=videoServers&fields[]=animeDistributionId&fields[]=animeDistributionUrl
             elif data["player"].lower() == "animelib":
-                # NOTE: not implemented change reserve servers
-                # https://api.cdnlibs.org/api/constants?
-                # fields[]=videoServers&fields[]=animeDistributionId&fields[]=animeDistributionUrl
                 results.append(
                     Source(
                         title=data["team"]["name"],
-                        url="https://video1.cdnlibs.org/.%D0%B0s/",  # base url
+                        url="https://video1.cdnlibs.org/.%D0%B0s/",
                         data=data,
                         **self._kwargs_http,
-                        **self._kwargs_apis,
                     )
                 )
         return results
 
     async def a_get_sources(self) -> list["Source"]:
-        result = await self.async_api.get_episode_by_id(str(self.data["id"]))
-        results = []
-        for data in result.data["data"]["players"]:
+        result = await AnimelibOrgApi.async_get_episode(self.http_async, id=self.data["id"])
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(EpisodeDetailResponseJson, value)
+        results: List[Source] = []
+        for data in value["data"]["players"]:
+            # //kodik.com/...
             if data["player"].lower() == "kodik":
-                # '//kodik.com/...'
                 results.append(
                     Source(
                         title=data["team"]["name"],
-                        url="https:" + data["src"],  # stub resolved in ,
+                        url="https:" + data["src"],  # stub
                         data=data,
                         **self._kwargs_http,
-                        **self._kwargs_apis,
                     )
                 )
+            # spawned if provide auth token
+            # NOTE: not implemented change reserve servers
+            # https://api.cdnlibs.org/api/constants?
+            # fields[]=videoServers&fields[]=animeDistributionId&fields[]=animeDistributionUrl
             elif data["player"].lower() == "animelib":
-                # NOTE: not implemented change reserve servers
-                # https://api.cdnlibs.org/api/constants?
-                # fields[]=videoServers&fields[]=animeDistributionId&fields[]=animeDistributionUrl
                 results.append(
                     Source(
                         title=data["team"]["name"],
-                        url="https://video1.cdnlibs.org/.%D0%B0s/",  # base url
+                        url="https://video1.cdnlibs.org/.%D0%B0s/",
                         data=data,
                         **self._kwargs_http,
-                        **self._kwargs_apis,
                     )
                 )
         return results
 
 
 @define(kw_only=True)
-class Source(_ApiInstancesMixin, BaseSource):
-    _sync_api: AnimeliborgAPISync = field(alias="sync_api")
-    _async_api: AnimeliborgAPIAsync = field(alias="async_api")
-    data: T_Player
+class Source(BaseSource):
+    data: PlayerJson
 
     def get_videos(self, **httpx_kwargs) -> list[Video]:
-        # implemended, run original method
+        # implemended, run original extractors
         if self.data["player"].lower() == "kodik":
             return super().get_videos(**httpx_kwargs)  # type: ignore
 
         elif self.data["player"].lower() == "animelib":
-            results = []
+            results: List[Video] = []
             # NOTE: 'video' contains only if ['player'] == "animelib"
             for video in self.data["video"]["quality"]:
                 results.append(
@@ -374,11 +326,12 @@ class Source(_ApiInstancesMixin, BaseSource):
         return []
 
     async def a_get_videos(self, **httpx_kwargs) -> list[Video]:
-        # implemended, run original method
+        # implemended, run original extractors
         if self.data["player"].lower() == "kodik":
-            return await super().a_get_videos(**httpx_kwargs)  # type: ignore
+            return super().a_get_videos(**httpx_kwargs)  # type: ignore
+
         elif self.data["player"].lower() == "animelib":
-            results = []
+            results: List[Video] = []
             # NOTE: 'video' contains only if ['player'] == "animelib"
             for video in self.data["video"]["quality"]:
                 results.append(

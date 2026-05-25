@@ -5,12 +5,18 @@ from typing import Literal
 
 from attr import field
 from attrs import define
-from httpx import Response
 
 from anicli_api.typing import TypedDict
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.player.base import Video
-from anicli_api.source.parsers.sameband_parser import PageAnime, PageOngoing, PagePlaylistURL, PageSearch
+from anicli_api.source.parsers.sameband_parser import (
+    PageAnime,
+    PageOngoing,
+    PagePlaylistURL,
+    PageSearch,
+    PlaylistJson,
+    PlaylistTxtAPI,
+)
 
 
 class Extractor(BaseExtractor):
@@ -23,79 +29,50 @@ class Extractor(BaseExtractor):
         return [Ongoing(**kw, **self._kwargs_http) for kw in PageOngoing(resp).parse()]
 
     def search(self, query: str) -> list["Search"]:
-        resp = self.http.post(
-            f"{self.BASE_URL}/index.php?do=search",
-            data={
-                "do": "search",
-                "subaction": "search",
-                "search_start": 0,
-                "full_search": 0,
-                "result_from": 1,
-                "story": query,
-            },
-        )
-        return self._extract_search(resp.text)
+        results = PageSearch.fetch(self.http, query=query).parse()
+        return [Search(**i, **self._kwargs_http) for i in results]
 
     async def a_search(self, query: str) -> list["Search"]:
-        resp = await self.http_async.post(
-            f"{self.BASE_URL}/index.php?do=search",
-            data={
-                "do": "search",
-                "subaction": "search",
-                "search_start": 0,
-                "full_search": 0,
-                "result_from": 1,
-                "story": query,
-            },
-        )
-        return self._extract_search(resp.text)
+        results = (await PageSearch.async_fetch(self.http_async, query=query)).parse()
+        return [Search(**i, **self._kwargs_http) for i in results]
 
     def ongoing(self) -> list["Ongoing"]:
-        resp = self.http.get(f"{self.BASE_URL}/novinki")
-        return self._extract_ongoing(resp.text)
+        results = PageOngoing.fetch(self.http).parse()
+        return [Ongoing(**i, **self._kwargs_http) for i in results]
 
     async def a_ongoing(self) -> list["Ongoing"]:
-        resp = await self.http_async.get(f"{self.BASE_URL}/novinki")
-        return self._extract_ongoing(resp.text)
+        results = (await PageOngoing.async_fetch(self.http_async)).parse()
+        return [Ongoing(**i, **self._kwargs_http) for i in results]
 
 
 @define(kw_only=True)
 class Search(BaseSearch):
-    def _extract(self, resp: str) -> "Anime":
-        return Anime(**PageAnime(resp).parse(), **self._kwargs_http)
-
     def get_anime(self) -> "Anime":
-        resp = self.http.get(self.url)
-        return self._extract(resp.text)
+        result = PageAnime.fetch(self.http, anime_page_url=self.url).parse()
+        return Anime(**result, **self._kwargs_http)
 
     async def a_get_anime(self) -> "Anime":
-        resp = await self.http_async.get(self.url)
-        return self._extract(resp.text)
+        result = (await PageAnime.async_fetch(self.http_async, anime_page_url=self.url)).parse()
+        return Anime(**result, **self._kwargs_http)
 
 
 @define(kw_only=True)
 class Ongoing(BaseOngoing):
-    def _extract(self, resp: str) -> "Anime":
-        return Anime(**PageAnime(resp).parse(), **self._kwargs_http)
-
     def get_anime(self) -> "Anime":
-        resp = self.http.get(self.url)
-        return self._extract(resp.text)
+        result = PageAnime.fetch(self.http, anime_page_url=self.url).parse()
+        return Anime(**result, **self._kwargs_http)
 
     async def a_get_anime(self) -> "Anime":
-        resp = await self.http_async.get(self.url)
-        return self._extract(resp.text)
+        result = (await PageAnime.async_fetch(self.http_async, anime_page_url=self.url)).parse()
+        return Anime(**result, **self._kwargs_http)
 
 
 @define(kw_only=True)
 class Anime(BaseAnime):
-    alt_title: str
     _player_url: str = field(repr=False, alias="player_url")
 
     @staticmethod
-    def _extract(resp: Response) -> list["Episode"]:
-        jsn = resp.json()
-
+    def _extract(playlist: list[PlaylistJson]) -> list["Episode"]:
         return [
             Episode(
                 sources=[
@@ -112,21 +89,26 @@ class Anime(BaseAnime):
                 # TODO extract from item['title'] ???
                 title="Серия",
             )
-            for i, item in enumerate(jsn, 1)
+            for i, item in enumerate(playlist, 1)
         ]
 
     def get_episodes(self) -> list["Episode"]:
-        resp = self.http.get(self._player_url)
-        player_data = PagePlaylistURL(resp.text).parse()
-        playlist_url = player_data["playlist_url"]
-        resp2 = self.http.get(playlist_url)
-        return self._extract(resp2)
+        playlist_url = PagePlaylistURL.fetch(self.http, player_url=self._player_url).parse()["playlist_url"]
+        playlist = PlaylistTxtAPI.playlist(self.http, playlist_txt_url=playlist_url)
+        if playlist.is_ok:
+            return self._extract(playlist.value)
+        # TODO: handle exceptions?
+        return []
 
     async def a_get_episodes(self) -> list["Episode"]:
-        resp = await self.http_async.get(self._player_url)
-        player_url = PagePlaylistURL(resp.text).parse()["playlist_url"]
-        resp2 = await self.http_async.get(player_url)
-        return self._extract(resp2)
+        playlist_url = (await PagePlaylistURL.async_fetch(self.http_async, player_url=self._player_url)).parse()[
+            "playlist_url"
+        ]
+        playlist = await PlaylistTxtAPI.async_playlist(self.http_async, playlist_txt_url=playlist_url)
+        if playlist.is_ok:
+            return self._extract(playlist.value)
+        # TODO: handle exceptions?
+        return []
 
 
 T_SOURCE = TypedDict("T_SOURCE", {"url": str, "quality": int, "type": Literal["m3u8"]})

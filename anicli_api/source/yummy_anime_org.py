@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import re
+from typing import Dict, List, cast
 
 from attrs import define
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
-# data about anime storage in iframe kodik player page
-from anicli_api.player.base import Video
 from anicli_api.source.parsers.yummy_anime_org_parser import PageOngoing, PageSearch, PageAnime, PageUtils
-from anicli_api.player.parsers.cdnvideohub_parser import PageParseCdnVideoData, PageParseCdnVideoDataType
-from anicli_api.player.apis.cdnvideohub import CdnVideoHubSync, CdnVideoHubAsync, T_PlaylistItem
-from anicli_api.player.cdnvideohub import video_playlist_from_vk_id, a_video_playlist_from_vk_id
+from anicli_api.player.parsers.cdnvideohub_parser import PageParseCdnVideoData, CdnVideoHubAPI
+
+# types
+from anicli_api.player.parsers.cdnvideohub_parser import PageParseCdnVideoDataType, CdnVideoHubResponseJson, ItemJson
+
 
 import logging
 
@@ -46,26 +47,62 @@ class Extractor(BaseExtractor):
         ]
 
     def search(self, query: str):
-        resp = self.http.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
-        result = self._extract_search(resp.text)
+        result = PageSearch.fetch(self.http, query=query).parse()
         if not result and not (RE_IS_CYRRILIC.search(query)):
             logger.warning("[yummyanime.in] search works only with cyrrilic query input")
-        return result
+        results = [
+            Search(
+                title=data["title"],
+                url=data["url"],
+                thumbnail=self.BASE_URL + data["thumbnail_path"],
+                **self._kwargs_http,
+            )
+            for data in result
+        ]
+        return results
 
     async def a_search(self, query: str):
-        resp = await self.http_async.post(self.BASE_URL, data={"do": "search", "subaction": "search", "story": query})
-        result = self._extract_search(resp.text)
+        result = (await PageSearch.async_fetch(self.http_async, query=query)).parse()
         if not result and not (RE_IS_CYRRILIC.search(query)):
             logger.warning("[yummyanime.in] search works only with cyrrilic query input")
-        return result
+        results = [
+            Search(
+                title=data["title"],
+                url=data["url"],
+                thumbnail=self.BASE_URL + data["thumbnail_path"],
+                **self._kwargs_http,
+            )
+            for data in result
+        ]
+        return results
 
     def ongoing(self):
-        resp = self.http.get(self.BASE_URL)
-        return self._extract_ongoing(resp.text)
+        result = PageOngoing.fetch(self.http).parse()
+        results = [
+            Ongoing(
+                title=data["title"],
+                url=data["url"],
+                thumbnail=self.BASE_URL + data["thumbnail_path"],
+                episode=data["episode"],
+                **self._kwargs_http,
+            )
+            for data in result
+        ]
+        return results
 
     async def a_ongoing(self):
-        resp = await self.http_async.get(self.BASE_URL)
-        return self._extract_ongoing(resp.text)
+        result = (await PageOngoing.async_fetch(self.http_async)).parse()
+        results = [
+            Ongoing(
+                title=data["title"],
+                url=data["url"],
+                thumbnail=self.BASE_URL + data["thumbnail_path"],
+                episode=data["episode"],
+                **self._kwargs_http,
+            )
+            for data in result
+        ]
+        return results
 
 
 @define(kw_only=True)
@@ -122,60 +159,69 @@ class Anime(BaseAnime):
     cdn_data: PageParseCdnVideoDataType
 
     def get_episodes(self) -> list["Episode"]:
-        result = CdnVideoHubSync().get_playlist(
-            pub=int(self.cdn_data["data_publisher_id"]),
+        result = CdnVideoHubAPI.get_params_from_page(
+            self.http,
+            pub=self.cdn_data["data_publisher_id"],
             aggr=self.cdn_data["data_aggregator"],
-            id=int(self.cdn_data["data_title_id"]),
+            id=self.cdn_data["data_title_id"],
         )
-        episode_mapping = {}
-        for data in result.data["items"]:
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(CdnVideoHubResponseJson, value)
+        episode_mapping: Dict[int, List[ItemJson]] = {}
+        for data in value["items"]:
             if not episode_mapping.get(data["episode"]):
                 episode_mapping[data["episode"]] = []
             episode_mapping[data["episode"]].append(data)
 
-        episodes = []
-        for num, episode in episode_mapping.items():
-            episodes.append(Episode(title="Episode", ordinal=int(num), data=episode, **self._kwargs_http))
+        episodes = [
+            Episode(title="Episode", ordinal=num, data=data, **self._kwargs_http)
+            for num, data in episode_mapping.items()
+        ]
         # playlist response not guarantee order
         episodes.sort(key=lambda i: i.ordinal)
-
         return episodes
 
     async def a_get_episodes(self) -> list["Episode"]:
-        result = await CdnVideoHubAsync().get_playlist(
-            pub=int(self.cdn_data["data_publisher_id"]),
+        result = await CdnVideoHubAPI.async_get_params_from_page(
+            self.http_async,
+            pub=self.cdn_data["data_publisher_id"],
             aggr=self.cdn_data["data_aggregator"],
-            id=int(self.cdn_data["data_title_id"]),
+            id=self.cdn_data["data_title_id"],
         )
-        episode_mapping = {}
-        for data in result.data["items"]:
+        if not result.is_ok:
+            return []
+        value = result.value
+        value = cast(CdnVideoHubResponseJson, value)
+        episode_mapping: Dict[int, List[ItemJson]] = {}
+        for data in value["items"]:
             if not episode_mapping.get(data["episode"]):
                 episode_mapping[data["episode"]] = []
             episode_mapping[data["episode"]].append(data)
 
-        episodes = []
-        for num, episode in episode_mapping.items():
-            episodes.append(Episode(title="Episode", ordinal=int(num), data=episode, **self._kwargs_http))
+        episodes = [
+            Episode(title="Episode", ordinal=num, data=data, **self._kwargs_http)
+            for num, data in episode_mapping.items()
+        ]
         # playlist response not guarantee order
         episodes.sort(key=lambda i: i.ordinal)
-
         return episodes
 
 
 @define(kw_only=True)
 class Episode(BaseEpisode):
-    data: list[T_PlaylistItem]
+    data: list[ItemJson]
 
     def get_sources(self) -> list["Source"]:
-        results = []
-        for item in self.data:
-            results.append(
-                Source(
-                    title=item["voiceStudio"],
-                    url="https://plapi.cdnvideohub.com",  # stub
-                    vk_id=item["vkId"],
-                )
+        results = [
+            Source(
+                title=item["voiceStudio"],
+                url="https://plapi.cdnvideohub.com",  # stub
+                cdn_videohub_vk_id=item["vkId"],
             )
+            for item in self.data
+        ]
         return results
 
     async def a_get_sources(self) -> list["Source"]:
@@ -184,14 +230,7 @@ class Episode(BaseEpisode):
 
 @define(kw_only=True)
 class Source(BaseSource):
-    vk_id: str
-
-    # todo: move to player extractor (how?)
-    def get_videos(self, **httpx_kwargs) -> list[Video]:
-        return video_playlist_from_vk_id(self.vk_id, user_agent=self._http.headers["User-Agent"])
-
-    async def a_get_videos(self, **httpx_kwargs) -> list[Video]:
-        return await a_video_playlist_from_vk_id(self.vk_id, user_agent=self._http_async.headers["User-Agent"])
+    pass
 
 
 if __name__ == "__main__":
