@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
-ssc-gen generate -t py-lxml -o "anicli_api/player/parsers" dev/player
-ssc-gen generate -t py-lxml -o "anicli_api/source/parsers" dev/src
+ssc-gen generate -R -t py-lxml -o "anicli_api/player/parsers" --http-client httpx dev/player
+ssc-gen generate -R -t py-lxml -o "anicli_api/source/parsers" --http-client httpx dev/src 
