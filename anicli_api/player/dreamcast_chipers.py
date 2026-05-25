@@ -6,7 +6,7 @@ import base64
 import json
 import re
 import urllib.parse
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 
 # parsed result type
@@ -218,7 +218,19 @@ def extract_playlist(player_js_packed_response: str, player_encoded: str) -> T_P
         if (result := v.get(key)) and result not in ("undefined", "", None):
             a = a.replace(v["file3_separator"] + b64e_url_params(result), "")
     # unsafe, maybe throw error
-    return json.loads(b64d_url_params(a))
+    playlist: T_PlayerPlaylist = json.loads(b64d_url_params(a))
+
+    if not isinstance(playlist["file"], str):
+        return playlist
+    # single episode available - it returns 'str' type instead list[T_FileItem]
+    # result['file']='https://play.dreamerscast.com/dash/.../manifest.mpd or https://play.dreamerscast.com/hls/.../master.m3u8'
+    file = playlist["file"]
+    file = cast(str, file)
+    playlist["file"] = [  # type: ignore
+        {"file": file, "label": "", "title": "", "thumbnails": "", "embed": "", "id": "", "vars": {"vlc": 0}}
+    ]
+
+    return playlist
 
 
 if __name__ == "__main__":
