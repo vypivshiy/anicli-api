@@ -5,69 +5,26 @@ import json
 import re
 import sys
 from typing import TypedDict, List, Dict, Union
-from html import unescape as _html_unescape
+
+if sys.version_info >= (3, 11):
+    from typing import NotRequired
+else:
+    from typing_extensions import NotRequired
 from lxml import html
 from lxml.html import HtmlElement
-
-FALLBACK_HTML_STR = "<html><body></body></html>"
-_RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
-_RE_UNICODE_ENTITY = re.compile(r"\\u([0-9a-fA-F]{4})")
-_RE_BYTES_ENTITY = re.compile(r"\\x([0-9a-fA-F]{2})")
-_RE_CHARS_MAP = {"\\b": "\\b", "\\f": "\\f", "\\n": "\\n", "\\r": "\\r", "\\t": "\\t"}
-
-
-def repl_map(s: str, rmap: Dict[str, str]) -> str:
-    for k, v in rmap.items():
-        s = s.replace(k, v)
-    return s
-
-
-def normalize_text(text: str) -> str:
-    return " ".join(text.split()) if text else ""
-
-
-class _UnmatchedTableRow:
-    pass
-
-
-def unescape_text(text: str) -> str:
-    s = _html_unescape(text)
-    s = _RE_HEX_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_UNICODE_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_BYTES_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    for ch, r in _RE_CHARS_MAP.items():
-        s = s.replace(ch, r)
-    return s
-
-
-if sys.version_info >= (3, 9):
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s.removeprefix(p)
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s.removesuffix(p)
-
-
-else:
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s[len(p) :] if s.startswith(p) else s
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s[: -(len(p))] if s.endswith(p) else s
-
-
-UNMATCHED_TABLE_ROW = _UnmatchedTableRow()
-
+import httpx
+from .sscgen_runtime import (
+    FALLBACK_HTML_STR,
+)
 
 AggregateRatingJson = TypedDict(
     "AggregateRatingJson",
     {
         "@type": str,
-        "ratingCount": int,
-        "bestRating": int,
-        "ratingValue": str,
+        "ratingCount": NotRequired[int],
+        "bestRating": NotRequired[int],
+        "ratingValue": NotRequired[float],
+        "worstRating": NotRequired[int],
     },
 )
 DirectorJson = TypedDict(
@@ -109,13 +66,9 @@ ContentJson = TypedDict(
         "keywords": str,
         "creator": List[CreatorJson],
         "aggregateRating": AggregateRatingJson,
-        "numberOfEpisodes": int,
+        "numberOfEpisodes": NotRequired[int],
     },
 )
-
-
-class PageUtilsType(TypedDict):
-    url_canonical: str
 
 
 class PageOngoingType(TypedDict):
@@ -148,24 +101,18 @@ class EpisodesType(TypedDict):
     id: str
 
 
-DubbersType = Dict[str, str]
-
-
-class PageEpisodeType(TypedDict):
-    is_film: bool
-    episodes: List[EpisodesType]
-    dubbers: DubbersType
-
-
 class EpisodeVideosType(TypedDict):
     player: str
     data_provider: str
     data_provide_dubbing: str
 
 
-class PageEpisodeVideoType(TypedDict):
-    is_film: bool
+DubbersType = Dict[str, str]
+
+
+class PageEpisodeType(TypedDict):
     dubbers: DubbersType
+    episodes: List[EpisodesType]
     videos: List[EpisodeVideosType]
 
 
@@ -182,43 +129,14 @@ class PageSourceType(TypedDict):
     videos: List[SourceVideoViewType]
 
 
-class PageUtils:
-    """
-
-    helper structure for extract correct url
-    this provider can be replace domains
-
-    """
-
-    def __init__(self, document: Union[str, HtmlElement]):
-        if isinstance(document, HtmlElement):
-            self._doc = document
-        elif isinstance(document, str):
-            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
-
-    def _parse_url_canonical(self, v: HtmlElement) -> str:
-        v1 = v.cssselect('link[rel="canonical"]')[0]
-        v2 = v1.get("href", "")
-        v3 = v2.rstrip("/")
-        v4 = rm_suffix(v3, "/search/anime")
-        return v4
-
-    def parse(self) -> PageUtilsType:
-        return {
-            "url_canonical": self._parse_url_canonical(self._doc),
-        }
-
-
 class PageOngoing:
     """
-
     Get all available ongoings from the main page
 
-    GET https://animego.one
+    GET https://animego.me
 
     NOTE: animego can change the domain, so only the path is returned.
     To get the real url, extract the value using the selector 'link[rel="canonical"]::attr(href)'
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -230,6 +148,26 @@ class PageOngoing:
     def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
         v1 = v.cssselect(".updates-body > div.d-grid > a.aw-item")
         return v1
+
+    @classmethod
+    def fetch(cls, client: httpx.Client) -> "PageOngoing":
+        _resp = client.request(
+            "GET",
+            "https://animego.me",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient) -> "PageOngoing":
+        _resp = await client.request(
+            "GET",
+            "https://animego.me",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_url_path(self, v: HtmlElement) -> str:
         v1 = v.get("href", "")
@@ -272,18 +210,16 @@ class PageOngoing:
 
 class PageSearch:
     """
-
     Get all search results by query
 
     USAGE:
 
-        GET https://animego.one/search/anime
+        GET https://animego.me/search/anime
         q={QUERY}
 
     EXAMPLE:
 
-        GET https://animego.one/search/anime?q=LAIN
-
+        GET https://animego.me/search/anime?q=LAIN
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -295,6 +231,28 @@ class PageSearch:
     def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
         v1 = v.cssselect(".grid.ani-list .ani-grid__item")
         return v1
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, query: str) -> "PageSearch":
+        _resp = client.request(
+            "GET",
+            "https://animego.me/search/anime",
+            params={"q": query},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, query: str) -> "PageSearch":
+        _resp = await client.request(
+            "GET",
+            "https://animego.me/search/anime",
+            params={"q": query},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_title(self, v: HtmlElement) -> str:
         v1 = v.cssselect("a.ani-grid__item-picture img")[0]
@@ -324,7 +282,6 @@ class PageSearch:
 
 class PageAnime:
     """
-
     Anime page information. anime path contains in SearchView.url or Ongoing.url
 
     - id needed for next API requests
@@ -332,22 +289,21 @@ class PageAnime:
 
     USAGE:
 
-        GET https://animego.one/anime/<ANIME_PATH>
+        GET https://animego.me/anime/<ANIME_PATH>
 
     EXAMPLE:
 
-        GET https://animego.one/anime/eksperimenty-leyn-1114
+        GET https://animego.me/anime/eksperimenty-leyn-1114
 
 
     ISSUES:
         If blocked, you can try skip extract anime metadata and send api request:
 
         id contains in url:
-            - id=1114 for https://animego.one/anime/eksperimenty-leyn-1114
-            - id=2589 for https://animego.org/anime/chelovek-muskul-2589
+            - id=1114 for https://animego.me/anime/eksperimenty-leyn-1114
+            - id=2589 for https://animego.me/anime/chelovek-muskul-2589
 
-        GET 'https://animego.one/anime/{id}/player?_allow=true'
-
+        GET 'https://animego.me/anime/{id}/player?_allow=true'
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -355,6 +311,26 @@ class PageAnime:
             self._doc = document
         elif isinstance(document, str):
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, slug: str) -> "PageAnime":
+        _resp = client.request(
+            "GET",
+            f"https://animego.me/anime/{slug}",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, slug: str) -> "PageAnime":
+        _resp = await client.request(
+            "GET",
+            f"https://animego.me/anime/{slug}",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_title(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".entity__title h1")[0]
@@ -400,7 +376,6 @@ class PageAnime:
 
 class Episodes:
     """
-
     episodes signature example (exclude in film)
     ```
     <div class="scroll-snap-slider d-none d-lg-flex">
@@ -410,7 +385,6 @@ class Episodes:
             data-episode-description="" data-episode="21516">
             ...
     ```
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -458,82 +432,6 @@ class Episodes:
         ]
 
 
-class Dubbers:
-    def __init__(self, document: Union[str, HtmlElement]):
-        if isinstance(document, HtmlElement):
-            self._doc = document
-        elif isinstance(document, str):
-            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
-
-    def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
-        v1 = v.cssselect("button[data-translation]")
-        return v1
-
-    def _parse_key(self, v: HtmlElement) -> str:
-        v1 = v.get("data-translation", "")
-        return v1
-
-    def _parse_value(self, v: HtmlElement) -> str:
-        v1 = v.cssselect("span")[0]
-        v2 = v1.text_content()
-        v3 = v2.strip()
-        return v3
-
-    def parse(self) -> DubbersType:
-        return {self._parse_key(i): self._parse_value(i) for i in self._split_doc(self._doc)}
-
-
-class PageEpisode:
-    """
-
-    Representation episodes
-
-    NOTE:
-        film pages does not exist select[name="series"] element.
-
-    Prepare:
-      1. get id from Anime object
-      2. GET 'https://animego.me/player/{Anime.id}'
-      3. extract html from json by ['data']['content'] key
-      4. OPTIONAL: unescape HTML
-
-    EXAMPLE:
-        GET https://animego.me/player/1114
-
-    """
-
-    def __init__(self, document: Union[str, HtmlElement]):
-        if isinstance(document, HtmlElement):
-            self._doc = document
-        elif isinstance(document, str):
-            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
-
-    def _parse_is_film(self, v: HtmlElement) -> bool:
-        try:
-            i = v
-            assert not (bool(i.cssselect('select[name="series"]')))
-            v1 = v
-            v2 = bool(v1)
-        except Exception:
-            return True
-        return v2
-
-    def _parse_episodes(self, v: HtmlElement) -> List[EpisodesType]:
-        v1 = Episodes(v).parse()
-        return v1
-
-    def _parse_dubbers(self, v: HtmlElement) -> DubbersType:
-        v1 = Dubbers(v).parse()
-        return v1
-
-    def parse(self) -> PageEpisodeType:
-        return {
-            "is_film": self._parse_is_film(self._doc),
-            "episodes": self._parse_episodes(self._doc),
-            "dubbers": self._parse_dubbers(self._doc),
-        }
-
-
 class EpisodeVideos:
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, HtmlElement):
@@ -571,23 +469,47 @@ class EpisodeVideos:
         ]
 
 
-class PageEpisodeVideo:
-    """
+class Dubbers:
+    def __init__(self, document: Union[str, HtmlElement]):
+        if isinstance(document, HtmlElement):
+            self._doc = document
+        elif isinstance(document, str):
+            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
-    Represent Episode object for film (it have not same signatures)
+    def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
+        v1 = v.cssselect("button[data-translation]")
+        return v1
+
+    def _parse_key(self, v: HtmlElement) -> str:
+        v1 = v.get("data-translation", "")
+        return v1
+
+    def _parse_value(self, v: HtmlElement) -> str:
+        v1 = v.cssselect("span")[0]
+        v2 = v1.text_content()
+        v3 = v2.strip()
+        return v3
+
+    def parse(self) -> DubbersType:
+        return {self._parse_key(i): self._parse_value(i) for i in self._split_doc(self._doc)}
+
+
+class PageEpisode:
+    """
+    Representation episodes
 
     NOTE:
-        film pages does not exist CSS selector `.player-video-bar__item` or `select[name="series"]`
+        film pages does not exist select[name="series"] element.
+        check is_film flag. if true - get from videos key elements else episodes
 
     Prepare:
       1. get id from Anime object
-      2. GET 'https://animego.one/player/{Anime.id}'
+      2. GET 'https://animego.me/player/{Anime.id}'
       3. extract html from json by ['data']['content'] key
       4. OPTIONAL: unescape HTML
 
     EXAMPLE:
-        GET https://animego.one/player/315
-
+        GET https://animego.me/player/1114
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -596,28 +518,44 @@ class PageEpisodeVideo:
         elif isinstance(document, str):
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
-    def _parse_is_film(self, v: HtmlElement) -> bool:
-        try:
-            i = v
-            assert not (bool(i.cssselect('select[name="series"]')))
-            v1 = v
-            v2 = bool(v1)
-        except Exception:
-            return True
-        return v2
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, anime_id: str) -> "PageEpisode":
+        _resp = client.request(
+            "GET",
+            f"https://animego.me/player/{anime_id}",
+        )
+        _resp.raise_for_status()
+        _data = _resp.json()
+        _body = _data["data"]["content"]
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, anime_id: str) -> "PageEpisode":
+        _resp = await client.request(
+            "GET",
+            f"https://animego.me/player/{anime_id}",
+        )
+        _resp.raise_for_status()
+        _data = _resp.json()
+        _body = _data["data"]["content"]
+        return cls(_body)
 
     def _parse_dubbers(self, v: HtmlElement) -> DubbersType:
         v1 = Dubbers(v).parse()
+        return v1
+
+    def _parse_episodes(self, v: HtmlElement) -> List[EpisodesType]:
+        v1 = Episodes(v).parse()
         return v1
 
     def _parse_videos(self, v: HtmlElement) -> List[EpisodeVideosType]:
         v1 = EpisodeVideos(v).parse()
         return v1
 
-    def parse(self) -> PageEpisodeVideoType:
+    def parse(self) -> PageEpisodeType:
         return {
-            "is_film": self._parse_is_film(self._doc),
             "dubbers": self._parse_dubbers(self._doc),
+            "episodes": self._parse_episodes(self._doc),
             "videos": self._parse_videos(self._doc),
         }
 
@@ -671,7 +609,6 @@ class SourceVideoView:
 
 class PageSource:
     """
-
     representation player urls (episodes only)
 
     Prepare:
@@ -687,8 +624,7 @@ class PageSource:
 
     EXAMPLE:
 
-        GET https://animego.one/anime/series?dubbing=2&provider=24&episode=2&id=15837
-
+        curl 'https://animego.me/player/videos/42782'
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -696,6 +632,28 @@ class PageSource:
             self._doc = document
         elif isinstance(document, str):
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, episode_id: str) -> "PageSource":
+        _resp = client.request(
+            "GET",
+            f"https://animego.me/player/videos/{episode_id}",
+        )
+        _resp.raise_for_status()
+        _data = _resp.json()
+        _body = _data["data"]["content"]
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, episode_id: str) -> "PageSource":
+        _resp = await client.request(
+            "GET",
+            f"https://animego.me/player/videos/{episode_id}",
+        )
+        _resp.raise_for_status()
+        _data = _resp.json()
+        _body = _data["data"]["content"]
+        return cls(_body)
 
     def _parse_dubbers(self, v: HtmlElement) -> DubbersType:
         v1 = Dubbers(v).parse()

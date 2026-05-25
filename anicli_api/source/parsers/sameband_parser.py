@@ -2,62 +2,27 @@
 """"""
 
 import re
-import sys
-from typing import TypedDict, List, Dict, Union
-from html import unescape as _html_unescape
+from typing import TypedDict, Any, List, Union, Mapping
+
 from lxml import html
 from lxml.html import HtmlElement
+import httpx
+from .sscgen_runtime import (
+    Ok,
+    UnknownErr,
+    TransportErr,
+    ssc_parse_response,
+    FALLBACK_HTML_STR,
+)
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-_RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
-_RE_UNICODE_ENTITY = re.compile(r"\\u([0-9a-fA-F]{4})")
-_RE_BYTES_ENTITY = re.compile(r"\\x([0-9a-fA-F]{2})")
-_RE_CHARS_MAP = {"\\b": "\\b", "\\f": "\\f", "\\n": "\\n", "\\r": "\\r", "\\t": "\\t"}
-
-
-def repl_map(s: str, rmap: Dict[str, str]) -> str:
-    for k, v in rmap.items():
-        s = s.replace(k, v)
-    return s
-
-
-def normalize_text(text: str) -> str:
-    return " ".join(text.split()) if text else ""
-
-
-class _UnmatchedTableRow:
-    pass
-
-
-def unescape_text(text: str) -> str:
-    s = _html_unescape(text)
-    s = _RE_HEX_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_UNICODE_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_BYTES_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    for ch, r in _RE_CHARS_MAP.items():
-        s = s.replace(ch, r)
-    return s
-
-
-if sys.version_info >= (3, 9):
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s.removeprefix(p)
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s.removesuffix(p)
-
-
-else:
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s[len(p) :] if s.startswith(p) else s
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s[: -(len(p))] if s.endswith(p) else s
-
-
-UNMATCHED_TABLE_ROW = _UnmatchedTableRow()
+PlaylistJson = TypedDict(
+    "PlaylistJson",
+    {
+        "title": str,
+        "file": str,
+        "thumbnails": str,
+    },
+)
 
 
 class PageOngoingType(TypedDict):
@@ -74,7 +39,6 @@ class PageSearchType(TypedDict):
 
 class PageAnimeType(TypedDict):
     title: str
-    alt_title: str
     description: str
     thumbnail: str
     player_url: str
@@ -86,10 +50,8 @@ class PagePlaylistURLType(TypedDict):
 
 class PageOngoing:
     """
-
     USAGE:
     GET https://sameband.studio/novinki
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -101,6 +63,26 @@ class PageOngoing:
     def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
         v1 = v.cssselect(".col-auto")
         return v1
+
+    @classmethod
+    def fetch(cls, client: httpx.Client) -> "PageOngoing":
+        _resp = client.request(
+            "GET",
+            "https://sameband.studio/novinki",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient) -> "PageOngoing":
+        _resp = await client.request(
+            "GET",
+            "https://sameband.studio/novinki",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_url(self, v: HtmlElement) -> str:
         v1 = v.cssselect("a[href]")[0]
@@ -131,7 +113,6 @@ class PageOngoing:
 
 class PageSearch:
     """
-
     USAGE:
         POST https://sameband.studio/index.php?do=search
         do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
@@ -140,9 +121,9 @@ class PageSearch:
         search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
 
     EXAMPLE:
-        POST https://sameband.studio/index.php?do=search
-    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
 
+        POST https://sameband.studio/index.php?do=search
+        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -150,6 +131,46 @@ class PageSearch:
             self._doc = document
         elif isinstance(document, str):
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, query: str) -> "PageSearch":
+        _resp = client.request(
+            "POST",
+            "https://sameband.studio/index.php",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            params={"do": "search"},
+            data={
+                "do": "search",
+                "subaction": "search",
+                "search_start": "0",
+                "full_search": "0",
+                "result_from": "1",
+                "story": query,
+            },
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, query: str) -> "PageSearch":
+        _resp = await client.request(
+            "POST",
+            "https://sameband.studio/index.php",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            params={"do": "search"},
+            data={
+                "do": "search",
+                "subaction": "search",
+                "search_start": "0",
+                "full_search": "0",
+                "result_from": "1",
+                "story": query,
+            },
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
         v1 = v.cssselect(".col-auto")
@@ -184,15 +205,13 @@ class PageSearch:
 
 class PageAnime:
     """
-
     USAGE:
 
         GET https://sameband.studio/anime/<ANIME PATH>.html
 
     EXAMPLE:
-        # https://sameband.studio/anime/20-госпожа-кагуя-3.html
-        GET https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
-
+        curl https://sameband.studio/anime/20-госпожа-кагуя-3.html
+        curl https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -202,17 +221,12 @@ class PageAnime:
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
 
     def _parse_title(self, v: HtmlElement) -> str:
-        v1 = v.cssselect("h1.m-0")[0]
-        v2 = v1.text_content()
-        return v2
-
-    def _parse_alt_title(self, v: HtmlElement) -> str:
-        v1 = v.cssselect(".help")[0]
+        v1 = v.cssselect("h1.p-0.m-0")[0]
         v2 = v1.text_content()
         return v2
 
     def _parse_description(self, v: HtmlElement) -> str:
-        v1 = v.cssselect(".limiter span")
+        v1 = v.cssselect(".limiter p")
         v2 = [i.text_content() for i in v1]
         v3 = " ".join(v2)
         return v3
@@ -223,6 +237,26 @@ class PageAnime:
         v3 = "https://sameband.studio{}".format(v2)
         return v3
 
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, anime_page_url: str) -> "PageAnime":
+        _resp = client.request(
+            "GET",
+            anime_page_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, anime_page_url: str) -> "PageAnime":
+        _resp = await client.request(
+            "GET",
+            anime_page_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
     def _parse_player_url(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".player > .player-content > iframe[src]")[0]
         v2 = v1.get("src", "")
@@ -232,51 +266,89 @@ class PageAnime:
     def parse(self) -> PageAnimeType:
         return {
             "title": self._parse_title(self._doc),
-            "alt_title": self._parse_alt_title(self._doc),
             "description": self._parse_description(self._doc),
             "thumbnail": self._parse_thumbnail(self._doc),
             "player_url": self._parse_player_url(self._doc),
         }
 
 
+PlaylistResult = Union[Ok[List[PlaylistJson]], UnknownErr, TransportErr]
+
+
+class PlaylistTxtAPI:
+    @staticmethod
+    def ssc_dispatch_err(_status: int, _headers: Mapping[str, str], _body: Any) -> Union[UnknownErr, None]:
+        if 200 <= _status < 300:
+            return None
+        return UnknownErr(status=_status, headers=_headers, value=_body)
+
+    @classmethod
+    def playlist(cls, client: httpx.Client, *, playlist_txt_url: str) -> PlaylistResult:
+        try:
+            _resp = client.request(
+                "GET",
+                playlist_txt_url,
+            )
+        except httpx.HTTPError as _exc:
+            return TransportErr(cause=repr(_exc))
+        _status, _headers, _body = ssc_parse_response(_resp)
+        _err = cls.ssc_dispatch_err(_status, _headers, _body)
+        if _err is not None:
+            return _err
+        return Ok(status=_status, headers=_headers, value=_body)
+
+    @classmethod
+    async def async_playlist(cls, client: httpx.AsyncClient, *, playlist_txt_url: str) -> PlaylistResult:
+        try:
+            _resp = await client.request(
+                "GET",
+                playlist_txt_url,
+            )
+        except httpx.HTTPError as _exc:
+            return TransportErr(cause=repr(_exc))
+        _status, _headers, _body = ssc_parse_response(_resp)
+        _err = cls.ssc_dispatch_err(_status, _headers, _body)
+        if _err is not None:
+            return _err
+        return Ok(status=_status, headers=_headers, value=_body)
+
+
 class PagePlaylistURL:
     """
-    ""
-        USAGE:
+    USAGE:
 
-            GET https://sameband.studio/pl/a/<PLAYLIST NAME>.html
+        GET https://sameband.studio/pl/a/<PLAYLIST NAME>.html
 
-        EXAMPLE:
+    EXAMPLE:
 
-            GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
+        GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
 
-        NOTE:
+    NOTE:
 
-            url contains in AnimeView.player_url key:
+        url contains in AnimeView.player_url key:
 
-            playlist items signature (need manually provide json unmarshall logic):
+        playlist items signature (need manually provide json unmarshall logic):
 
-            ```
-                [
-                    {
-                        "title": "<img src='/v/anime/...01 RUS_snapshot.jpg' class=playlist_poster><div class=playlist_duration>23:37</div>... 01",
-                        ### delimiter - ','
-                        "file": "[480p]/v/anime/... - 01 RUS_480p/... - 01 RUS_r480p.m3u8,[720p]/v/anime/.../... - 01 RUS_720p/... - 01 RUS_r720p.m3u8,[1080p]/v/anime/.../... -
-                        01 RUS_1080p/... - 01 RUS_r1080p.m3u8",
-                        ### thumbnails images for video
-                        "thumbnails": "/v/anime/.../thumbnails/... - 01 RUS.txt"  # contains
-                    },
-                    {
-                        ...
-                    },
+        ```
+            [
+                {
+                    "title": "<img src='/v/anime/...01 RUS_snapshot.jpg' class=playlist_poster><div class=playlist_duration>23:37</div>... 01",
+                    ### delimiter - ','
+                    "file": "[480p]/v/anime/... - 01 RUS_480p/... - 01 RUS_r480p.m3u8,[720p]/v/anime/.../... - 01 RUS_720p/... - 01 RUS_r720p.m3u8,[1080p]/v/anime/.../... -
+                    01 RUS_1080p/... - 01 RUS_r1080p.m3u8",
+                    ### thumbnails images for video
+                    "thumbnails": "/v/anime/.../thumbnails/... - 01 RUS.txt"  # contains
+                },
+                {
                     ...
-                ]
-            ```
-            player script signature:
-            ```
-            <script>var player = new Playerjs({id:"player",file:"/v/list/....txt"});
-            ```
-        ""
+                },
+                ...
+            ]
+        ```
+        player script signature:
+        ```
+        <script>var player = new Playerjs({id:"player",file:"/v/list/....txt"});
+        ```
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -284,6 +356,26 @@ class PagePlaylistURL:
             self._doc = document
         elif isinstance(document, str):
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, player_url: str) -> "PagePlaylistURL":
+        _resp = client.request(
+            "GET",
+            player_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, player_url: str) -> "PagePlaylistURL":
+        _resp = await client.request(
+            "GET",
+            player_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_playlist_url(self, v: HtmlElement) -> str:
         v1 = html.tostring(v, encoding="unicode")

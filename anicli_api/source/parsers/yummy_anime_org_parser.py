@@ -2,62 +2,15 @@
 """"""
 
 import re
-import sys
-from typing import TypedDict, Optional, List, Dict, Union
-from html import unescape as _html_unescape
+from typing import TypedDict, Optional, List, Union
+
 from lxml import html
 from lxml.html import HtmlElement
-
-FALLBACK_HTML_STR = "<html><body></body></html>"
-_RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
-_RE_UNICODE_ENTITY = re.compile(r"\\u([0-9a-fA-F]{4})")
-_RE_BYTES_ENTITY = re.compile(r"\\x([0-9a-fA-F]{2})")
-_RE_CHARS_MAP = {"\\b": "\\b", "\\f": "\\f", "\\n": "\\n", "\\r": "\\r", "\\t": "\\t"}
-
-
-def repl_map(s: str, rmap: Dict[str, str]) -> str:
-    for k, v in rmap.items():
-        s = s.replace(k, v)
-    return s
-
-
-def normalize_text(text: str) -> str:
-    return " ".join(text.split()) if text else ""
-
-
-class _UnmatchedTableRow:
-    pass
-
-
-def unescape_text(text: str) -> str:
-    s = _html_unescape(text)
-    s = _RE_HEX_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_UNICODE_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_BYTES_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    for ch, r in _RE_CHARS_MAP.items():
-        s = s.replace(ch, r)
-    return s
-
-
-if sys.version_info >= (3, 9):
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s.removeprefix(p)
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s.removesuffix(p)
-
-
-else:
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s[len(p) :] if s.startswith(p) else s
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s[: -(len(p))] if s.endswith(p) else s
-
-
-UNMATCHED_TABLE_ROW = _UnmatchedTableRow()
+import httpx
+from .sscgen_runtime import (
+    rm_suffix,
+    FALLBACK_HTML_STR,
+)
 
 
 class PageUtilsType(TypedDict):
@@ -110,7 +63,6 @@ class PageUtils:
 
 class PageOngoing:
     """
-
     Get all available ongoings from the main page
 
     can be change domains, use PageUtils struct or
@@ -118,7 +70,6 @@ class PageOngoing:
 
     USAGE:
         GET https://yummyanime.in/
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -130,6 +81,26 @@ class PageOngoing:
     def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
         v1 = v.cssselect("a.grid-item")
         return v1
+
+    @classmethod
+    def fetch(cls, client: httpx.Client) -> "PageOngoing":
+        _resp = client.request(
+            "GET",
+            "https://yummyanime.in",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient) -> "PageOngoing":
+        _resp = await client.request(
+            "GET",
+            "https://yummyanime.in",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_thumbnail_path(self, v: HtmlElement) -> str:
         v1 = v.cssselect("img[data-src]")[0]
@@ -170,8 +141,9 @@ class PageOngoing:
 
 class PageSearch:
     """
-
     Get search results
+
+    NOTE: works only with cyrillic search queries
 
     USAGE:
 
@@ -182,7 +154,6 @@ class PageSearch:
 
         POST https://yummyanime.in/index.php
         do=search&subaction=search=from_page=0story=ван-пис
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -194,6 +165,44 @@ class PageSearch:
     def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
         v1 = v.cssselect("a.has-overlay")
         return v1
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, query: str) -> "PageSearch":
+        _resp = client.request(
+            "POST",
+            "https://yummyanime.in/index.php",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Origin": "https://yummyanime.in",
+                "Referer": "https://yummyanime.in/",
+                "Upgrade-Insecure-Requests": "1",
+            },
+            params={"do": "search"},
+            data={"do": "search", "subaction": "search", "from_page": "0", "story": query},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, query: str) -> "PageSearch":
+        _resp = await client.request(
+            "POST",
+            "https://yummyanime.in/index.php",
+            headers={
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Origin": "https://yummyanime.in",
+                "Referer": "https://yummyanime.in/",
+                "Upgrade-Insecure-Requests": "1",
+            },
+            params={"do": "search"},
+            data={"do": "search", "subaction": "search", "from_page": "0", "story": query},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_title(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".poster__title")[0]
@@ -222,7 +231,6 @@ class PageSearch:
 
 class PageAnime:
     """
-
     get anime page
 
     USAGE:
@@ -232,7 +240,6 @@ class PageAnime:
     EXAMPLE:
 
         GET https://yummyanime.in/4790-vedma-i-chudovische.html
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -240,6 +247,46 @@ class PageAnime:
             self._doc = document
         elif isinstance(document, str):
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, full_url: str) -> "PageAnime":
+        _resp = client.request(
+            "GET",
+            full_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, full_url: str) -> "PageAnime":
+        _resp = await client.request(
+            "GET",
+            full_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    def fetch_from_slug(cls, client: httpx.Client, *, slug: str) -> "PageAnime":
+        _resp = client.request(
+            "GET",
+            f"https://yummyanime.in/{slug}",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch_from_slug(cls, client: httpx.AsyncClient, *, slug: str) -> "PageAnime":
+        _resp = await client.request(
+            "GET",
+            f"https://yummyanime.in/{slug}",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_title(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".anime__title h1")[0]

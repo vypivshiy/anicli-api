@@ -2,67 +2,42 @@
 """"""
 
 import re
-import sys
-from typing import TypedDict, List, Dict, Union
-from html import unescape as _html_unescape
-from urllib.parse import urlsplit
+from dataclasses import dataclass
+from typing import TypedDict, Any, List, Union, Literal, Mapping
+
 from lxml import html
 from lxml.html import HtmlElement
+import httpx
+from .sscgen_runtime import (
+    Ok,
+    Err,
+    UnknownErr,
+    TransportErr,
+    ssc_parse_response,
+    FALLBACK_HTML_STR,
+)
 
-FALLBACK_HTML_STR = "<html><body></body></html>"
-_RE_HEX_ENTITY = re.compile(r"&#x([0-9a-fA-F]+);")
-_RE_UNICODE_ENTITY = re.compile(r"\\u([0-9a-fA-F]{4})")
-_RE_BYTES_ENTITY = re.compile(r"\\x([0-9a-fA-F]{2})")
-_RE_CHARS_MAP = {"\\b": "\\b", "\\f": "\\f", "\\n": "\\n", "\\r": "\\r", "\\t": "\\t"}
-
-
-def repl_map(s: str, rmap: Dict[str, str]) -> str:
-    for k, v in rmap.items():
-        s = s.replace(k, v)
-    return s
-
-
-def normalize_text(text: str) -> str:
-    return " ".join(text.split()) if text else ""
-
-
-class _UnmatchedTableRow:
-    pass
-
-
-def unescape_text(text: str) -> str:
-    s = _html_unescape(text)
-    s = _RE_HEX_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_UNICODE_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    s = _RE_BYTES_ENTITY.sub(lambda m: chr(int(m.group(1), 16)), s)
-    for ch, r in _RE_CHARS_MAP.items():
-        s = s.replace(ch, r)
-    return s
-
-
-if sys.version_info >= (3, 9):
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s.removeprefix(p)
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s.removesuffix(p)
-
-
-else:
-
-    def rm_prefix(s: str, p: str) -> str:
-        return s[len(p) :] if s.startswith(p) else s
-
-    def rm_suffix(s: str, p: str) -> str:
-        return s[: -(len(p))] if s.endswith(p) else s
-
-
-UNMATCHED_TABLE_ROW = _UnmatchedTableRow()
-
-
-class PageUtilsType(TypedDict):
-    url: str
+HdrezkaCdnResponseJson = TypedDict(
+    "HdrezkaCdnResponseJson",
+    {
+        "success": bool,
+        "message": str,
+        "premium_content": int,
+        "url": str,
+        "quality": str,
+        "subtitle": bool,
+        "subtitle_lns": bool,
+        "subtitle_def": bool,
+        "thumbnails": str,
+    },
+)
+HdrezkaCdnErrorResponseJson = TypedDict(
+    "HdrezkaCdnErrorResponseJson",
+    {
+        "success": bool,
+        "message": str,
+    },
+)
 
 
 class PageOngoingType(TypedDict):
@@ -107,37 +82,12 @@ class PageAnimeType(TypedDict):
     translation_id: str
 
 
-class PageUtils:
-    """
-    helper struct for extract actual url
-    """
-
-    def __init__(self, document: Union[str, HtmlElement]):
-        if isinstance(document, HtmlElement):
-            self._doc = document
-        elif isinstance(document, str):
-            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
-
-    def _parse_url(self, v: HtmlElement) -> str:
-        v1 = v.cssselect('meta[property="og:url"]')[0]
-        v2 = v1.get("content", "")
-        v3 = "https://" + urlsplit(v2).netloc
-        return v3
-
-    def parse(self) -> PageUtilsType:
-        return {
-            "url": self._parse_url(self._doc),
-        }
-
-
 class PageOngoing:
     """
-
     Get all available ongoings from the main page
 
     USAGE
         GET https://hdrezka-home.tv/?filter=last&genre=82
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -149,6 +99,28 @@ class PageOngoing:
     def _split_doc(self, v: HtmlElement) -> List[HtmlElement]:
         v1 = v.cssselect(".b-content__inline_item")
         return v1
+
+    @classmethod
+    def fetch(cls, client: httpx.Client) -> "PageOngoing":
+        _resp = client.request(
+            "GET",
+            "https://hdrezka-home.tv/",
+            params={"filter": "last", "genre": "82"},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient) -> "PageOngoing":
+        _resp = await client.request(
+            "GET",
+            "https://hdrezka-home.tv/",
+            params={"filter": "last", "genre": "82"},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_title(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".b-content__inline_item-link a")[0]
@@ -188,14 +160,12 @@ class PageOngoing:
 
 class PageSearch:
     """
-
     USAGE
         GET https://hdrezka-home.tv/search/
         do=search&subaction=search&q={query}
 
     EXAMPLE
     https://hdrezka-home.tv/search/?do=search&subaction=search&q=isekai
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -208,6 +178,28 @@ class PageSearch:
         v1 = v.cssselect(".b-content__inline_item")
         v2 = [i for i in v1 if "data-url" in i.attrib and "/animation/" in i.get("data-url", "")]
         return v2
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, query: str) -> "PageSearch":
+        _resp = client.request(
+            "GET",
+            "https://hdrezka-home.tv/search/",
+            params={"do": "search", "subaction": "search", "q": query},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, query: str) -> "PageSearch":
+        _resp = await client.request(
+            "GET",
+            "https://hdrezka-home.tv/search/",
+            params={"do": "search", "subaction": "search", "q": query},
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_title(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".b-content__inline_item-link a")[0]
@@ -346,7 +338,6 @@ class Episode:
 
 class PageAnime:
     """
-
     USAGE
         GET https://hdrezka-home.tv/animation/<NAME>.html
 
@@ -356,8 +347,8 @@ class PageAnime:
     NOTE:
         1. videos required post extract manually
 
-        videos item format:
-        "[{int}p (Ultra)?]https://...manifest.m3u8 or https://...mp4"
+        videos item format (comma separated):
+        "[{int}p (Ultra)?]https://...manifest.m3u8 or https://...mp4,[...."
 
         2. for extract episodes, use next endpoint:
 
@@ -371,7 +362,6 @@ class PageAnime:
         id=88328&translator_id=56&season=1&episode=2&favs=aaaaaaaa-bbbb-cccc-dddd-0123456789ab&action=get_stream
 
         > id, translator_id, season, episode search in 'episode_list', 'season_box', 'translation-list' structs, favs from favs field
-
     """
 
     def __init__(self, document: Union[str, HtmlElement]):
@@ -379,6 +369,46 @@ class PageAnime:
             self._doc = document
         elif isinstance(document, str):
             self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+
+    @classmethod
+    def fetch(cls, client: httpx.Client, *, slug: str) -> "PageAnime":
+        _resp = client.request(
+            "GET",
+            f"https://hdrezka-home.tv/animation/{slug}.html",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch(cls, client: httpx.AsyncClient, *, slug: str) -> "PageAnime":
+        _resp = await client.request(
+            "GET",
+            f"https://hdrezka-home.tv/animation/{slug}.html",
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    def fetch_from_url(cls, client: httpx.Client, *, anime_url: str) -> "PageAnime":
+        _resp = client.request(
+            "GET",
+            anime_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
+
+    @classmethod
+    async def async_fetch_from_url(cls, client: httpx.AsyncClient, *, anime_url: str) -> "PageAnime":
+        _resp = await client.request(
+            "GET",
+            anime_url,
+        )
+        _resp.raise_for_status()
+        _body = _resp.text
+        return cls(_body)
 
     def _parse_title(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".b-post__title h1")[0]
@@ -431,3 +461,108 @@ class PageAnime:
             "episode_list": self._parse_episode_list(self._doc),
             "translation_id": self._parse_translation_id(self._doc),
         }
+
+
+@dataclass(frozen=True)
+class HdrezkaCdnSeriesAPIErr200Success(Err[HdrezkaCdnErrorResponseJson]):
+    status: Literal[200] = 200
+
+
+FetchResult = Union[Ok[HdrezkaCdnResponseJson], HdrezkaCdnSeriesAPIErr200Success, UnknownErr, TransportErr]
+
+
+class HdrezkaCdnSeriesAPI:
+    @staticmethod
+    def ssc_dispatch_err(
+        _status: int, _headers: Mapping[str, str], _body: Any
+    ) -> Union[HdrezkaCdnSeriesAPIErr200Success, UnknownErr, None]:
+        if 200 <= _status < 300:
+            if isinstance(_body, dict):
+                if _status == 200 and _body.get("success") is False:
+                    return HdrezkaCdnSeriesAPIErr200Success(headers=_headers, value=_body)
+            return None
+        return UnknownErr(status=_status, headers=_headers, value=_body)
+
+    @classmethod
+    def fetch(
+        cls,
+        client: httpx.Client,
+        *,
+        timestamp: int,
+        id: str,
+        translator_id: str,
+        season: str,
+        episode: str,
+        favs: str,
+        action: str,
+    ) -> FetchResult:
+        try:
+            _resp = client.request(
+                "POST",
+                "https://hdrezka-home.tv/ajax/get_cdn_series/",
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Origin": "https://hdrezka-home.tv",
+                },
+                params={"t": timestamp},
+                data={
+                    "id": id,
+                    "translator_id": translator_id,
+                    "season": season,
+                    "episode": episode,
+                    "favs": favs,
+                    "action": action,
+                },
+            )
+        except httpx.HTTPError as _exc:
+            return TransportErr(cause=repr(_exc))
+        _status, _headers, _body = ssc_parse_response(_resp)
+        _err = cls.ssc_dispatch_err(_status, _headers, _body)
+        if _err is not None:
+            return _err
+        return Ok(status=_status, headers=_headers, value=_body)
+
+    @classmethod
+    async def async_fetch(
+        cls,
+        client: httpx.AsyncClient,
+        *,
+        timestamp: int,
+        id: str,
+        translator_id: str,
+        season: str,
+        episode: str,
+        favs: str,
+        action: str,
+    ) -> FetchResult:
+        try:
+            _resp = await client.request(
+                "POST",
+                "https://hdrezka-home.tv/ajax/get_cdn_series/",
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0",
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Origin": "https://hdrezka-home.tv",
+                },
+                params={"t": timestamp},
+                data={
+                    "id": id,
+                    "translator_id": translator_id,
+                    "season": season,
+                    "episode": episode,
+                    "favs": favs,
+                    "action": action,
+                },
+            )
+        except httpx.HTTPError as _exc:
+            return TransportErr(cause=repr(_exc))
+        _status, _headers, _body = ssc_parse_response(_resp)
+        _err = cls.ssc_dispatch_err(_status, _headers, _body)
+        if _err is not None:
+            return _err
+        return Ok(status=_status, headers=_headers, value=_body)
