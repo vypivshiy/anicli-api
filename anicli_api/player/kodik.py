@@ -23,6 +23,23 @@ class Kodik(BaseVideoExtractor):
     DEFAULT_HTTP_CONFIG = {"http2": True}
     API_CONSTS_PAYLOAD = {"bad_user": False, "info": {}, "cdn_is_working": True}
 
+    @staticmethod
+    def _is_cache_manifest_error(response: Response):
+        # another rare bug that may occur in recently released ongoing titles
+        # API request https://kodikplayer.com/ftor returns 500 code and html page:
+        # <head>
+        #   <title>Error</title>
+        # ...
+        # </head>
+        # <body>
+        #   <div style="height: 100%;" class="promo-error">
+        #    ...
+        #   <div class="promo-error-box">
+        #       <div class="message">Кэш: Ошибка манифеста</div>
+        #   </div>
+        #   </div>
+        return response.status_code == 500 and "text/html" in response.headers["content-type"]
+
     @kodik_validator
     def parse(self, url: str, **kwargs) -> list[Video]:
         # result = PageMainKodikMin.fetch(self.http, kodik_player_url=url)
@@ -53,6 +70,14 @@ class Kodik(BaseVideoExtractor):
             url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
             response_api = self.http.post(url_api, data=payload, headers=headers)
 
+        if self._is_cache_manifest_error(response_api):
+            html_msg = re.search(r'<div class="message">(.*?)</div>', response.text)
+            if html_msg:
+                msg = f"[kodik]: '{html_msg[1]}' API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
+            else:
+                msg = "[kodik]: API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
+            logger.warning(msg)
+            return []
         return self._extract(response_api.json()["links"])
 
     @kodik_validator
@@ -83,6 +108,15 @@ class Kodik(BaseVideoExtractor):
 
                 url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
                 response_api = await client.post(url_api, data=payload, headers=headers)
+
+            if self._is_cache_manifest_error(response_api):
+                html_msg = re.search(r'<div class="message">(.*?)</div>', response.text)
+                if html_msg:
+                    msg = f"[kodik]: '{html_msg[1]}' API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
+                else:
+                    msg = "[kodik]: API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
+                logger.warning(msg)
+                return []
 
             return self._extract(response_api.json()["links"])
 
