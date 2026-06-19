@@ -29,7 +29,17 @@ define REQUEST-SOURCE="curl {{BASE-URL}}/player/videos/{{episode_id}}"
     /* signature: 
     Серия 2 · Субтитры — Сегодня, 21:50
     */
-    episode { css ".aw-meta"; text; re #"\s(\d+)\s"# }
+    episode { 
+        css ".aw-meta"; 
+        text;
+        // corner case fix:
+        /* can be returns string like:
+        '\n\sСерии 1-3\n\n\s· AniDUB\n\s\n\s\n\s—\n\sСегодня, 19:10\n\s'`
+        sanitaize and get last value
+        */
+        re-sub #"\d+-"# "" 
+        re #"\s(\d+)\s"# 
+        }
     dub { css ".aw-meta"; text; re #"(\w+)\s+—"# }
 }
 

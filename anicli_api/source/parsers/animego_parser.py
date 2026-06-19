@@ -186,8 +186,9 @@ class PageOngoing:
     def _parse_episode(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".aw-meta")[0]
         v2 = v1.text_content()
-        v3 = re.search("\\s(\\d+)\\s", v2)[1]
-        return v3
+        v3 = re.sub("\\d+-", "", v2)
+        v4 = re.search("\\s(\\d+)\\s", v3)[1]
+        return v4
 
     def _parse_dub(self, v: HtmlElement) -> str:
         v1 = v.cssselect(".aw-meta")[0]
