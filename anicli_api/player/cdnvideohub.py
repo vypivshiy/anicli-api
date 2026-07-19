@@ -164,7 +164,7 @@ class CdnVideoHub(BaseVideoExtractor):
                 and data["voiceStudio"] == dubber_name
             ):
                 vkid = data["vkId"]
-                return video_playlist_from_vk_id(self.http, vkid=vkid)
+                return await a_video_playlist_from_vk_id(self.a_http, vkid=vkid)
 
         logger.warning("[cdnvideohub] failed get videos candidates")
         return []
