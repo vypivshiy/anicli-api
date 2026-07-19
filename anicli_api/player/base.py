@@ -3,12 +3,15 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Any, Literal, TypeVar, Union, Callable
+from typing import TYPE_CHECKING, Any, Literal, TypeVar, Union, Callable
 from urllib.parse import urlparse
 
 from attrs import Factory, define
 
 from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient, Client
 
 __all__ = ["ALL_QUALITIES", "Video", "url_validator", "BaseVideoExtractor", "ABCVideoExtractor"]
 
@@ -99,14 +102,28 @@ class ABCVideoExtractor(ABC):
     DEFAULT_HTTP_CONFIG: dict[str, Any] = {}
     """minimal httpx.Client, httpx.AsyncClient configuration for correct work player provider"""
 
-    def __init__(self, **httpx_kwargs):
+    def __init__(self, http: "Client | None" = None, a_http: "AsyncClient | None" = None, **httpx_kwargs):
         """
-        :type httpx_kwargs: httpx.Client and httpx.AsyncClient configuration
+        :param http: pre-configured httpx.Client. If provided, DEFAULT_HTTP_CONFIG headers are merged in
+        :param a_http: pre-configured httpx.AsyncClient. If provided, DEFAULT_HTTP_CONFIG headers are merged in
+        :param httpx_kwargs: httpx.Client and httpx.AsyncClient configuration (used only when http/a_http not provided)
         """
         default_kwargs = self.DEFAULT_HTTP_CONFIG.copy()
         default_kwargs.update(httpx_kwargs)
-        self.http = BaseHTTPSync(**default_kwargs)
-        self.a_http = BaseHTTPAsync(**default_kwargs)
+
+        if http is not None:
+            if "headers" in default_kwargs:
+                http.headers.update(default_kwargs["headers"])
+            self.http = http
+        else:
+            self.http = BaseHTTPSync(**default_kwargs)
+
+        if a_http is not None:
+            if "headers" in default_kwargs:
+                a_http.headers.update(default_kwargs["headers"])
+            self.a_http = a_http
+        else:
+            self.a_http = BaseHTTPAsync(**default_kwargs)
 
     @abstractmethod
     def parse(self, url: str, **kwargs) -> list[Video]:
