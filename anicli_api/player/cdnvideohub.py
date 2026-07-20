@@ -125,7 +125,7 @@ class CdnVideoHub(BaseVideoExtractor):
         response = self.http.get(url, headers={"referer": "https://animego.me"})
         options = PageParseCdnVideoData(response.text).parse()
         resp = CdnVideoHubAPI.get_params_from_page(
-            self.http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["id"]
+            self.http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["data_title_id"]
         )
         if not resp.is_ok:
             # TODO: handle errors
@@ -150,7 +150,7 @@ class CdnVideoHub(BaseVideoExtractor):
         response = await self.a_http.get(url, headers={"referer": "https://animego.me"})
         options = PageParseCdnVideoData(response.text).parse()
         resp = await CdnVideoHubAPI.async_get_params_from_page(
-            self.a_http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["id"]
+            self.a_http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["data_title_id"]
         )
         if not resp.is_ok:
             # TODO: handle errors
