@@ -116,12 +116,8 @@ def _is_empty(var: T) -> bool:
 def _generate_mpv_cmd(vid: Video) -> str:
     def _headers_to_mpv_opts(headers: dict[str, str]) -> str:
         result: list[str] = []
-        referrer = (
-            '--referrer="' + headers.pop("Referrer") + '"' if headers.get("Referrer") else ""
-        )
-        user_agent = (
-            '--user-agent="' + headers.pop("User-Agent") + '"' if headers.get("User-Agent") else ""
-        )
+        referrer = '--referrer="' + headers.pop("Referrer") + '"' if headers.get("Referrer") else ""
+        user_agent = '--user-agent="' + headers.pop("User-Agent") + '"' if headers.get("User-Agent") else ""
         for k, v in headers.items():
             v = v.replace('"', '\\"')
             result.append(f'"{k}: {v}"')
