@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Tuple, cast
-from urllib.parse import urlsplit
+from typing import Dict, List, Optional, Tuple, cast
+from urllib.parse import unquote_plus, urlsplit
 
 from attrs import define
 
@@ -270,7 +270,8 @@ class Source(BaseSource):
         anime_id = re.search(r"anime_id=(\d+)", iframe_url)[1]
         episode = re.search(r"episode=(\d+)", iframe_url)[1]
         dubbing_code = re.search(r"dubbing_code=([^&]+)", iframe_url)[1]
-        return int(anime_id), int(episode), dubbing_code
+        # compared as-is with the voiceStudio value, so it must be decoded (cyrillic names, spaces as "+")
+        return int(anime_id), int(episode), unquote_plus(dubbing_code)
 
     @staticmethod
     def _extract_script_params(js_script_response: str) -> Tuple[str, str]:
@@ -295,11 +296,13 @@ class Source(BaseSource):
     @staticmethod
     def _cdnvideohub_extract_vkid_cadidate(
         api_response: CdnVideoHubResponseJson, episode: int, dubbing_code: str
-    ) -> str:
+    ) -> Optional[str]:
         # dubbing_code same value as voiceStudio key
-        return [i for i in api_response["items"] if i["episode"] == int(episode) and i["voiceStudio"] == dubbing_code][
-            0
-        ]["vkId"]
+        # subtitle entries ("voiceType": "Субтитры") come without the voiceStudio key at all
+        candidates = [
+            i for i in api_response["items"] if i["episode"] == int(episode) and i.get("voiceStudio") == dubbing_code
+        ]
+        return candidates[0]["vkId"] if candidates else None
 
     def get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
         # TODO: move to anicli-api.player scope
@@ -321,6 +324,8 @@ class Source(BaseSource):
             value = resp_api.value
             value = cast(CdnVideoHubResponseJson, value)
             vkid = self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code)
+            if not vkid:
+                return []
             return self._cdn_videohub_extractor(self.http, vkid=vkid)
         return super().get_videos(**httpx_kwargs)
 
@@ -332,7 +337,9 @@ class Source(BaseSource):
             anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
             script = await self.http_async.get(js_url)
             pub_id, aggr = self._extract_script_params(script.text)
-            resp_api = CdnVideoHubAPI.async_get_params_from_page(self.http_async, pub=pub_id, aggr=aggr, id=anime_id)
+            resp_api = await CdnVideoHubAPI.async_get_params_from_page(
+                self.http_async, pub=pub_id, aggr=aggr, id=anime_id
+            )
             if not resp_api.is_ok:
                 # TODO: handle error
                 return []
@@ -340,6 +347,8 @@ class Source(BaseSource):
             value = resp_api.value
             value = cast(CdnVideoHubResponseJson, value)
             vkid = self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code)
+            if not vkid:
+                return []
             return await self._async_cdn_videohub_extractor(self.http_async, vkid=vkid)
         return await super().a_get_videos(**httpx_kwargs)
 
