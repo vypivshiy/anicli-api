@@ -307,50 +307,46 @@ class Source(BaseSource):
     def get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
         # TODO: move to anicli-api.player scope
         # https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=%D0%9E%D0%B7%D0%B2%D1%83%D1%87%D0%BA%D0%B0+Sanae
-        if "/iframeCVH.html?" in self.url:
-            resp = self.http.get(self.url)
-            base_url = urlsplit(self.url).netloc
-            js_url = self._get_js_url(base_url, resp.text)
-            anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
-            # WARNING: used brotli encoding algorithm
-            # required httpx[brotli] dependency
-            script = self.http.get(js_url)
-            pub_id, aggr = self._extract_script_params(script.text)
-            resp_api = CdnVideoHubAPI.get_params_from_page(self.http, pub=pub_id, aggr=aggr, id=anime_id)
-            if not resp_api.is_ok:
-                # TODO: handle error
-                return []
-            # search candidate by anime_id, episode_id and dubbing code
-            value = resp_api.value
-            value = cast(CdnVideoHubResponseJson, value)
-            vkid = self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code)
-            if not vkid:
-                return []
-            return self._cdn_videohub_extractor(self.http, vkid=vkid)
-        return super().get_videos(**httpx_kwargs)
+        if "/iframeCVH.html?" not in self.url:
+            return super().get_videos(**httpx_kwargs)
+        resp = self.http.get(self.url)
+        base_url = urlsplit(self.url).netloc
+        js_url = self._get_js_url(base_url, resp.text)
+        anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
+        # WARNING: used brotli encoding algorithm
+        # required httpx[brotli] dependency
+        script = self.http.get(js_url)
+        pub_id, aggr = self._extract_script_params(script.text)
+        resp_api = CdnVideoHubAPI.get_params_from_page(self.http, pub=pub_id, aggr=aggr, id=anime_id)
+        if not resp_api.is_ok:
+            # TODO: handle error
+            return []
+        # search candidate by anime_id, episode_id and dubbing code
+        value = resp_api.value
+        value = cast(CdnVideoHubResponseJson, value)
+        vkid = self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code)
+        return self._cdn_videohub_extractor(self.http, vkid=vkid) if vkid else []
 
     async def a_get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
-        if "/iframeCVH.html?" in self.url:
-            resp = await self.http_async.get(self.url)
-            base_url = urlsplit(self.url).netloc
-            js_url = self._get_js_url(base_url, resp.text)
-            anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
-            script = await self.http_async.get(js_url)
-            pub_id, aggr = self._extract_script_params(script.text)
-            resp_api = await CdnVideoHubAPI.async_get_params_from_page(
-                self.http_async, pub=pub_id, aggr=aggr, id=anime_id
-            )
-            if not resp_api.is_ok:
-                # TODO: handle error
-                return []
-            # search candidate by anime_id, episode_id and dubbing code
-            value = resp_api.value
-            value = cast(CdnVideoHubResponseJson, value)
-            vkid = self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code)
-            if not vkid:
-                return []
+        if "/iframeCVH.html?" not in self.url:
+            return await super().a_get_videos(**httpx_kwargs)
+        resp = await self.http_async.get(self.url)
+        base_url = urlsplit(self.url).netloc
+        js_url = self._get_js_url(base_url, resp.text)
+        anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
+        script = await self.http_async.get(js_url)
+        pub_id, aggr = self._extract_script_params(script.text)
+        resp_api = await CdnVideoHubAPI.async_get_params_from_page(self.http_async, pub=pub_id, aggr=aggr, id=anime_id)
+        if not resp_api.is_ok:
+            # TODO: handle error
+            return []
+        # search candidate by anime_id, episode_id and dubbing code
+        value = resp_api.value
+        value = cast(CdnVideoHubResponseJson, value)
+        if vkid := self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code):
             return await self._async_cdn_videohub_extractor(self.http_async, vkid=vkid)
-        return await super().a_get_videos(**httpx_kwargs)
+        else:
+            return []
 
 
 if __name__ == "__main__":
