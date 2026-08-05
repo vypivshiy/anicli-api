@@ -184,7 +184,6 @@ if __name__ == '__main__':
 | anilibria       | https://aniliberty.top   | API  | author  | старое название, актуальное aniliberty                                                       |
 | animevost       | https://animevost.org    | API  | author  |                                                                                              |
 | sameband        | https://sameband.studio  | SSR  | author  |                                                                                              |
-| yummy_anime_org | https://yummyanime.in    | SSR  | many    |                                                                                              |
 | yummy_anime     | https://site.yummyani.me | API  | many    |                                                                                              |
 | anilib_me       | https://animelib.org     | API  | many    | **(???), при чрезмерной эксплуатации могут дать бан по ip (API запросы возвращают код 403)** |
 | hdrezka         | https://hdrezka-home.tv  | SSR  | once    |                                                                                              |
@@ -211,6 +210,7 @@ if __name__ == '__main__':
 
 - [docs](docs.md) - lib usage
 - [dev](dev) - swagger документации и dsl конфиг парсеры с рецептами изготовления
+- [e2e tests](tests/e2e/README.md) - E2E тест для проверки базовой работоспособности модулей
 
 ## Примечания
 
