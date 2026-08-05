@@ -1,6 +1,6 @@
 [project]
 name = "anicli_api"
-version = "0.9.2"
+version = "0.10.0"
 description = "Anime extractors api implementation"
 license = "MIT"
 readme = "README.MD"
@@ -98,5 +98,8 @@ exclude = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "integration: real-network integration tests, opt-in (see tests/integration/README.md)",
+]
 
 
