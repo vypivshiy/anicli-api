@@ -1,0 +1,171 @@
+@doc """
+Example web scraper config for https://news.ycombinator.com/
+
+
+News:
+
+select tag signature:
+
+```html
+<tr class="athing submission" id="123">
+    <td align="right" valign="top" class="title"><span class="rank">1.</span></td>
+    <td valign="top" class="votelinks">
+        <center>
+            <a id="up_123" href="vote?id=123&amp;how=up&amp;goto=news">
+                <div class="votearrow" title="upvote"></div>
+            </a>
+        </center>
+    </td>
+    <td class="title"><span class="titleline"><a href="https://example.com">Example title</a>
+    <span class="sitebit comhead"> (<a href="from?site=example.com"><span
+    class="sitestr">example.com</span></a>)</span></span></td>
+</tr>
+```
+
+Ratings:
+
+select signature
+
+```html
+<span class="subline">
+    <span class="score" id="score_123">9000 points</span> by <a href="user?id=admin" class="hnuser">admin</a>
+    <span class="age" title="2010-06-22T14:56:44 1750604204">
+        <a href="item?id=123">20 hours ago</a></span>
+    <span id="unv_123"></span> | <a href="hide?id=123&amp;goto=news">hide</a>
+    | <a href="item?id=123">55&nbsp;comments</a> </span>
+```
+
+"""
+
+// No define/import — URL template inlined into each `fmt` op.
+
+// see first dostring tags examples about selector implementatsions
+(list)struct News {
+    @split-doc {
+        css-all ".submission"
+    }
+
+    title {
+        css ".title > .titleline > a"
+        text
+    }
+    rank {
+        css ".rank"
+        text
+        re-sub #"\D"# "" //remove non-digit chars
+        to-int
+    }
+    id {
+        attr id
+        to-int
+        fallback #null
+    }
+    votelink {
+        css ".votelinks a[href]"; attr href
+        fmt "https://news.ycombinator.com/{{}}"
+        fallback #null
+    }
+    url {
+        css ".title > .titleline > a[href]"; attr href
+    }
+}
+
+(list)struct Rating {
+    @split-doc { css-all "tr > .subtext > .subline" }
+
+    score {
+        // tip: use advanced selectors for simplify logic
+        css "span.score[id^=\"score_\"]"
+        text
+        re-sub #"\D"# ""
+        to-int
+        fallback 0
+    }
+    author {
+        css "a.hnuser[href]"
+        attr href
+        fmt "https://news.ycombinator.com/{{}}"
+        fallback #null
+    }
+    date { css "span.age[title]"; attr title; fallback #null }
+    date-text { css "span.age[title]"; text; fallback #null }
+    url { css "a[href^='item?']"; attr href; fmt "https://news.ycombinator.com/{{}}" }
+    // url selector selects comments tag
+    // <a href="item?id=123">55&nbsp;comments</a>
+    comments {
+        css "a[href^='item?']"
+        text
+        re-sub #"\D"# ""
+        to-int
+        fallback 0
+    }
+}
+
+
+struct MainPage {
+    @doc """
+    Main hacker news page
+
+    Page entrypoints examples:
+        GET https://news.ycombinator.com
+        GET https://news.ycombinator.com/?p=2
+
+    NOTE:
+        news.votelink can be null
+    """
+    @request """
+    curl https://news.ycombinator.com?p={{page-num}}
+    """
+
+    news { nested News }
+    ratings { nested Rating }
+}
+
+(list)struct Comments {
+    @split-doc {
+        css-all "table.comment-tree tr.comtr[id] > td > table"
+    }
+
+    indent { css ".ind[indent]"; attr "indent"; to-int; fallback 0 }
+    user { css ".comhead > a.hnuser"; text }
+    user-url { css ".comhead > a.hnuser[href]"; attr href }
+    date { css ".comhead .age[title]"; attr title; fallback #null }
+    date-text { css ".comhead .age[title] >a[href^='item?']"; text; fallback #null }
+    // NOTE: not uncluded unwrap features, inner urls returns "as it"
+    text { css ".default > .comment > .commtext"; text }
+    reply { css ".reply a[href]"; attr href; fmt "https://news.ycombinator.com/{{}}"; fallback #null }
+}
+
+struct MainDiscussionPage {
+    @doc """
+
+    Main hackernews discussion page
+
+    PAGE entrypoin examples:
+        GET https://news.ycombinator.com/item?id=1
+        GET https://news.ycombinator.com/item?id=2
+
+    NOTE:
+        comments.reply can be null
+    """
+    @request """
+    curl https://news.ycombinator.com/item?id={{id}}
+    """
+
+    title { css ".titleline > a"; text }
+    url { css ".titleline > a[href]"; attr href }
+    score { css ".subline > .score"; text; re-sub #"\D"# ""; to-int; fallback 0 }
+    user { css ".subline .hnuser"; text }
+    user-url { css ".subline .hnuser[href]"; attr href; fmt "https://news.ycombinator.com/{{}}" }
+    date { css ".subline .age[title]"; attr title }
+    date-text { css ".subline .age[title] > a[href^='item?']"; text }
+    comments-count { 
+        css ".subline > a[href^='item?']"; text
+        re-sub #"\D"# ""
+        to-int
+        fallback 0
+    }
+    comments { nested Comments }
+}
+
+

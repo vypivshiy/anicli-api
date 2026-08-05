@@ -1,0 +1,110 @@
+@doc """
+
+Demonstration implementation imdb search page parser
+
+Include:
+
+- examples manual write selectors
+- extract json from next.js state and parse
+"""
+
+
+(list)struct FindPageResults {
+    @split-doc {
+        css-all "ul.ipc-metadata-list > li.ipc-metadata-list-summary-item"
+    }
+
+    image {
+        css "img.ipc-image[src]"
+        attr src
+        fallback #null
+    }
+
+    image-alt {
+        css "img.ipc-image[alt]"
+        attr alt
+        fallback #null
+    }
+    title {
+        css "a.ipc-metadata-list-summary-item__t"
+        text
+    }
+    url {
+        css "a.ipc-metadata-list-summary-item__t[href]"
+        attr href
+        fmt "https://www.imdb.com{{}}"
+    }
+    // naive assumption: first element contains year
+    // maybe has collisions, false-positive selects
+    year {
+        css "ul.ipc-metadata-list-summary-item__tl > li:first-child > span"
+        text
+        re-sub #"\D"# ""
+        to-int
+        fallback #null
+    }
+}
+
+// next.js extarct data from state example
+json TitlePosterImageModel {
+    url str
+    maxHeight int
+    maxWidth int
+    caption str
+}
+
+json Results {
+    id str
+    titleNameText str
+    titleReleaseText str
+    titleTypeText str
+    titlePosterImageModel TitlePosterImageModel
+    topCredits (array)str
+    imageType str
+    // autogen may not capture extra/optional fields
+    // extend it manually
+    // suffix ? - optional type (can be returns null)
+    seriesId str?
+    seriesNameText str?
+    seriesReleaseText str?
+    seriesTypeText str?
+    seriesSeasonText str?
+    seriesEpisodeText str?
+}
+
+json Content {
+    results (array)Results
+    hasExactMatches bool
+}
+
+struct SearchPage {
+    @doc """
+    Extract cards result from imdb.com
+
+    Page entrypoint signature:
+        required extra params `s=tt&exact=true`
+
+        GET https://www.imdb.com/find/?q=<QUERY>&s=tt&exact=true
+
+    EXAMPLES:
+        GET https://www.imdb.com/find/?q=mr.robot&s=tt&exact=true
+        GET https://www.imdb.com/find/?q=matrix&s=tt&exact=true
+
+    """
+
+    /*
+    TIP:
+    before write selectors, overview target page
+    this site use Next.js for send basic state in json format
+    we can parse this tag and parse json output
+    */
+    json-parse {
+        css "script[id='__NEXT_DATA__']"
+        text
+        // should be use path for extract useful data and increase stability
+        jsonify Content path="props.pageProps.titleResults"
+    }
+    selector-parse { nested FindPageResults }
+}
+
+

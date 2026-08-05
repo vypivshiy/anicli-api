@@ -1,0 +1,111 @@
+@doc """
+Minimal REST API client example targeting DummyJSON (https://dummyjson.com).
+
+Demonstrates:
+  - Nested + envelope json schemas (Product → ProductList).
+  - Typed placeholders: required path id (int), optional query (int?), search query (str).
+  - Both @request body formats: raw HTTP (get-product, create-product) and
+    POSIX curl (list-products, search-products) — fully interchangeable.
+  - POST with JSON body + typed body placeholders.
+  - Error mapping with @error 404.
+
+Lint-clean: `ssc-gen check example-dummyjson.kdl`
+"""
+
+// ── JSON schemas ──────────────────────────────────────────────────────────────
+// camelCase JSON keys bind to snake_case fields via the alias string arg.
+
+json Product {
+    id int
+    title str
+    description str
+    category str
+    price float
+    discount_percentage float "discountPercentage"
+    rating float
+    stock int
+    brand str?
+    sku str
+    thumbnail str
+}
+
+// Paginated list envelope returned by /products and /products/search.
+json ProductList {
+    products (array)Product
+    total int
+    skip int
+    limit int
+}
+
+// Error body returned on 404, e.g. {"message": "Product with id '99999' not found"}
+json ApiError {
+    message str
+}
+
+// Fictional schema for demonstrating field-condition @error matching.
+// Some APIs return 200 for both success and error, using a field like
+// "success" to distinguish. @error 200 with conditions covers this case.
+json ActionResponse {
+    success bool
+    message str
+}
+
+
+// ── REST struct ───────────────────────────────────────────────────────────────
+
+(rest)struct DummyJsonApi {
+    @doc """
+    DummyJSON Products API.
+    No auth required. Rate limits: none.
+    """
+
+    @request name=get-product \
+        doc="Fetch one product by id." \
+        response=Product \
+        """
+    GET /products/{{id:int}} HTTP/1.1
+    Host: dummyjson.com
+    Accept: application/json
+    """
+
+    // POSIX curl form — equivalent to raw HTTP; great for DevTools paste-ins.
+    @request name=list-products \
+        doc="Paginated product list. All params optional." \
+        response=ProductList \
+        """
+    curl 'https://dummyjson.com/products?limit={{limit:int?}}&skip={{skip:int?}}' \
+      -H 'Accept: application/json'
+    """
+
+    @request name=search-products \
+        doc="Full-text search." \
+        response=ProductList \
+        """
+    curl 'https://dummyjson.com/products/search?q={{query}}&limit={{limit:int?}}' \
+      -H 'Accept: application/json'
+    """
+
+    @request name=create-product \
+        doc="Simulated product creation (not persisted)." \
+        response=Product \
+        """
+    POST /products/add HTTP/1.1
+    Host: dummyjson.com
+    Content-Type: application/json
+    Accept: application/json
+
+    {"title": "{{title}}", "price": {{price:float}}, "stock": {{stock:int}}}
+    """
+
+    // 404 for unknown id — body shape: {"message": "..."}
+    @error 404 ApiError
+
+    // Field-condition example (fictional): some APIs return 200 for both
+    // success and error, distinguished by a field in the response body.
+    // Uncomment below to see field-conditions in action:
+    // @error 200 ActionResponse success=#false
+
+    // Key-presence example: check that a key exists in the JSON body
+    // regardless of its value (positional arg after schema name).
+    // @error 400 ApiError error
+}

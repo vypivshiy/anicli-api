@@ -1,0 +1,161 @@
+@doc """
+Example REST API client config using DummyJSON (https://dummyjson.com).
+
+Why DummyJSON:
+  - Live, stable, no auth, no rate limits
+  - Returns structured JSON error bodies: {"message": "..."}
+  - Pagination (?limit=&skip=), search (?q=), nested objects — exercises
+    typed/optional/array placeholders end-to-end
+  - See https://dummyjson.com/docs for full surface
+
+Equivalent alternatives you can retarget by swapping host/paths:
+  - https://jsonplaceholder.typicode.com — simpler resources (posts, users,
+    comments), but 404 body is empty `{}` so @error becomes formal
+  - https://reqres.in — good for POST/PUT/DELETE demos with bodies
+  - https://httpbin.org — request-echo, useful for HTTP mechanics only
+"""
+
+
+// ── JSON schemas ──────────────────────────────────────────────────────────────
+// camelCase JSON keys are bound to snake_case fields via alias (the second
+// string arg). See references/json.md for full reference.
+
+json Dimensions {
+    width float
+    height float
+    depth float
+}
+
+json Meta {
+    created_at str "createdAt"
+    updated_at str "updatedAt"
+    barcode str
+    qr_code str "qrCode"
+}
+
+json Review {
+    rating int
+    comment str
+    date str
+    reviewer_name str "reviewerName"
+    reviewer_email str "reviewerEmail"
+}
+
+json Product {
+    id int
+    title str
+    description str
+    category str
+    price float
+    discount_percentage float "discountPercentage"
+    rating float
+    stock int
+    tags (array)str
+    brand str?
+    sku str
+    weight float
+    dimensions Dimensions
+    warranty_information str "warrantyInformation"
+    shipping_information str "shippingInformation"
+    availability_status str "availabilityStatus"
+    reviews (array)Review
+    return_policy str "returnPolicy"
+    minimum_order_quantity int "minimumOrderQuantity"
+    meta Meta
+    images (array)str
+    thumbnail str
+}
+
+// Paginated list envelope returned by /products, /products/search,
+// /products/category/{slug}, etc.
+json ProductList {
+    products (array)Product
+    total int
+    skip int
+    limit int
+}
+
+json CategoryInfo {
+    slug str
+    name str
+    url str
+}
+
+// Error body returned on non-2xx responses, e.g. 404:
+//   {"message": "Product with id '99999' not found"}
+json ApiError {
+    message str
+}
+
+
+// ── REST struct ───────────────────────────────────────────────────────────────
+
+(rest)struct DummyJsonApi {
+    @doc """
+    DummyJSON Products API.
+    No auth required. Rate limits: none.
+
+    NOTE: POST /products/add simulates creation (the new record
+    is NOT persisted server-side) — useful for testing request-body shape.
+    """
+
+    @request name=get-product \
+        doc="Fetch one product by id." \
+        response=Product \
+        """
+    GET /products/{{id:int}} HTTP/1.1
+    Host: dummyjson.com
+    Accept: application/json
+    """
+
+    @request name=list-products \
+        doc="Paginated product list. All params optional." \
+        response=ProductList \
+        """
+    GET /products?limit={{limit:int?}}&skip={{skip:int?}}&select={{select:str[]?|csv}} HTTP/1.1
+    Host: dummyjson.com
+    Accept: application/json
+    """
+
+    @request name=search-products \
+        doc="Full-text search." \
+        response=ProductList \
+        """
+    GET /products/search?q={{query}}&limit={{limit:int?}} HTTP/1.1
+    Host: dummyjson.com
+    Accept: application/json
+    """
+
+    @request name=products-by-category \
+        doc="List products in a category (slug)." \
+        response=ProductList \
+        """
+    GET /products/category/{{category}} HTTP/1.1
+    Host: dummyjson.com
+    Accept: application/json
+    """
+
+    @request name=list-categories \
+        doc="All available category slugs with metadata." \
+        response=CategoryInfo \
+        """
+    GET /products/categories HTTP/1.1
+    Host: dummyjson.com
+    Accept: application/json
+    """
+
+    @request name=create-product \
+        doc="Simulated product creation (not persisted)." \
+        response=Product \
+        """
+    POST /products/add HTTP/1.1
+    Host: dummyjson.com
+    Content-Type: application/json
+    Accept: application/json
+
+    {"title": "{{title}}", "price": {{price:float}}, "stock": {{stock:int}}}
+    """
+
+    // 404 for unknown id or unknown category slug — body: {"message": "..."}
+    @error 404 ApiError
+}

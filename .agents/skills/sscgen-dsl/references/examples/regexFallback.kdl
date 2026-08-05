@@ -1,0 +1,52 @@
+@doc """
+Demonstration of re + fallback interaction.
+
+Shows:
+- re no-match caught by fallback (SscRegexError suppressed)
+- re-all with exactly 1 capture group (single-group extraction)
+- re-sub to strip thousands separators
+- fallback on title/price for resilient extraction
+"""
+
+
+struct ProductPage {
+    title {
+        css ".title"
+        text
+        trim
+        fallback "(unknown title)"     // empty/missing -> default
+    }
+
+    year {
+        css ".meta"
+        text
+        re #"(\d{4})"#                 // inline regex — no define needed
+        to-int
+        fallback 0                     // SscRegexError suppressed if no year in text
+    }
+
+    views {
+        css ".stats"
+        text
+        re #"(\d+(?:,\d{3})*)"#        // matches "1,234,567"
+        re-sub #","# ""                // strip thousands separators
+        to-int
+        fallback 0
+    }
+
+    // Demonstrates re-all pipeline op (single capture group required).
+    // Extracts every 4-digit year mentioned in the description text.
+    mentioned-years {
+        css ".description"
+        text
+        re-all #"(\d{4})"#             // 1 capture group — required by linter
+    }
+
+    price {
+        css ".price"
+        text
+        re #"(\d+\.\d{2})"#
+        to-float
+        fallback 0.0                   // regex miss -> 0.0 instead of raising
+    }
+}

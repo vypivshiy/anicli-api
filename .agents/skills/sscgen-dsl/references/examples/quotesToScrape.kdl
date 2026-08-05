@@ -1,0 +1,71 @@
+@doc """
+demo parser for https://quotes.toscrape.com/js/
+"""
+
+// json mapping
+json Author {
+    // keys should be same as original structure
+    name str
+    goodreads_links str
+    slug str
+}
+
+// mark entrypoint - array
+(array)json Quote {
+    // add type (array) mark
+    tags (array)str
+    // reference structure
+    author Author
+    text str
+}
+
+
+struct Main {
+    // raw HTML -> extract embedded JSON array via multiline verbose regex
+    // (?xs): x = extended (whitespace + # comments ignored), s = dotall (. matches \n)
+    // duplication across fields is intentional — @init removed for mental-model simplicity
+    data {
+        raw
+        re #"""
+            (?xs)
+            var\s+data\s*=\s*     # START ANCHOR: var data =
+            (
+                \[                # START_ARRAY
+                .*                # JSON DATA
+                \]                # END_ARRAY
+            )
+            ;\s+for               # END ANCHOR: ; for
+            """#
+        jsonify Quote
+    }
+    first-quote {
+        raw
+        re #"""
+            (?xs)
+            var\s+data\s*=\s*
+            ( \[ .* \] )
+            ;\s+for
+            """#
+        jsonify Quote path="0"
+    }
+    second-quote {
+        raw
+        re #"""
+            (?xs)
+            var\s+data\s*=\s*
+            ( \[ .* \] )
+            ;\s+for
+            """#
+        jsonify Quote path="1"
+    }
+    third-slug {
+        raw
+        re #"""
+            (?xs)
+            var\s+data\s*=\s*
+            ( \[ .* \] )
+            ;\s+for
+            """#
+        jsonify Quote path="2.author.slug"
+    }
+}

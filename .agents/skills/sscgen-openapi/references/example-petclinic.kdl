@@ -1,0 +1,97 @@
+@doc """
+Example: Pet Clinic API client (obfuscated).
+Converted from an OpenAPI 3.0 spec with fictional URLs.
+
+Demonstrates:
+  - GET/POST/PUT/DELETE endpoints
+  - Path + query parameters with typed placeholders
+  - JSON request body (POST/PUT)
+  - Nested and array json schemas with aliases
+  - Error handling with @error
+  - Shared response schemas across endpoints
+
+Lint-clean: ssc-gen check example-petclinic.kdl
+"""
+
+// ── JSON schemas (leaves first) ──────────────────────────────────────────────
+
+json Category {
+    id int
+    name str
+}
+
+json Tag {
+    id int
+    name str?
+}
+
+json Pet {
+    id int?
+    name str
+    category Category?
+    photo_urls (array)str "photoUrls"
+    tags (array)Tag?
+    status str?
+}
+
+json PetList {
+    pets (array)Pet
+    total int
+    limit int
+    offset int
+}
+
+json ApiError {
+    code int
+    message str
+}
+
+// ── REST struct ──────────────────────────────────────────────────────────────
+
+(rest)struct PetClinicApi {
+    @doc """
+    Pet Clinic API client.
+
+    Generated methods (Python, --http-client httpx):
+        list_pets(client, *, limit=None, offset=None)
+        create_pet(client, *, name, category_id=None, category_name=None, status=None)
+        get_pet(client, *, pet_id)
+        update_pet(client, *, pet_id, name, category_id=None, category_name=None, status=None)
+        delete_pet(client, *, pet_id)
+    """
+
+    @request name=list-pets doc="List pets with optional pagination." response=PetList """
+    curl 'https://api.pet-clinic.example.com/v2/pet?limit={{limit:int?}}&offset={{offset:int?}}' \
+      -H 'Accept: application/json'
+    """
+
+    @request name=create-pet doc="Add a new pet." response=Pet """
+    POST /v2/pet HTTP/1.1
+    Host: api.pet-clinic.example.com
+    Content-Type: application/json
+    Accept: application/json
+
+    {"name": "{{name}}", "status": "{{status:str?}}"}
+    """
+
+    @request name=get-pet doc="Get pet by id." response=Pet """
+    curl 'https://api.pet-clinic.example.com/v2/pet/{{pet_id:int}}' \
+      -H 'Accept: application/json'
+    """
+
+    @request name=update-pet doc="Update an existing pet." response=Pet """
+    PUT /v2/pet/{{pet_id:int}} HTTP/1.1
+    Host: api.pet-clinic.example.com
+    Content-Type: application/json
+    Accept: application/json
+
+    {"name": "{{name}}", "status": "{{status:str?}}"}
+    """
+
+    @request name=delete-pet doc="Delete a pet by id." """
+    curl -X DELETE 'https://api.pet-clinic.example.com/v2/pet/{{pet_id:int}}'
+    """
+
+    @error 400 ApiError
+    @error 404 ApiError
+}

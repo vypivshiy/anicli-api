@@ -1,0 +1,161 @@
+@doc """
+example implementation for books.toscrape.com fictive shop
+
+"""
+// ===
+// https://books.toscrape.com/catalogue/*/index.html
+// ===
+(table)struct ProductInfo {
+    @doc """
+    parse product description from product page
+
+    USAGE:
+        - GET https://books.toscrape.com/catalogue/in-her-wake_980/index.html
+    """
+    // table selector target options
+    @table { css "table" }
+    @rows { css-all "tr" }
+    // convert to lowercase for eg
+    @match { css "th"; text; trim; lower }
+    @value { css "td"; text }
+
+    @pre-validate {
+        assert { css "table tr" }
+    }
+    // fields
+    upc {
+        // required match { ...} expr for (table)struct
+        match { eq "upc" }
+    }
+    product-type {
+        match { starts "product" }
+    }
+    price-excl-tax {
+        match { starts "price (ex" }
+        re #"(\d+\.\d+)"#
+        to-float
+    }
+    price-incl-tax {
+        match { starts "price (in" }
+        re #"(\d+\.\d+)"#
+        to-float
+    }
+    tax {
+        match { starts "tax" }
+        re #"(\d+\.\d+)"#
+        to-float
+    }
+    // example case: if exprs failed - set default value - false
+    is-available {
+        match { eq "availability" }
+        assert { contains "In stock" }
+        to-bool
+        fallback #false
+    }
+    count {
+        match { eq "availability" }
+        re #"(\d+)"#
+        to-int
+    }
+    number-of-reviews {
+        match { starts "number of" }
+        to-int
+        fallback 0
+    }
+
+}
+
+
+// ====
+// https://books.toscrape.com | https://books.toscrape.com/catalogue/page-*
+// ====
+// No define/import — all constants inlined directly into ops.
+
+(list)struct Book {
+    @doc """
+    Exctract a book cards
+
+    Usage:
+
+        - GET https://books.toscrape.com/
+        - GET https://books.toscrape.com/catalogue/page-2.html
+        - GET https://books.toscrape.com/catalogue/page-50.html
+    """
+
+    // special required field (HOW TO part to cards by selector)
+    @split-doc { css-all ".col-lg-3" }
+    @pre-validate { 
+        assert { css ".col-lg-3 .thumbnail" }
+    }
+
+    name { 
+        css ".thumbnail"
+        attr "alt" 
+        }
+    image-url { 
+        css ".thumbnail"
+        attr "src"
+        rm-prefix ".."
+        ltrim "."
+        fmt "https://books.toscrape.com/{{}}"
+        }
+    rating {
+        css ".star-rating"
+        attr "class"
+        rm-prefix "star-rating "
+        repl { One "1"; Two "2"; Three "3"; Four "4"; Five "5" }
+        to-int
+    }
+    price {
+        css ".price_color"
+        text
+        re #"(\d+(?:\.\d+)?)"#
+        to-float
+    }
+
+}
+
+// main page
+struct MainCatalogue {
+    // TIP:
+    // Provide documentation on WHERE TO GET DATA for the implemented parser
+    // it will be transferred to the generated API module
+    @doc """
+    Extract pagination urls and book cards
+
+    Usage Examples:
+
+        - GET https://books.toscrape.com/
+        - GET https://books.toscrape.com/catalogue/page-2.html
+        - GET https://books.toscrape.com/catalogue/page-50.html
+
+    Issues:
+        - on the first page, prev_page = None
+        - on the last page, next_page = None
+    """
+    // use KDL2.0 syntax
+    // codegen automatically resolve syntax style for target language
+    prev-page {
+        css ".previous a"
+        attr "href"
+        rm-prefix "catalogue/"
+        fmt "https://books.toscrape.com/catalogue/{{}}"
+        fallback #null
+    }
+    next-page {
+        css ".next a"
+        attr "href"
+        rm-prefix "catalogue/"
+        fmt "https://books.toscrape.com/catalogue/{{}}"
+        fallback #null
+    }
+    curr-page {
+        css ".current"
+        text
+        re #"Page\s(\d+)"#
+        fmt "https://books.toscrape.com/catalogue/page-{{}}.html"
+    }
+    books { nested Book }
+}
+
+
