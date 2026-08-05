@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, cast
 
+import httpx
 from attrs import define, field
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
@@ -181,13 +182,27 @@ class Source(BaseSource):
     _std: str = field(alias="std")
 
     def get_videos(self, **_) -> list[Video]:
-        return [
-            Video(type="mp4", quality=480, url=self._std),
-            Video(type="mp4", quality=720, url=self._hd),
-        ]
+        videos = [Video(type="mp4", quality=480, url=self._std)]
+        try:
+            # может отстуствовать HD (720p) видео
+            # делаем пробу
+            if self.http.head(self._hd, follow_redirects=True, timeout=5.0).is_success:
+                videos.append(Video(type="mp4", quality=720, url=self._hd))
+        except httpx.HTTPError:
+            pass
+        return videos
 
     async def a_get_videos(self, **_) -> list[Video]:
-        return self.get_videos()
+        # может отстуствовать HD (720p) видео
+        # делаем пробу
+        videos = [Video(type="mp4", quality=480, url=self._std)]
+        try:
+            resp = await self.http_async.head(self._hd, follow_redirects=True, timeout=5.0)
+            if resp.is_success:
+                videos.append(Video(type="mp4", quality=720, url=self._hd))
+        except httpx.HTTPError:
+            pass
+        return videos
 
 
 if __name__ == "__main__":
