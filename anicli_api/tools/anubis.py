@@ -39,7 +39,7 @@ def path_anubis_user_agent(client: HasHeaders) -> Generator[None, Any, None]:
     # client = httpx.AsyncClient()
     # client = requests.Session()
     client = httpx.Client()
-    
+
     with path_anubis_user_agent(client):
         client.get("https://example.com")
     ```
