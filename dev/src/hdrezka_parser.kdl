@@ -4,17 +4,33 @@ define REQUEST-ONGOING="curl 'https://hdrezka-home.tv/?filter=last&genre=82'"
 define REQUEST-SEARCH="curl 'https://hdrezka-home.tv/search/?do=search&subaction=search&q={{query}}'"
 define REQUEST-ANIME="curl 'https://hdrezka-home.tv/animation/{{slug}}.html'"
 define REQUEST-ANIME-FULL="curl '{{anime-url}}'"
+
+// NOTE:
+// DO NOT ADD user-agent headers: this override anubis path bypass
+
+// series episode stream
+// --data-raw 'id=20157&translator_id=56&season=1&episode=2&favs=749e494f-5661-4317-9bd5-d55bd3a28c00&action=get_stream'
 define REQUEST-SOURCES="""
 curl 'https://hdrezka-home.tv/ajax/get_cdn_series/?t={{timestamp:int}}' \
   -X POST \
-  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:150.0) Gecko/20100101 Firefox/150.0' \
   -H 'Accept: application/json, text/javascript, */*; q=0.01' \
   -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
   -H 'X-Requested-With: XMLHttpRequest' \
   -H 'Origin: https://hdrezka-home.tv' \
-  --data-raw 'id={{id}}&translator_id={{translator_id}}&season={{season}}&episode={{episode}}&favs={{favs}}&action={{action}}'
+  --data-raw 'id={{id}}&translator_id={{translator_id}}&season={{season}}&episode={{episode}}&favs={{favs}}&action=get_stream'
 """
-// --data-raw 'id=20157&translator_id=56&season=1&episode=2&favs=749e494f-5661-4317-9bd5-d55bd3a28c00&action=get_stream'
+
+// movie stream (no season/episode params, action=get_movie)
+// --data-raw 'id=17924&translator_id=59&favs=fd5bbb39-b517-4e35-b0f4-e92bd49ba234&action=get_movie'
+define REQUEST-SOURCES-MOVIE="""
+curl 'https://hdrezka-home.tv/ajax/get_cdn_series/?t={{timestamp:int}}' \
+  -X POST \
+  -H 'Accept: application/json, text/javascript, */*; q=0.01' \
+  -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' \
+  -H 'X-Requested-With: XMLHttpRequest' \
+  -H 'Origin: https://hdrezka-home.tv' \
+  --data-raw 'id={{id}}&translator_id={{translator_id}}&favs={{favs}}&action=get_movie'
+"""
 
 (list)struct PageOngoing {
     @doc """
@@ -60,7 +76,7 @@ curl 'https://hdrezka-home.tv/ajax/get_cdn_series/?t={{timestamp:int}}' \
     @request REQUEST-SEARCH
     
     title { css ".b-content__inline_item-link a"; text; trim }
-    season { css "span.info"; text }
+    season { css "span.info"; text; fallback "" }
     thumbnail { css ".b-content__inline_item img[src]"; attr src }
     url { css "a[href]"; attr href }
 
@@ -120,6 +136,25 @@ struct PageAnime {
 
         > id, translator_id, season, episode search in 'episode_list', 'season_box', 'translation-list' structs, favs from favs field
     """#
+    /* fallback if include only one dubber and translation-list is empty
+    script part signature example:
+    sof.tv.initCDNSeriesEvents(88431, 477, 1, 1, false, \'hdrezka-home.tv\', false, false,
+    ( data-id, translation_id, season, episode ... )
+
+
+    films include sof.tv.initCDNMoviesEvents text pattern
+    */
+    @init {
+        init-script {
+            css-all "script"
+            filter {
+                text-contains "sof.tv.initCDNSeriesEvents" "sof.tv.initCDNMoviesEvents"
+            }
+            first
+            text
+        }
+    }
+
     @request REQUEST-ANIME
     @request name=from_url REQUEST-ANIME-FULL
 
@@ -133,17 +168,16 @@ struct PageAnime {
     season_box { nested SeasonBox }
     episode_list { nested Episode }
 
-    /* fallback if include only one dubber and translation-list is empty
-    script part signature example:
-    sof.tv.initCDNSeriesEvents(88431, 477, 1, 1, false, \'hdrezka-home.tv\', false, false,
-    ( data-id, translation_id, season, episode ... )
-    */  
+
+
+    // first positional arg of initCDN(?:Series|Movies)Events(<id>, <translator_id>, ...)
+    id { @init-script; re #"initCDN(?:Series|Movies)Events\(\s*(\d+)"#; to-int; fallback 0 }
+
+    // second positional arg
     translation_id {
-        css-all "script"
-        filter { text-contains "sof.tv.initCDNSeriesEvents" }
-        first
-        text
-        re #"initCDNSeriesEvents\(\s*\d+\s*,\s*(\d+)"#
+        @init-script
+        re #"initCDN(?:Series|Movies)Events\(\s*\d+\s*,\s*(\d+)"#
+        fallback ""
     }
 
 }
@@ -167,7 +201,9 @@ json HdrezkaCdnErrorResponse {
 }
 
 (rest)struct HdrezkaCdnSeriesAPI {
-    @request response=HdrezkaCdnResponse REQUEST-SOURCES
+    @request name=get-stream response=HdrezkaCdnResponse REQUEST-SOURCES
+
+    @request name=get-movie response=HdrezkaCdnResponse REQUEST-SOURCES-MOVIE
 
     // { "success":false,"message": ... (non empty) }
     @error 200 HdrezkaCdnErrorResponse success=#false 
