@@ -82,43 +82,42 @@ class Kodik(BaseVideoExtractor):
 
     @kodik_validator
     async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        async with self.a_http as client:
-            response = await client.get(url)
-            if self._is_unhandled_error_response(response):
-                return []
-            if self._is_not_founded_video(response):
-                return []
-            page, payload = self._extract_api_payload(response)
-            netloc = self._get_netloc(url)
+        response = await self.a_http.get(url)
+        if self._is_unhandled_error_response(response):
+            return []
+        if self._is_not_founded_video(response):
+            return []
+        page, payload = self._extract_api_payload(response)
+        netloc = self._get_netloc(url)
 
-            if not self._CACHED_API_PATH:
-                url_js_player = f"https://{netloc}{page['player_js_path']}"
-                response_player = await client.get(url_js_player)
-                self._update_api_path(response_player)
+        if not self._CACHED_API_PATH:
+            url_js_player = f"https://{netloc}{page['player_js_path']}"
+            response_player = await self.a_http.get(url_js_player)
+            self._update_api_path(response_player)
+
+        url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
+        headers = self._create_api_headers(url=url, netloc=netloc)
+        response_api = await self.a_http.post(url_api, data=payload, headers=headers)
+
+        # expired API entry point, update
+        if not response_api.is_success:
+            url_js_player = f"https://{netloc}{page['player_js_path']}"
+            response_player = await self.a_http.get(url_js_player)
+            self._update_api_path(response_player)
 
             url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
-            headers = self._create_api_headers(url=url, netloc=netloc)
-            response_api = await client.post(url_api, data=payload, headers=headers)
+            response_api = await self.a_http.post(url_api, data=payload, headers=headers)
 
-            # expired API entry point, update
-            if not response_api.is_success:
-                url_js_player = f"https://{netloc}{page['player_js_path']}"
-                response_player = await client.get(url_js_player)
-                self._update_api_path(response_player)
+        if self._is_cache_manifest_error(response_api):
+            html_msg = re.search(r'<div class="message">(.*?)</div>', response.text)
+            if html_msg:
+                msg = f"[kodik]: '{html_msg[1]}' API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
+            else:
+                msg = "[kodik]: API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
+            logger.warning(msg)
+            return []
 
-                url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
-                response_api = await client.post(url_api, data=payload, headers=headers)
-
-            if self._is_cache_manifest_error(response_api):
-                html_msg = re.search(r'<div class="message">(.*?)</div>', response.text)
-                if html_msg:
-                    msg = f"[kodik]: '{html_msg[1]}' API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
-                else:
-                    msg = "[kodik]: API returns 500 status wout json response, try later extract this video. It's kodik issue, not anicli-api."
-                logger.warning(msg)
-                return []
-
-            return self._extract(response_api.json()["links"])
+        return self._extract(response_api.json()["links"])
 
     @staticmethod
     def _decrypt_url(encoded_str: str) -> str:

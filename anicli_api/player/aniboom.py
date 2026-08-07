@@ -34,9 +34,8 @@ class Aniboom(BaseVideoExtractor):
 
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        async with self.a_http as client:
-            response = await client.get(url)
-            return self._extract(response)
+        response = await self.a_http.get(url)
+        return self._extract(response)
 
     @staticmethod
     def _is_not_found(resp: Response):

@@ -19,9 +19,8 @@ class SibNet(BaseVideoExtractor):
 
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        async with self.a_http as client:
-            response = (await client.get(url)).text
-            return self._extract(response, referer=url)
+        response = (await self.a_http.get(url)).text
+        return self._extract(response, referer=url)
 
     def _extract(self, response: str, referer: str) -> list[Video]:
         if path := re.search(r'"(?P<url>/v/.*?\.mp4)"', response):

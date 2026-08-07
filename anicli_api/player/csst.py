@@ -24,13 +24,9 @@ class CsstOnline(BaseVideoExtractor):
 
     @player_validator
     async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        async with self.a_http as client:
-            response = (await client.get(url)).text
-            return self._extract(response)
+        response = (await self.a_http.get(url)).text
+        return self._extract(response)
 
     def _extract(self, response: str) -> list[Video]:
         url_data = list(re.finditer(self.RE_URLS, response))
-        return [
-            Video(type="mp4", quality=data["quality"], url=data["url"])  # type: ignore[arg-type]
-            for data in url_data[:4]
-        ]
+        return [Video(type="mp4", quality=int(data["quality"]), url=data["url"]) for data in url_data[:4]]
