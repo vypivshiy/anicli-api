@@ -1,7 +1,7 @@
-"""Shared fixtures and config for integration tests.
+"""Shared fixtures and config for e2e tests.
 
-Integration tests hit REAL network. Skipped by default; enable via
-`pytest -m integration` or `--run-integration` flag, or run `scripts/tests.{ps1,sh}`.
+e2e tests hit REAL network. Skipped by default; enable via
+`pytest -m e2e` or `--run-e2e` flag, or run `scripts/tests.{ps1,sh}`.
 
 Configure without touching library code via env:
 
@@ -35,7 +35,7 @@ VALID_VIDEO_TYPES: tuple[str, ...] = ("mp4", "m3u8", "mpd", "audio", "webm")
 VALID_QUALITIES: tuple[int, ...] = (0, 144, 240, 360, 480, 720, 1080, 2160)
 
 # how long to wait for the video probe (connect + first byte)
-VIDEO_PROBE_TIMEOUT: float = 30.0
+VIDEO_PROBE_TIMEOUT: float = 15.0
 
 # type aliases for factory fixtures
 SyncClientFactory = Callable[[Optional[dict[str, str]]], "Client"]
@@ -72,27 +72,27 @@ class HttpBundle:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    config.addinivalue_line("markers", "integration: hits real network, opt-in")
+    config.addinivalue_line("markers", "e2e: hits real network, opt-in")
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    # honour explicit `-m integration` too: if marker filter active, do not force-skip
+    # honour explicit `-m e2e` too: if marker filter active, do not force-skip
     mark_filter = config.getoption("-m") or ""
-    if config.getoption("--run-integration") or "integration" in mark_filter:
+    if config.getoption("--run-e2e") or "e2e" in mark_filter:
         return
 
-    skip = pytest.mark.skip(reason="integration test; run via `pytest -m integration` or --run-integration")
+    skip = pytest.mark.skip(reason="e2e test; run via `pytest -m e2e` or --run-e2e")
     for item in items:
-        if "integration" in item.keywords:
+        if "e2e" in item.keywords:
             item.add_marker(skip)
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
-        "--run-integration",
+        "--run-e2e",
         action="store_true",
         default=False,
-        help="run integration tests (hit real network)",
+        help="run e2e tests (hit real network)",
     )
 
 
@@ -177,12 +177,14 @@ def http_bundle(
 def assert_video_reachable() -> Iterator[VideoChecker]:
     """assert a Video is actually reachable, not just structurally well-formed.
 
-    Strategy: GET-stream the url, read the first byte chunk, then close the stream
-    (aborts the download so big mp4 files are not fully fetched).
+    Strategy: GET-stream the url with ``Range: bytes=0-0`` so the server sends a
+    single byte (206 Partial Content) instead of buffering the whole file — this
+    dramatically cuts TTFB on CDNs that prepare the full response before serving.
+    Read 1 byte, then close the stream.
 
     Why GET and not HEAD: many video CDNs reject HEAD (405/404) or break on signed
     urls; only GET proves the resource really serves bytes. Bandwidth is capped by
-    closing the response after the first chunk.
+    the Range header + closing the response after 1 byte.
 
     ``video.headers`` is merged in — some CDNs (sibnet, aniboom) 403 without the
     Referer/Origin/Accept-Language they require.
@@ -199,10 +201,12 @@ def assert_video_reachable() -> Iterator[VideoChecker]:
         assert video.quality in VALID_QUALITIES, f"bad video.quality: {video.quality!r}"
         assert isinstance(video.headers, dict), "video.headers must be dict"
 
-        # reachability probe: read 1 chunk, then drop the connection
-        with client.stream("GET", video.url, headers=dict(video.headers)) as resp:
+        # reachability probe: ask for 1 byte via Range, read it, then drop the connection
+        probe_headers = {"Range": "bytes=0-0"}
+        probe_headers.update(video.headers)
+        with client.stream("GET", video.url, headers=probe_headers) as resp:
             assert resp.status_code < 400, f"video url returned {resp.status_code} for {video.url}"
-            chunk = next(resp.iter_bytes(), b"")
+            chunk = next(resp.iter_bytes(1), b"")
             assert chunk, f"empty body from {video.url}"
 
     yield _check

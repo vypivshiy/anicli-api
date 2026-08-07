@@ -5,7 +5,7 @@ import pytest
 from anicli_api.player.kodik import Kodik
 from tests.e2e.conftest import HttpBundle, VideoChecker
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.e2e
 
 # TODO: add stable kodik player URL(s); format:
 #   https://<sub>.<domain>/(?:serial|season|video|film)/<id>/<hash>/<quality>p

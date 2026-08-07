@@ -1,19 +1,18 @@
-# Интеграционные тесты
+# e2e тесты
 
-Интеграционные тесты с обращениями к реальным сайтам для модулей с попыткой обратиться к видеопотоку или. 
-Не предполгагается использовать в CI/CD - работают медленно, особеность работы модулей могут быть специфичны к геолокации
-
-`anicli_api.source.*` и `anicli_api.player.*`.
+e2e тесты с обращениями к реальным сайтам для модулей `anicli_api.source.*` и `anicli_api.player.*` —
+пытаются дойти до видеопотока. Не предполагается использовать в CI/CD — работают медленно,
+поведение модулей может зависеть от геолокации.
 
 ## Запуск
 
 ```bash
 # linux / macos
-# опционально усноавить proxy
+# опционально установить proxy
 ANICLI_PROXY=socks5://user:pass@host:1080 ./scripts/tests.sh
 
 # windows powershell
-# опционально усноавить proxy
+# опционально установить proxy
 $env:ANICLI_PROXY = "socks5://user:pass@host:1080"
 .\scripts\tests.ps1
 ```
@@ -21,9 +20,9 @@ $env:ANICLI_PROXY = "socks5://user:pass@host:1080"
 Либо напрямую через pytest:
 
 ```bash
-pytest -m integration tests/integration          # обход skip-by-default через фильтр маркера
-pytest --run-integration tests/integration       # то же самое через явный флаг
-pytest -m integration -k animego tests/integration  # ограничить одним источником/плеером
+pytest -m e2e tests/e2e          # обход skip-by-default через фильтр маркера
+pytest --run-e2e tests/e2e        # то же самое через явный флаг
+pytest -m e2e -k animego tests/e2e  # ограничить одним источником/плеером
 ```
 
 ## Конфигурация (env, без правок кода)
@@ -37,7 +36,7 @@ pytest -m integration -k animego tests/integration  # ограничить од�
 
 ```python
 def test_pipeline(build_sync_client, build_async_client, assert_video_reachable):
-    from tests.integration.conftest import HttpBundle
+    from tests.e2e.conftest import HttpBundle
 
     bundle = HttpBundle(
         sync=build_sync_client({"Authorization": "Bearer ..."}),
@@ -50,7 +49,7 @@ def test_pipeline(build_sync_client, build_async_client, assert_video_reachable)
 ## Структура
 
 ```
-tests/integration/
+tests/e2e/
   conftest.py          фикстуры + хук skip-by-default
     http_bundle                            — пара (sync, async) httpx-клиентов с .extractor_kwargs
     build_sync_client / build_async_client — фабрики для custom-headers (Bearer и т.п.)
@@ -67,7 +66,7 @@ tests/integration/
 
 `animego`, `kodik`, `aniboom`, `cdnvideohub` могут не работать на IP отличных от СНГ/Прибалтики - могут упасть.
 
-`anilibme` (animelib.org, требует Bearer-авторизацию) исключён из integration-покрытия.
+`anilibme` (animelib.org, требует Bearer-авторизацию) исключён из e2e-покрытия.
 
 ## Ассерты
 

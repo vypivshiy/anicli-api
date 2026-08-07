@@ -5,11 +5,14 @@ import pytest
 from anicli_api.player.sibnet import SibNet
 from tests.e2e.conftest import HttpBundle, VideoChecker
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.e2e
 
 URLS: list[str] = [
-    # from project README, long-stable sample
-    "https://video.sibnet.ru/shell.php?videoid=432356",
+    # на нём не срабатывает заголовок `Range: bytes=0-0`, а СРАЗУ отдаёт всё видео
+    # не знаю как ускорить чтобы только 1 чанк получать
+    # поэтому короткое 9 секундное видео в тесте
+    "https://video.sibnet.ru/shell.php?videoid=6259231"
+    # "https://video.sibnet.ru/shell.php?videoid=432356",
 ]
 
 @pytest.mark.parametrize("url", URLS)

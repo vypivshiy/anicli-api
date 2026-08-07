@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from anicli_api.source.animego import Extractor
-from tests.integration.conftest import HttpBundle, VideoChecker
+from tests.e2e.conftest import HttpBundle, VideoChecker
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.e2e
 
 PARAMS_QUERIES = [("lain",), ("Кланнад Фильм",)]
 

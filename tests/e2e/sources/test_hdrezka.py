@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 from anicli_api.source.hdrezka import Extractor
-from tests.integration.conftest import HttpBundle, VideoChecker
-pytestmark = pytest.mark.integration
+from tests.e2e.conftest import HttpBundle, VideoChecker
+pytestmark = pytest.mark.e2e
 
 PARAMS_QUERIES = [("lain",), ("Фильм",)]
 

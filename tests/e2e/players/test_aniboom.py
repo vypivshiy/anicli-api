@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from anicli_api.player.aniboom import Aniboom
-from tests.integration.conftest import HttpBundle, VideoChecker
+from tests.e2e.conftest import HttpBundle, VideoChecker
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.e2e
 
 
 URLS: list[str] = ["https://aniboom.one/embed/6BmMbB7MxWO?episode=1&translation=30"]

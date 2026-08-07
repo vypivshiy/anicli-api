@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from anicli_api.player.cdnvideohub import CdnVideoHub
-from tests.integration.conftest import HttpBundle, VideoChecker
+from tests.e2e.conftest import HttpBundle, VideoChecker
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.e2e
 
 # TODO: add stable cdnvideohub player URL(s); format:
 #   https://animego.<tld>/cdn-iframe/<id>/<title>/<x>/<y>

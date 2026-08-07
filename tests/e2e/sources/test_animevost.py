@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from anicli_api.source.animevost import Extractor
-from tests.integration.conftest import HttpBundle, VideoChecker
+from tests.e2e.conftest import HttpBundle, VideoChecker
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.e2e
 
 # animevost Search/Ongoing carry a `url="_"` stub; only thumbnail is a real URL here
 PARAMS_QUERIES = [("lain",), ("фильм",)]
