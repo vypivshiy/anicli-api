@@ -11,7 +11,6 @@ No authentication required.
 """
 
 from lxml import html
-from lxml.html import HtmlElement
 from typing import List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 from dataclasses import dataclass
@@ -287,10 +286,12 @@ ApiErrorJson = TypedDict(
         "error_name": str,
     },
 )
-PageCVHIframeType = TypedDict(
-    "PageCVHIframeType",
+PageCVHIframeParamsType = TypedDict(
+    "PageCVHIframeParamsType",
     {
-        "path": str,
+        "anime_id": int,
+        "episode": int,
+        "dubbing_code": str,
     },
 )
 PageJsCVHParamsType = TypedDict(
@@ -610,30 +611,49 @@ class YummyAnimeApi:
         )
 
 
-class PageCVHIframe:
+class PageCVHIframeParams:
     """
-    1. extract js path from /iframeCVH.html? endpoint
+    extract from iframe urls params for CVH url
 
-    2. concat path to base url
+    EXAMPLE input
 
-    EXAMPLE:
-        GET https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=%D0%9E%D0%B7%D0%B2%D1%83%D1%87%D0%BA%D0%B0+Sanae
+    https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=Sanae
     """
 
-    def __init__(self, document: Union[str, HtmlElement]):
-        if isinstance(document, str):
-            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
-        else:
-            self._doc = document
+    def __init__(self, document: str):
+        self._doc = document
 
-    def _parse_path(self, v: HtmlElement) -> str:
-        v1 = v.cssselect('script[type="module"][crossorigin][src]')[0]
-        v2 = v1.get("src", "")
+    def _parse_anime_id(self, v: str) -> int:
+        v1 = std_re_search(
+            "anime_id=(\\d+)",
+            v,
+            "yummy_anime_me_parser.kdl:319:16 re-match failed at PageCVHIframeParams.anime-id pattern=anime_id=(\\d+)",
+        )
+        v2 = int(v1)
         return v2
 
-    def parse(self) -> PageCVHIframeType:
+    def _parse_episode(self, v: str) -> int:
+        v1 = std_re_search(
+            "episode=(\\d+)",
+            v,
+            "yummy_anime_me_parser.kdl:320:15 re-match failed at PageCVHIframeParams.episode pattern=episode=(\\d+)",
+        )
+        v2 = int(v1)
+        return v2
+
+    def _parse_dubbing_code(self, v: str) -> str:
+        v1 = std_re_search(
+            "dubbing_code=([^&]+)",
+            v,
+            "yummy_anime_me_parser.kdl:321:20 re-match failed at PageCVHIframeParams.dubbing-code pattern=dubbing_code=([^&]+)",
+        )
+        return v1
+
+    def parse(self) -> PageCVHIframeParamsType:
         return {
-            "path": self._parse_path(self._doc),
+            "anime_id": self._parse_anime_id(self._doc),
+            "episode": self._parse_episode(self._doc),
+            "dubbing_code": self._parse_dubbing_code(self._doc),
         }
 
 
@@ -642,37 +662,45 @@ class PageJsCVHParams:
     send request from extracted path from CVHIframeScript
     """
 
-    def __init__(self, document: Union[str, HtmlElement]):
-        if isinstance(document, str):
-            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
-        else:
-            self._doc = document
-        self._raw_page = self._init_raw_page(self._doc)
+    def __init__(self, document: str):
+        self._doc = document
 
-    def _init_raw_page(self, v: HtmlElement) -> str:
-        v1 = html.tostring(v, encoding="unicode")
+    def _parse_data_pub_id(self, v: str) -> str:
+        v1 = std_re_search(
+            '"data-publisher-id":\\s?(\\d+)',
+            v,
+            'yummy_anime_me_parser.kdl:345:9 re-match failed at PageJsCVHParams.data_pub_id pattern="data-publisher-id":\\s?(\\d+)',
+        )
         return v1
 
-    def _parse_data_pub_id(self, v: HtmlElement) -> str:
-        v1 = self._raw_page
-        v2 = std_re_search(
-            '"data-publisher-id":\\s?(\\d+)',
-            v1,
-            'yummy_anime_me_parser.kdl:347:20 re-match failed at PageJsCVHParams.data_pub_id pattern="data-publisher-id":\\s?(\\d+)',
-        )
-        return v2
-
-    def _parse_aggr(self, v: HtmlElement) -> str:
-        v1 = self._raw_page
-        v2 = std_re_search(
+    def _parse_aggr(self, v: str) -> str:
+        v1 = std_re_search(
             '"data-aggregator":\\s?"([^"]+)"',
-            v1,
-            'yummy_anime_me_parser.kdl:350:21 re-match failed at PageJsCVHParams.aggr pattern="data-aggregator":\\s?"([^"]+)"',
+            v,
+            'yummy_anime_me_parser.kdl:348:10 re-match failed at PageJsCVHParams.aggr pattern="data-aggregator":\\s?"([^"]+)"',
         )
-        return v2
+        return v1
 
     def parse(self) -> PageJsCVHParamsType:
         return {
             "data_pub_id": self._parse_data_pub_id(self._doc),
             "aggr": self._parse_aggr(self._doc),
         }
+
+
+def extract_cvh_path(document: str) -> str:
+    """
+    1. extract js path from /iframeCVH.html? endpoint
+
+    2. concat path to base url
+
+    EXAMPLE:
+        GET https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=%D0%9E%D0%B7%D0%B2%D1%83%D1%87%D0%BA%D0%B0+Sanae
+    """
+    if isinstance(document, str):
+        v = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+    else:
+        v = document
+    v1 = v.cssselect('script[type="module"][crossorigin][src]')[0]
+    v2 = v1.get("src", "")
+    return v2

@@ -294,7 +294,7 @@ struct YummyAnimeApi type=rest {
 /* 
 Iframe Cdnvideohub extractor
 */
-struct PageCVHIframe {
+fn extract_cvh_path {
     @doc """
     1. extract js path from /iframeCVH.html? endpoint
 
@@ -303,26 +303,26 @@ struct PageCVHIframe {
     EXAMPLE:
         GET https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=%D0%9E%D0%B7%D0%B2%D1%83%D1%87%D0%BA%D0%B0+Sanae
     """
-    /*
-        signature page:
-
-        <title>...</title>
-        <script type="module" crossorigin
-            src="/assets/src-routes-catalog-item-_uri_-_components-player-players-cvh-BjxI2sh9.js"></script>
-        <link rel="stylesheet" crossorigin href="/assets/BaZCHo70.css">
-    */
-    path {
-        /*
-        1. extract js path and build URL
-        path renamed: was /assets/iframe*.js, now /assets/src-routes-...-cvh-*.js
-        \ssrc excludes data-src (legacy entry); cvh filter targets the player module
-        */
-        css "script[type=\"module\"][crossorigin][src]"
-        attr src
-    }
+    css "script[type=\"module\"][crossorigin][src]"
+    attr src
 }
 
-struct PageJsCVHParams {
+(raw)struct PageCVHIframeParams {
+    @doc """
+    extract from iframe urls params for CVH url
+
+    EXAMPLE input
+
+    https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=Sanae
+    """
+
+    anime-id { re #"anime_id=(\d+)"#; to-int }
+    episode { re #"episode=(\d+)"#; to-int }
+    dubbing-code { re #"dubbing_code=([^&]+)"# }
+}
+
+
+(raw)struct PageJsCVHParams {
     @doc """
     send request from extracted path from CVHIframeScript
     """
@@ -341,15 +341,13 @@ struct PageJsCVHParams {
     for (const i in a) o.setAttribute(i, (null == (e = a[i]) ? void 0 : e.toString()) || "") }
     */
 
-    @init { raw-page { raw } }
-
     data_pub_id {
-        @raw-page; re #""data-publisher-id":\s?(\d+)"#
+        re #""data-publisher-id":\s?(\d+)"#
     }
     aggr {
-         @raw-page; re #""data-aggregator":\s?"([^"]+)""#
+         re #""data-aggregator":\s?"([^"]+)""#
     }
-    // extracted from iframe url
+    // extracted from iframe url (see PageCVHIframeParams struct )
     // anime-id { @raw-page; re #"anime_id=(\d+)"# }
     // episode { @raw-page; re #"episode=(\d+)"# }
     // dubbing-code { @raw-page; re #"dubbing_code=([^&]+)"# }

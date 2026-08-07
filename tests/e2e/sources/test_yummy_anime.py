@@ -14,6 +14,7 @@ def test_ongoiong_pipeline(http_bundle: HttpBundle, assert_video_reachable: Vide
     ex = Extractor(**http_bundle.extractor_kwargs)
     ongs = ex.ongoing()
     assert ongs
+    worked = 0
     for ong in ongs:
         anime = ong.get_anime()
         assert anime.title
@@ -27,12 +28,19 @@ def test_ongoiong_pipeline(http_bundle: HttpBundle, assert_video_reachable: Vide
         sources = episodes[0].get_sources()
         assert sources
 
-        videos = sources[0].get_videos()
-        assert videos
+        # some sources may have stale iframe url (studio listed in catalog
+        # but no actual video in cdnvideohub). iterate until a working one.
+        videos: list = []
+        for src in sources:
+            videos = src.get_videos()
+            if videos:
+                break
+        assert videos, f"no working source for {anime.title!r}"
         for v in videos:
             assert_video_reachable(v)
-    else:
-        pytest.fail("failed extract episodes from all ongoings")
+        worked += 1
+        break
+    assert worked >= 1, "no ongoing produced working videos"
 
 
 @pytest.mark.asyncio
@@ -40,6 +48,7 @@ async def test_ongoiong_pipeline_async(http_bundle: HttpBundle, assert_video_rea
     ex = Extractor(**http_bundle.extractor_kwargs)
     ongs = await ex.a_ongoing()
     assert ongs
+    worked = 0
     for ong in ongs:
         anime = await ong.a_get_anime()
         assert anime.title
@@ -49,16 +58,23 @@ async def test_ongoiong_pipeline_async(http_bundle: HttpBundle, assert_video_rea
         if not episodes:
             continue
         assert episodes
-        
+
         sources = await episodes[0].a_get_sources()
         assert sources
 
-        videos = await sources[0].a_get_videos()
-        assert videos
+        # some sources may have stale iframe url (studio listed in catalog
+        # but no actual video in cdnvideohub). iterate until a working one.
+        videos: list = []
+        for src in sources:
+            videos = await src.a_get_videos()
+            if videos:
+                break
+        assert videos, f"no working source for {anime.title!r}"
         for v in videos:
             assert_video_reachable(v)
-    else:
-        pytest.fail("failed extract episodes from all ongoings")
+        worked += 1
+        break
+    assert worked >= 1, "no ongoing produced working videos"
 
 
 @pytest.mark.parametrize("query", PARAMS_QUERIES)

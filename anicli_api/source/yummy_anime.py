@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-import re
-from typing import Dict, List, Tuple, cast
-from urllib.parse import urlsplit
+from typing import Dict, List, Optional, cast
+from urllib.parse import unquote_plus, urlsplit
 
 from attrs import define
 
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
 from anicli_api.player.base import Video
-from anicli_api.source.parsers.yummy_anime_me_parser import YummyAnimeApi, PageCVHIframe, PageJsCVHParams
+from anicli_api.source.parsers.yummy_anime_me_parser import (
+    YummyAnimeApi,
+    PageJsCVHParams,
+    PageCVHIframeParams,
+    extract_cvh_path,
+)
 
 # types
 from anicli_api.source.parsers.yummy_anime_me_parser import (
@@ -234,12 +238,6 @@ class Anime(BaseAnime):
 class Episode(BaseEpisode):
     data: List[VideoItemJson]
 
-    # def cdnvideohub_playlist(self, iframe_url: str):
-    #     # if "/iframeCVH.html?" in self.url:
-    #     # 1. prepare
-    #     self.ordinal
-    #     pass
-
     def get_sources(self) -> list["Source"]:
         results = [
             Source(
@@ -258,48 +256,16 @@ class Episode(BaseEpisode):
 @define(kw_only=True)
 class Source(BaseSource):
     @staticmethod
-    def _get_js_url(base_url: str, iframe_response: str) -> str:
-        js_path = PageCVHIframe(iframe_response).parse()["path"]
-        return "https://" + base_url + js_path
-
-    @staticmethod
-    def _extract_iframe_params(iframe_url: str) -> Tuple[int, int, str]:
-        # 2. params
-        anime_id = re.search(r"anime_id=(\d+)", iframe_url)[1]
-        episode = re.search(r"episode=(\d+)", iframe_url)[1]
-        dubbing_code = re.search(r"dubbing_code=([^&]+)", iframe_url)[1]
-        return int(anime_id), int(episode), dubbing_code
-
-    @staticmethod
-    def _extract_script_params(js_script_response: str) -> Tuple[str, str]:
-        """
-        3. extract "data-publisher-id" and "aggr"
-        signature script example:
-
-        o = document.createElement("video-player"),
-        o.id = "video-player"; const t = new URLSearchParams(window.location.search);
-        i = t.get("dubbing_code");
-        const a = { "priority-voice": i, episode: t.get("episode"),
-        "data-aggregator": "mali",
-        "data-title-id": t.get("anime_id") || "",
-        "data-publisher-id": 745,
-        "is-show-voice-only": !0 };
-        for (const i in a) o.setAttribute(i, (null == (e = a[i]) ? void 0 : e.toString()) || "") }
-        """
-        data = PageJsCVHParams(js_script_response).parse()
-
-        # data_pub_id = re.search(r'"data-publisher-id":\s?(\d+)', js_script_response)[1]
-        # aggr = re.search(r'"data-aggregator":\s?"([^"]+)"', js_script_response)[1]
-        return data["data_pub_id"], data["aggr"]
-
-    @staticmethod
     def _cdnvideohub_extract_vkid_cadidate(
         api_response: CdnVideoHubResponseJson, episode: int, dubbing_code: str
-    ) -> str:
+    ) -> Optional[str]:
         # dubbing_code same value as voiceStudio key
-        return [i for i in api_response["items"] if i["episode"] == int(episode) and i["voiceStudio"] == dubbing_code][
-            0
-        ]["vkId"]
+        # may return None if studio listed in source metadata but actually
+        # has no videos uploaded to cdnvideohub (stale iframe url / fresh release)
+        candidates = [
+            i for i in api_response["items"] if i["episode"] == int(episode) and i["voiceStudio"] == dubbing_code
+        ]
+        return candidates[0]["vkId"] if candidates else None
 
     def get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
         # TODO: move to anicli-api.player scope
@@ -307,33 +273,18 @@ class Source(BaseSource):
         if "/iframeCVH.html?" in self.url:
             resp = self.http.get(self.url)
             base_url = urlsplit(self.url).netloc
-            js_url = self._get_js_url(base_url, resp.text)
-            anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
+            js_path = extract_cvh_path(resp.text)
+            js_url = "https://" + base_url + js_path
+            iframe_params = PageCVHIframeParams(self.url).parse()
+            # dubbing_code captured raw from query; url-decode (+ -> space, %XX -> char)
+            # so it matches voiceStudio key in cdnvideohub API response
+            iframe_params["dubbing_code"] = unquote_plus(iframe_params["dubbing_code"])
             # WARNING: used brotli encoding algorithm
             # required httpx[brotli] dependency
-            script = self.http.get(js_url)
-            pub_id, aggr = self._extract_script_params(script.text)
-            resp_api = CdnVideoHubAPI.get_params_from_page(self.http, pub=pub_id, aggr=aggr, id=anime_id)
-            if not resp_api.is_ok:
-                # TODO: handle error
-                return []
-            # search candidate by anime_id, episode_id and dubbing code
-            value = resp_api.value
-            value = cast(CdnVideoHubResponseJson, value)
-            vkid = self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code)
-            return self._cdn_videohub_extractor(self.http, vkid=vkid)
-        return super().get_videos(**httpx_kwargs)
-
-    async def a_get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
-        if "/iframeCVH.html?" in self.url:
-            resp = await self.http_async.get(self.url)
-            base_url = urlsplit(self.url).netloc
-            js_url = self._get_js_url(base_url, resp.text)
-            anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
-            script = await self.http_async.get(js_url)
-            pub_id, aggr = self._extract_script_params(script.text)
-            resp_api = await CdnVideoHubAPI.async_get_params_from_page(
-                self.http_async, pub=pub_id, aggr=aggr, id=anime_id
+            script_resp = self.http.get(js_url)
+            script_params = PageJsCVHParams(script_resp.text).parse()
+            resp_api = CdnVideoHubAPI.get_params_from_page(
+                self.http, pub=script_params["data_pub_id"], aggr=script_params["aggr"], id=iframe_params["anime_id"]
             )
             if not resp_api.is_ok:
                 # TODO: handle error
@@ -341,7 +292,45 @@ class Source(BaseSource):
             # search candidate by anime_id, episode_id and dubbing code
             value = resp_api.value
             value = cast(CdnVideoHubResponseJson, value)
-            vkid = self._cdnvideohub_extract_vkid_cadidate(value, episode, dubbing_code)
+            vkid = self._cdnvideohub_extract_vkid_cadidate(
+                value, iframe_params["episode"], iframe_params["dubbing_code"]
+            )
+            if not vkid:
+                # studio listed in source metadata but no actual video in cdnvideohub
+                return []
+            return self._cdn_videohub_extractor(self.http, vkid=vkid)
+        return super().get_videos(**httpx_kwargs)
+
+    async def a_get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
+        if "/iframeCVH.html?" in self.url:
+            resp = await self.http_async.get(self.url)
+            base_url = urlsplit(self.url).netloc
+            js_path = extract_cvh_path(resp.text)
+            js_url = "https://" + base_url + js_path
+            iframe_params = PageCVHIframeParams(self.url).parse()
+            # dubbing_code captured raw from query; url-decode (+ -> space, %XX -> char)
+            # so it matches voiceStudio key in cdnvideohub API response
+            iframe_params["dubbing_code"] = unquote_plus(iframe_params["dubbing_code"])
+            script_resp = await self.http_async.get(js_url)
+            script_params = PageJsCVHParams(script_resp.text).parse()
+            resp_api = await CdnVideoHubAPI.async_get_params_from_page(
+                self.http_async,
+                pub=script_params["data_pub_id"],
+                aggr=script_params["aggr"],
+                id=iframe_params["anime_id"],
+            )
+            if not resp_api.is_ok:
+                # TODO: handle error
+                return []
+            # search candidate by anime_id, episode_id and dubbing code
+            value = resp_api.value
+            value = cast(CdnVideoHubResponseJson, value)
+            vkid = self._cdnvideohub_extract_vkid_cadidate(
+                value, iframe_params["episode"], iframe_params["dubbing_code"]
+            )
+            if not vkid:
+                # studio listed in source metadata but no actual video in cdnvideohub
+                return []
             return await self._async_cdn_videohub_extractor(self.http_async, vkid=vkid)
         return await super().a_get_videos(**httpx_kwargs)
 
