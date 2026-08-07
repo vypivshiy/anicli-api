@@ -262,28 +262,48 @@ class BaseSource(HttpMixin):
     def get_videos(self, **httpx_kwargs) -> MutableSequence["Video"]:
         """get direct video information for direct play
 
-        :param httpx_kwargs: httpx.Client configuration
+        Args:
+            **httpx_kwargs: httpx.Client configuration. ``http`` and ``a_http`` keys
+                are reserved; if passed, they override the source's own clients.
+                Otherwise the source's pre-configured ``http``/``http_async`` clients
+                (and therefore any proxy/socks5 settings) are propagated to the
+                player extractor.
+
+        Returns:
+            extracted video list
         """
         if self.cdn_videohub_vk_id:
             return cdnvideohub_playlist_from_vkid(self.http, self.cdn_videohub_vk_id)
 
         for extractor in self._all_video_extractors:
             if self.url == extractor():
-                return extractor(**httpx_kwargs).parse(self.url)
+                kwargs = {"http": self.http, "a_http": self.http_async}
+                kwargs.update(httpx_kwargs)
+                return extractor(**kwargs).parse(self.url)
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
     async def a_get_videos(self, **httpx_kwargs) -> MutableSequence["Video"]:
         """get direct video information for direct play in async mode
 
-        :param httpx_kwargs: httpx.AsyncClient configuration
+        Args:
+            **httpx_kwargs: httpx.AsyncClient configuration. ``http`` and ``a_http``
+                keys are reserved; if passed, they override the source's own clients.
+                Otherwise the source's pre-configured ``http``/``http_async`` clients
+                (and therefore any proxy/socks5 settings) are propagated to the
+                player extractor.
+
+        Returns:
+            extracted video list
         """
         if self.cdn_videohub_vk_id:
             return await async_cdnvideohub_playlist_from_vkid(self.http_async, self.cdn_videohub_vk_id)
 
         for extractor in self._all_video_extractors:
             if self.url == extractor():
-                return await extractor(**httpx_kwargs).a_parse(self.url)  # type: ignore
+                kwargs = {"http": self.http, "a_http": self.http_async}
+                kwargs.update(httpx_kwargs)
+                return await extractor(**kwargs).a_parse(self.url)  # type: ignore
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
