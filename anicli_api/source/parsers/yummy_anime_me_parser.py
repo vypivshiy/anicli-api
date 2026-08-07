@@ -10,6 +10,8 @@ Errors (on HTTP 200) use {"error": "...", "error_title": "...", "error_code": N,
 No authentication required.
 """
 
+from lxml import html
+from lxml.html import HtmlElement
 from typing import List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 from dataclasses import dataclass
@@ -17,6 +19,7 @@ from typing import Literal
 from typing import cast
 import httpx
 from .sscgen_runtime import (
+    FALLBACK_HTML_STR,
     Ok,
     Err,
     UnknownErr,
@@ -25,6 +28,8 @@ from .sscgen_runtime import (
     ssc_rest_call,
     ssc_rest_call_async,
 )
+
+from .sscgen_runtime import std_re_search
 
 PosterJson = TypedDict(
     "PosterJson",
@@ -280,6 +285,19 @@ ApiErrorJson = TypedDict(
         "error_title": str,
         "error_code": int,
         "error_name": str,
+    },
+)
+PageCVHIframeType = TypedDict(
+    "PageCVHIframeType",
+    {
+        "path": str,
+    },
+)
+PageJsCVHParamsType = TypedDict(
+    "PageJsCVHParamsType",
+    {
+        "data_pub_id": str,
+        "aggr": str,
     },
 )
 
@@ -590,3 +608,71 @@ class YummyAnimeApi:
                 headers={"Accept": "application/json"},
             ),
         )
+
+
+class PageCVHIframe:
+    """
+    1. extract js path from /iframeCVH.html? endpoint
+
+    2. concat path to base url
+
+    EXAMPLE:
+        GET https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=%D0%9E%D0%B7%D0%B2%D1%83%D1%87%D0%BA%D0%B0+Sanae
+    """
+
+    def __init__(self, document: Union[str, HtmlElement]):
+        if isinstance(document, str):
+            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+        else:
+            self._doc = document
+
+    def _parse_path(self, v: HtmlElement) -> str:
+        v1 = v.cssselect('script[type="module"][crossorigin][src]')[0]
+        v2 = v1.get("src", "")
+        return v2
+
+    def parse(self) -> PageCVHIframeType:
+        return {
+            "path": self._parse_path(self._doc),
+        }
+
+
+class PageJsCVHParams:
+    """
+    send request from extracted path from CVHIframeScript
+    """
+
+    def __init__(self, document: Union[str, HtmlElement]):
+        if isinstance(document, str):
+            self._doc = html.fromstring(document.strip() or FALLBACK_HTML_STR)
+        else:
+            self._doc = document
+        self._raw_page = self._init_raw_page(self._doc)
+
+    def _init_raw_page(self, v: HtmlElement) -> str:
+        v1 = html.tostring(v, encoding="unicode")
+        return v1
+
+    def _parse_data_pub_id(self, v: HtmlElement) -> str:
+        v1 = self._raw_page
+        v2 = std_re_search(
+            '"data-publisher-id":\\s?(\\d+)',
+            v1,
+            'yummy_anime_me_parser.kdl:347:20 re-match failed at PageJsCVHParams.data_pub_id pattern="data-publisher-id":\\s?(\\d+)',
+        )
+        return v2
+
+    def _parse_aggr(self, v: HtmlElement) -> str:
+        v1 = self._raw_page
+        v2 = std_re_search(
+            '"data-aggregator":\\s?"([^"]+)"',
+            v1,
+            'yummy_anime_me_parser.kdl:350:21 re-match failed at PageJsCVHParams.aggr pattern="data-aggregator":\\s?"([^"]+)"',
+        )
+        return v2
+
+    def parse(self) -> PageJsCVHParamsType:
+        return {
+            "data_pub_id": self._parse_data_pub_id(self._doc),
+            "aggr": self._parse_aggr(self._doc),
+        }

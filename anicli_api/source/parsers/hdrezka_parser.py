@@ -389,6 +389,17 @@ class PageAnime:
             self._doc = document
         self._init_script = self._init_init_script(self._doc)
 
+    def _init_init_script(self, v: HtmlElement) -> str:
+        v1 = v.cssselect("script")
+        v2 = [
+            i
+            for i in v1
+            if any(v in i.text_content() for v in ("sof.tv.initCDNSeriesEvents", "sof.tv.initCDNMoviesEvents"))
+        ]
+        v3 = v2[0]  # type: ignore[index]
+        v4 = v3.text_content()
+        return v4
+
     @classmethod
     def fetch(cls, client: httpx.Client, *, slug: str) -> "PageAnime":
         _resp = client.request(
@@ -461,24 +472,13 @@ class PageAnime:
         v1 = Episode(v).parse()
         return v1
 
-    def _init_init_script(self, v: HtmlElement) -> str:
-        v1 = v.cssselect("script")
-        v2 = [
-            i
-            for i in v1
-            if any(v in i.text_content() for v in ("sof.tv.initCDNSeriesEvents", "sof.tv.initCDNMoviesEvents"))
-        ]
-        v3 = v2[0]  # type: ignore[index]
-        v4 = v3.text_content()
-        return v4
-
     def _parse_id(self, v: HtmlElement) -> int:
         try:
             v1 = self._init_script
             v2 = std_re_search(
                 "initCDN(?:Series|Movies)Events\\(\\s*(\\d+)",
                 v1,
-                "hdrezka_parser.kdl:172:24 re-match failed at PageAnime.id pattern=initCDN(?:Series|Movies)Events\\(\\s*(\\d+)",
+                "hdrezka_parser.kdl:174:24 re-match failed at PageAnime.id pattern=initCDN(?:Series|Movies)Events\\(\\s*(\\d+)",
             )
             v3 = int(v2)
             return v3
@@ -491,7 +491,7 @@ class PageAnime:
             v2 = std_re_search(
                 "initCDN(?:Series|Movies)Events\\(\\s*\\d+\\s*,\\s*(\\d+)",
                 v1,
-                "hdrezka_parser.kdl:177:9 re-match failed at PageAnime.translation_id pattern=initCDN(?:Series|Movies)Events\\(\\s*\\d+\\s*,\\s*(\\d+)",
+                "hdrezka_parser.kdl:179:9 re-match failed at PageAnime.translation_id pattern=initCDN(?:Series|Movies)Events\\(\\s*\\d+\\s*,\\s*(\\d+)",
             )
             return v2
         except Exception:
