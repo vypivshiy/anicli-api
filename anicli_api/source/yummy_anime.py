@@ -9,7 +9,7 @@ from attrs import define
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 
 from anicli_api.player.base import Video
-from anicli_api.source.parsers.yummy_anime_me_parser import YummyAnimeApi
+from anicli_api.source.parsers.yummy_anime_me_parser import YummyAnimeApi, PageCVHIframe, PageJsCVHParams
 
 # types
 from anicli_api.source.parsers.yummy_anime_me_parser import (
@@ -259,9 +259,7 @@ class Episode(BaseEpisode):
 class Source(BaseSource):
     @staticmethod
     def _get_js_url(base_url: str, iframe_response: str) -> str:
-        # 1. extract js path and build URL
-        # <script type="module" crossorigin src="/assets/iframeCVH-Co2NOptb.js"></script>
-        js_path = re.search(r'<script[^>]+src="(/assets/iframe[^"]+)">', iframe_response)[1]
+        js_path = PageCVHIframe(iframe_response).parse()["path"]
         return "https://" + base_url + js_path
 
     @staticmethod
@@ -288,9 +286,11 @@ class Source(BaseSource):
         "is-show-voice-only": !0 };
         for (const i in a) o.setAttribute(i, (null == (e = a[i]) ? void 0 : e.toString()) || "") }
         """
-        data_pub_id = re.search(r'"data-publisher-id":\s?(\d+)', js_script_response)[1]
-        aggr = re.search(r'"data-aggregator":\s?"([^"]+)"', js_script_response)[1]
-        return data_pub_id, aggr
+        data = PageJsCVHParams(js_script_response).parse()
+
+        # data_pub_id = re.search(r'"data-publisher-id":\s?(\d+)', js_script_response)[1]
+        # aggr = re.search(r'"data-aggregator":\s?"([^"]+)"', js_script_response)[1]
+        return data["data_pub_id"], data["aggr"]
 
     @staticmethod
     def _cdnvideohub_extract_vkid_cadidate(
@@ -332,7 +332,9 @@ class Source(BaseSource):
             anime_id, episode, dubbing_code = self._extract_iframe_params(self.url)
             script = await self.http_async.get(js_url)
             pub_id, aggr = self._extract_script_params(script.text)
-            resp_api = CdnVideoHubAPI.async_get_params_from_page(self.http_async, pub=pub_id, aggr=aggr, id=anime_id)
+            resp_api = await CdnVideoHubAPI.async_get_params_from_page(
+                self.http_async, pub=pub_id, aggr=aggr, id=anime_id
+            )
             if not resp_api.is_ok:
                 # TODO: handle error
                 return []
