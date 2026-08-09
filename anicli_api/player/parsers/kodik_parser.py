@@ -5,7 +5,7 @@ universal parser for kodik.info/serial entrypoint
 
 from lxml import html
 from lxml.html import HtmlElement
-from typing import Dict, List, TypedDict, Union
+from typing import Any, Dict, List, TypedDict, Union
 import json
 import httpx
 from .sscgen_runtime import FALLBACK_HTML_STR
@@ -284,20 +284,36 @@ class PageMainKodikMin:
             self._doc = document
 
     @classmethod
-    def fetch(cls, client: httpx.Client, *, kodik_player_url: str) -> "PageMainKodikMin":
+    def fetch(cls, client: httpx.Client, *, kodik_player_url: str, **kwargs: Any) -> "PageMainKodikMin":
+        _kw: Dict[str, Any] = {}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = client.request(
             "GET",
             kodik_player_url,
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text
         return cls(_body)
 
     @classmethod
-    async def async_fetch(cls, client: httpx.AsyncClient, *, kodik_player_url: str) -> "PageMainKodikMin":
+    async def async_fetch(
+        cls, client: httpx.AsyncClient, *, kodik_player_url: str, **kwargs: Any
+    ) -> "PageMainKodikMin":
+        _kw: Dict[str, Any] = {}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = await client.request(
             "GET",
             kodik_player_url,
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text
@@ -550,20 +566,36 @@ class PageMainKodikSerial:
             self._doc = document
 
     @classmethod
-    def fetch(cls, client: httpx.Client, *, kodik_player_url: str) -> "PageMainKodikSerial":
+    def fetch(cls, client: httpx.Client, *, kodik_player_url: str, **kwargs: Any) -> "PageMainKodikSerial":
+        _kw: Dict[str, Any] = {}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = client.request(
             "GET",
             kodik_player_url,
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text
         return cls(_body)
 
     @classmethod
-    async def async_fetch(cls, client: httpx.AsyncClient, *, kodik_player_url: str) -> "PageMainKodikSerial":
+    async def async_fetch(
+        cls, client: httpx.AsyncClient, *, kodik_player_url: str, **kwargs: Any
+    ) -> "PageMainKodikSerial":
+        _kw: Dict[str, Any] = {}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = await client.request(
             "GET",
             kodik_player_url,
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text
@@ -716,20 +748,36 @@ class PageMainKodikVideo:
             self._doc = document
 
     @classmethod
-    def fetch(cls, client: httpx.Client, *, kodik_player_url: str) -> "PageMainKodikVideo":
+    def fetch(cls, client: httpx.Client, *, kodik_player_url: str, **kwargs: Any) -> "PageMainKodikVideo":
+        _kw: Dict[str, Any] = {}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = client.request(
             "GET",
             kodik_player_url,
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text
         return cls(_body)
 
     @classmethod
-    async def async_fetch(cls, client: httpx.AsyncClient, *, kodik_player_url: str) -> "PageMainKodikVideo":
+    async def async_fetch(
+        cls, client: httpx.AsyncClient, *, kodik_player_url: str, **kwargs: Any
+    ) -> "PageMainKodikVideo":
+        _kw: Dict[str, Any] = {}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = await client.request(
             "GET",
             kodik_player_url,
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text

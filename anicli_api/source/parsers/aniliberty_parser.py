@@ -6,7 +6,7 @@ API docs: https://aniliberty.top/api/docs/v1
 No authentication required.
 """
 
-from typing import List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 from dataclasses import dataclass
 from typing import Literal
 from typing import cast
@@ -404,15 +404,29 @@ class AnilibertyApi:
 
     @classmethod
     def search_catalog(
-        cls, client: httpx.Client, *, search: str, page: Optional[int] = None, limit: Optional[int] = None
+        cls,
+        client: httpx.Client,
+        *,
+        search: str,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
+        **kwargs: Any,
     ) -> SearchCatalogResult:
         """Search releases via catalog endpoint with filter."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         _params["f[search]"] = search
         if page is not None:
             _params["page"] = page
         if limit is not None:
             _params["limit"] = limit
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchCatalogResult,
             ssc_rest_call(
@@ -420,22 +434,35 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/anime/catalog/releases",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
     async def async_search_catalog(
-        cls, client: httpx.AsyncClient, *, search: str, page: Optional[int] = None, limit: Optional[int] = None
+        cls,
+        client: httpx.AsyncClient,
+        *,
+        search: str,
+        page: Optional[int] = None,
+        limit: Optional[int] = None,
+        **kwargs: Any,
     ) -> SearchCatalogResult:
         """Search releases via catalog endpoint with filter."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         _params["f[search]"] = search
         if page is not None:
             _params["page"] = page
         if limit is not None:
             _params["limit"] = limit
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchCatalogResult,
             await ssc_rest_call_async(
@@ -443,21 +470,28 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/anime/catalog/releases",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
     def ongoing_catalog(
-        cls, client: httpx.Client, *, page: Optional[int] = None, limit: Optional[int] = None
+        cls, client: httpx.Client, *, page: Optional[int] = None, limit: Optional[int] = None, **kwargs: Any
     ) -> OngoingCatalogResult:
         """List ongoing/newest releases with pagination."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if page is not None:
             _params["page"] = page
         if limit is not None:
             _params["limit"] = limit
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             OngoingCatalogResult,
             ssc_rest_call(
@@ -465,21 +499,28 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/anime/catalog/releases",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
     async def async_ongoing_catalog(
-        cls, client: httpx.AsyncClient, *, page: Optional[int] = None, limit: Optional[int] = None
+        cls, client: httpx.AsyncClient, *, page: Optional[int] = None, limit: Optional[int] = None, **kwargs: Any
     ) -> OngoingCatalogResult:
         """List ongoing/newest releases with pagination."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if page is not None:
             _params["page"] = page
         if limit is not None:
             _params["limit"] = limit
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             OngoingCatalogResult,
             await ssc_rest_call_async(
@@ -487,14 +528,21 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/anime/catalog/releases",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
-    def search(cls, client: httpx.Client, *, query: str) -> SearchResult:
+    def search(cls, client: httpx.Client, *, query: str, **kwargs: Any) -> SearchResult:
         """Search releases via dedicated search endpoint. Returns bare array."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"query": query}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchResult,
             ssc_rest_call(
@@ -502,14 +550,21 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/app/search/releases",
-                headers={"Accept": "application/json"},
-                params={"query": query},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_search(cls, client: httpx.AsyncClient, *, query: str) -> SearchResult:
+    async def async_search(cls, client: httpx.AsyncClient, *, query: str, **kwargs: Any) -> SearchResult:
         """Search releases via dedicated search endpoint. Returns bare array."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"query": query}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchResult,
             await ssc_rest_call_async(
@@ -517,14 +572,20 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/app/search/releases",
-                headers={"Accept": "application/json"},
-                params={"query": query},
+                **_kw,
             ),
         )
 
     @classmethod
-    def get_release(cls, client: httpx.Client, *, id: int) -> GetReleaseResult:
+    def get_release(cls, client: httpx.Client, *, id: int, **kwargs: Any) -> GetReleaseResult:
         """Get full release detail with episodes, members, genres."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetReleaseResult,
             ssc_rest_call(
@@ -532,13 +593,20 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 f"https://aniliberty.top/api/v1/anime/releases/{id}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_get_release(cls, client: httpx.AsyncClient, *, id: int) -> GetReleaseResult:
+    async def async_get_release(cls, client: httpx.AsyncClient, *, id: int, **kwargs: Any) -> GetReleaseResult:
         """Get full release detail with episodes, members, genres."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetReleaseResult,
             await ssc_rest_call_async(
@@ -546,13 +614,21 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 f"https://aniliberty.top/api/v1/anime/releases/{id}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def get_release_episodes(cls, client: httpx.Client, *, id: int) -> GetReleaseEpisodesResult:
+    def get_release_episodes(cls, client: httpx.Client, *, id: int, **kwargs: Any) -> GetReleaseEpisodesResult:
         """Get episodes for a release (sparse fieldset)."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"include": "id,episodes"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetReleaseEpisodesResult,
             ssc_rest_call(
@@ -560,14 +636,23 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 f"https://aniliberty.top/api/v1/anime/releases/{id}",
-                headers={"Accept": "application/json"},
-                params={"include": "id,episodes"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_get_release_episodes(cls, client: httpx.AsyncClient, *, id: int) -> GetReleaseEpisodesResult:
+    async def async_get_release_episodes(
+        cls, client: httpx.AsyncClient, *, id: int, **kwargs: Any
+    ) -> GetReleaseEpisodesResult:
         """Get episodes for a release (sparse fieldset)."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"include": "id,episodes"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetReleaseEpisodesResult,
             await ssc_rest_call_async(
@@ -575,14 +660,20 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 f"https://aniliberty.top/api/v1/anime/releases/{id}",
-                headers={"Accept": "application/json"},
-                params={"include": "id,episodes"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def get_episode(cls, client: httpx.Client, *, episode_id: str) -> GetEpisodeResult:
+    def get_episode(cls, client: httpx.Client, *, episode_id: str, **kwargs: Any) -> GetEpisodeResult:
         """Get single episode by id with nested release."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetEpisodeResult,
             ssc_rest_call(
@@ -590,13 +681,20 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 f"https://aniliberty.top/api/v1/anime/releases/episodes/{episode_id}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_get_episode(cls, client: httpx.AsyncClient, *, episode_id: str) -> GetEpisodeResult:
+    async def async_get_episode(cls, client: httpx.AsyncClient, *, episode_id: str, **kwargs: Any) -> GetEpisodeResult:
         """Get single episode by id with nested release."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetEpisodeResult,
             await ssc_rest_call_async(
@@ -604,13 +702,20 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 f"https://aniliberty.top/api/v1/anime/releases/episodes/{episode_id}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def app_status(cls, client: httpx.Client) -> AppStatusResult:
+    def app_status(cls, client: httpx.Client, **kwargs: Any) -> AppStatusResult:
         """Check API availability."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             AppStatusResult,
             ssc_rest_call(
@@ -618,13 +723,20 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/app/status",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_app_status(cls, client: httpx.AsyncClient) -> AppStatusResult:
+    async def async_app_status(cls, client: httpx.AsyncClient, **kwargs: Any) -> AppStatusResult:
         """Check API availability."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             AppStatusResult,
             await ssc_rest_call_async(
@@ -632,6 +744,6 @@ class AnilibertyApi:
                 ANILIBERTY_API_MATCHERS,
                 "GET",
                 "https://aniliberty.top/api/v1/app/status",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )

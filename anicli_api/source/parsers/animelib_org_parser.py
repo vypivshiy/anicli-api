@@ -6,7 +6,7 @@ Auth: Bearer token optional. Required for animelib player video URLs;
       kodik player works without auth.
 """
 
-from typing import List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 from dataclasses import dataclass
 from typing import Literal
@@ -515,8 +515,10 @@ class AnimelibOrgApi:
         status: Optional[List[int]] = None,
         sort_by: Optional[str] = None,
         page: Optional[int] = None,
+        **kwargs: Any,
     ) -> ListAnimeResult:
         """Search or list anime with optional filters, ongoings, and pagination."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if fields is not None:
             _params["fields[]"] = fields
@@ -530,6 +532,13 @@ class AnimelibOrgApi:
             _params["sort_by"] = sort_by
         if page is not None:
             _params["page"] = page
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ListAnimeResult,
             ssc_rest_call(
@@ -537,8 +546,7 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 "https://api.cdnlibs.org/anime",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
@@ -553,8 +561,10 @@ class AnimelibOrgApi:
         status: Optional[List[int]] = None,
         sort_by: Optional[str] = None,
         page: Optional[int] = None,
+        **kwargs: Any,
     ) -> ListAnimeResult:
         """Search or list anime with optional filters, ongoings, and pagination."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if fields is not None:
             _params["fields[]"] = fields
@@ -568,6 +578,13 @@ class AnimelibOrgApi:
             _params["sort_by"] = sort_by
         if page is not None:
             _params["page"] = page
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ListAnimeResult,
             await ssc_rest_call_async(
@@ -575,17 +592,26 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 "https://api.cdnlibs.org/anime",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
-    def get_anime(cls, client: httpx.Client, *, slug_url: str, fields: Optional[List[str]] = None) -> GetAnimeResult:
+    def get_anime(
+        cls, client: httpx.Client, *, slug_url: str, fields: Optional[List[str]] = None, **kwargs: Any
+    ) -> GetAnimeResult:
         """Get anime details by slug_url (e.g. '316--serial-experiments-lain-anime')."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if fields is not None:
             _params["fields[]"] = fields
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetAnimeResult,
             ssc_rest_call(
@@ -593,19 +619,26 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 f"https://api.cdnlibs.org/anime/{slug_url}",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
     async def async_get_anime(
-        cls, client: httpx.AsyncClient, *, slug_url: str, fields: Optional[List[str]] = None
+        cls, client: httpx.AsyncClient, *, slug_url: str, fields: Optional[List[str]] = None, **kwargs: Any
     ) -> GetAnimeResult:
         """Get anime details by slug_url (e.g. '316--serial-experiments-lain-anime')."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if fields is not None:
             _params["fields[]"] = fields
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetAnimeResult,
             await ssc_rest_call_async(
@@ -613,17 +646,26 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 f"https://api.cdnlibs.org/anime/{slug_url}",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
-    def list_episodes(cls, client: httpx.Client, *, anime_id: Optional[str] = None) -> ListEpisodesResult:
+    def list_episodes(
+        cls, client: httpx.Client, *, anime_id: Optional[str] = None, **kwargs: Any
+    ) -> ListEpisodesResult:
         """List episodes for an anime by slug_url."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if anime_id is not None:
             _params["anime_id"] = anime_id
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ListEpisodesResult,
             ssc_rest_call(
@@ -631,19 +673,26 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 "https://api.cdnlibs.org/episodes",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
     async def async_list_episodes(
-        cls, client: httpx.AsyncClient, *, anime_id: Optional[str] = None
+        cls, client: httpx.AsyncClient, *, anime_id: Optional[str] = None, **kwargs: Any
     ) -> ListEpisodesResult:
         """List episodes for an anime by slug_url."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         if anime_id is not None:
             _params["anime_id"] = anime_id
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ListEpisodesResult,
             await ssc_rest_call_async(
@@ -651,14 +700,20 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 "https://api.cdnlibs.org/episodes",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
-    def get_episode(cls, client: httpx.Client, *, id: int) -> GetEpisodeResult:
+    def get_episode(cls, client: httpx.Client, *, id: int, **kwargs: Any) -> GetEpisodeResult:
         """Get episode details with player and dubbing info by episode ID."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetEpisodeResult,
             ssc_rest_call(
@@ -666,13 +721,20 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 f"https://api.cdnlibs.org/episodes/{id}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_get_episode(cls, client: httpx.AsyncClient, *, id: int) -> GetEpisodeResult:
+    async def async_get_episode(cls, client: httpx.AsyncClient, *, id: int, **kwargs: Any) -> GetEpisodeResult:
         """Get episode details with player and dubbing info by episode ID."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GetEpisodeResult,
             await ssc_rest_call_async(
@@ -680,6 +742,6 @@ class AnimelibOrgApi:
                 ANIMELIB_ORG_API_MATCHERS,
                 "GET",
                 f"https://api.cdnlibs.org/episodes/{id}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )

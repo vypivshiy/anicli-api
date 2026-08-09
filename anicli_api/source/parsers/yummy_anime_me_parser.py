@@ -11,7 +11,7 @@ No authentication required.
 """
 
 from lxml import html
-from typing import List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 from typing_extensions import NotRequired
 from dataclasses import dataclass
 from typing import Literal
@@ -338,15 +338,23 @@ class YummyAnimeApi:
 
     @classmethod
     def search_anime(
-        cls, client: httpx.Client, *, q: str, offset: Optional[int] = None, limit: Optional[int] = None
+        cls, client: httpx.Client, *, q: str, offset: Optional[int] = None, limit: Optional[int] = None, **kwargs: Any
     ) -> SearchAnimeResult:
         """Search anime by query with pagination."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         _params["q"] = q
         if offset is not None:
             _params["offset"] = offset
         if limit is not None:
             _params["limit"] = limit
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchAnimeResult,
             ssc_rest_call(
@@ -354,22 +362,35 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
     async def async_search_anime(
-        cls, client: httpx.AsyncClient, *, q: str, offset: Optional[int] = None, limit: Optional[int] = None
+        cls,
+        client: httpx.AsyncClient,
+        *,
+        q: str,
+        offset: Optional[int] = None,
+        limit: Optional[int] = None,
+        **kwargs: Any,
     ) -> SearchAnimeResult:
         """Search anime by query with pagination."""
+        _kw: Dict[str, Any] = {}
         _params: dict = {}
         _params["q"] = q
         if offset is not None:
             _params["offset"] = offset
         if limit is not None:
             _params["limit"] = limit
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = _params
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchAnimeResult,
             await ssc_rest_call_async(
@@ -377,14 +398,21 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime",
-                headers={"Accept": "application/json"},
-                params=_params,
+                **_kw,
             ),
         )
 
     @classmethod
-    def anime_by_ids(cls, client: httpx.Client, *, ids: List[int]) -> AnimeByIdsResult:
+    def anime_by_ids(cls, client: httpx.Client, *, ids: List[int], **kwargs: Any) -> AnimeByIdsResult:
         """Filter anime by IDs. Returns items with genres."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"ids": ids}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             AnimeByIdsResult,
             ssc_rest_call(
@@ -392,14 +420,21 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime",
-                headers={"Accept": "application/json"},
-                params={"ids": ids},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_anime_by_ids(cls, client: httpx.AsyncClient, *, ids: List[int]) -> AnimeByIdsResult:
+    async def async_anime_by_ids(cls, client: httpx.AsyncClient, *, ids: List[int], **kwargs: Any) -> AnimeByIdsResult:
         """Filter anime by IDs. Returns items with genres."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"ids": ids}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             AnimeByIdsResult,
             await ssc_rest_call_async(
@@ -407,14 +442,21 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime",
-                headers={"Accept": "application/json"},
-                params={"ids": ids},
+                **_kw,
             ),
         )
 
     @classmethod
-    def search_dedicated(cls, client: httpx.Client, *, q: str) -> SearchDedicatedResult:
+    def search_dedicated(cls, client: httpx.Client, *, q: str, **kwargs: Any) -> SearchDedicatedResult:
         """Quick search (min 3 chars). Same shape as search-anime."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"q": q}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchDedicatedResult,
             ssc_rest_call(
@@ -422,14 +464,21 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/search",
-                headers={"Accept": "application/json"},
-                params={"q": q},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_search_dedicated(cls, client: httpx.AsyncClient, *, q: str) -> SearchDedicatedResult:
+    async def async_search_dedicated(cls, client: httpx.AsyncClient, *, q: str, **kwargs: Any) -> SearchDedicatedResult:
         """Quick search (min 3 chars). Same shape as search-anime."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        _kw["params"] = {"q": q}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchDedicatedResult,
             await ssc_rest_call_async(
@@ -437,14 +486,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/search",
-                headers={"Accept": "application/json"},
-                params={"q": q},
+                **_kw,
             ),
         )
 
     @classmethod
-    def schedule(cls, client: httpx.Client) -> ScheduleResult:
+    def schedule(cls, client: httpx.Client, **kwargs: Any) -> ScheduleResult:
         """Current ongoing schedule."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ScheduleResult,
             ssc_rest_call(
@@ -452,13 +507,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/schedule",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_schedule(cls, client: httpx.AsyncClient) -> ScheduleResult:
+    async def async_schedule(cls, client: httpx.AsyncClient, **kwargs: Any) -> ScheduleResult:
         """Current ongoing schedule."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ScheduleResult,
             await ssc_rest_call_async(
@@ -466,13 +528,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/schedule",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def anime_videos(cls, client: httpx.Client, *, id: int) -> AnimeVideosResult:
+    def anime_videos(cls, client: httpx.Client, *, id: int, **kwargs: Any) -> AnimeVideosResult:
         """Episodes/videos for a specific anime by id."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             AnimeVideosResult,
             ssc_rest_call(
@@ -480,13 +549,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 f"https://api.yani.tv/anime/{id}/videos",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_anime_videos(cls, client: httpx.AsyncClient, *, id: int) -> AnimeVideosResult:
+    async def async_anime_videos(cls, client: httpx.AsyncClient, *, id: int, **kwargs: Any) -> AnimeVideosResult:
         """Episodes/videos for a specific anime by id."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             AnimeVideosResult,
             await ssc_rest_call_async(
@@ -494,13 +570,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 f"https://api.yani.tv/anime/{id}/videos",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def catalog(cls, client: httpx.Client) -> CatalogResult:
+    def catalog(cls, client: httpx.Client, **kwargs: Any) -> CatalogResult:
         """Full catalog with genres, types, and anime data."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             CatalogResult,
             ssc_rest_call(
@@ -508,13 +591,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/catalog",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_catalog(cls, client: httpx.AsyncClient) -> CatalogResult:
+    async def async_catalog(cls, client: httpx.AsyncClient, **kwargs: Any) -> CatalogResult:
         """Full catalog with genres, types, and anime data."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             CatalogResult,
             await ssc_rest_call_async(
@@ -522,13 +612,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/catalog",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def list_genres(cls, client: httpx.Client) -> ListGenresResult:
+    def list_genres(cls, client: httpx.Client, **kwargs: Any) -> ListGenresResult:
         """All genres with groups."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ListGenresResult,
             ssc_rest_call(
@@ -536,13 +633,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/genres",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_list_genres(cls, client: httpx.AsyncClient) -> ListGenresResult:
+    async def async_list_genres(cls, client: httpx.AsyncClient, **kwargs: Any) -> ListGenresResult:
         """All genres with groups."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             ListGenresResult,
             await ssc_rest_call_async(
@@ -550,13 +654,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/genres",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def genre_by_slug(cls, client: httpx.Client, *, slug: str) -> GenreBySlugResult:
+    def genre_by_slug(cls, client: httpx.Client, *, slug: str, **kwargs: Any) -> GenreBySlugResult:
         """Genre detail by slug (e.g. 'senen')."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GenreBySlugResult,
             ssc_rest_call(
@@ -564,13 +675,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 f"https://api.yani.tv/anime/genres/{slug}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_genre_by_slug(cls, client: httpx.AsyncClient, *, slug: str) -> GenreBySlugResult:
+    async def async_genre_by_slug(cls, client: httpx.AsyncClient, *, slug: str, **kwargs: Any) -> GenreBySlugResult:
         """Genre detail by slug (e.g. 'senen')."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             GenreBySlugResult,
             await ssc_rest_call_async(
@@ -578,13 +696,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 f"https://api.yani.tv/anime/genres/{slug}",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def counts_by_type(cls, client: httpx.Client) -> CountsByTypeResult:
+    def counts_by_type(cls, client: httpx.Client, **kwargs: Any) -> CountsByTypeResult:
         """Anime counts grouped by type."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             CountsByTypeResult,
             ssc_rest_call(
@@ -592,13 +717,20 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/counts/types",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_counts_by_type(cls, client: httpx.AsyncClient) -> CountsByTypeResult:
+    async def async_counts_by_type(cls, client: httpx.AsyncClient, **kwargs: Any) -> CountsByTypeResult:
         """Anime counts grouped by type."""
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Accept": "application/json"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             CountsByTypeResult,
             await ssc_rest_call_async(
@@ -606,7 +738,7 @@ class YummyAnimeApi:
                 YUMMY_ANIME_API_MATCHERS,
                 "GET",
                 "https://api.yani.tv/anime/counts/types",
-                headers={"Accept": "application/json"},
+                **_kw,
             ),
         )
 

@@ -20,7 +20,7 @@ For extract playlist required reverse obfuscated playlist data and obfuscated ja
 
 from lxml import html
 from lxml.html import HtmlElement
-from typing import List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union
 from typing import cast
 import httpx
 from .sscgen_runtime import (
@@ -89,7 +89,20 @@ DREAMCAST_API_MATCHERS: List[ErrMatcher] = []
 
 class DreamcastAPI:
     @classmethod
-    def search(cls, client: httpx.Client, *, query: str) -> SearchResult:
+    def search(cls, client: httpx.Client, *, query: str, **kwargs: Any) -> SearchResult:
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": "https://dreamerscast.com",
+            "Referer": "https://dreamerscast.com/",
+        }
+        _kw["data"] = {"search": query, "status": "", "pageSize": "16", "pageNumber": "1"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchResult,
             ssc_rest_call(
@@ -97,18 +110,25 @@ class DreamcastAPI:
                 DREAMCAST_API_MATCHERS,
                 "POST",
                 "https://dreamerscast.com/",
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Origin": "https://dreamerscast.com",
-                    "Referer": "https://dreamerscast.com/",
-                },
-                data={"search": query, "status": "", "pageSize": "16", "pageNumber": "1"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_search(cls, client: httpx.AsyncClient, *, query: str) -> SearchResult:
+    async def async_search(cls, client: httpx.AsyncClient, *, query: str, **kwargs: Any) -> SearchResult:
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": "https://dreamerscast.com",
+            "Referer": "https://dreamerscast.com/",
+        }
+        _kw["data"] = {"search": query, "status": "", "pageSize": "16", "pageNumber": "1"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             SearchResult,
             await ssc_rest_call_async(
@@ -116,18 +136,25 @@ class DreamcastAPI:
                 DREAMCAST_API_MATCHERS,
                 "POST",
                 "https://dreamerscast.com/",
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Origin": "https://dreamerscast.com",
-                    "Referer": "https://dreamerscast.com/",
-                },
-                data={"search": query, "status": "", "pageSize": "16", "pageNumber": "1"},
+                **_kw,
             ),
         )
 
     @classmethod
-    def ongoing(cls, client: httpx.Client) -> OngoingResult:
+    def ongoing(cls, client: httpx.Client, **kwargs: Any) -> OngoingResult:
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": "https://dreamerscast.com",
+            "Referer": "https://dreamerscast.com/",
+        }
+        _kw["data"] = {"search": "", "status": "", "pageSize": "16", "pageNumber": "1"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             OngoingResult,
             ssc_rest_call(
@@ -135,18 +162,25 @@ class DreamcastAPI:
                 DREAMCAST_API_MATCHERS,
                 "POST",
                 "https://dreamerscast.com/",
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Origin": "https://dreamerscast.com",
-                    "Referer": "https://dreamerscast.com/",
-                },
-                data={"search": "", "status": "", "pageSize": "16", "pageNumber": "1"},
+                **_kw,
             ),
         )
 
     @classmethod
-    async def async_ongoing(cls, client: httpx.AsyncClient) -> OngoingResult:
+    async def async_ongoing(cls, client: httpx.AsyncClient, **kwargs: Any) -> OngoingResult:
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+            "Origin": "https://dreamerscast.com",
+            "Referer": "https://dreamerscast.com/",
+        }
+        _kw["data"] = {"search": "", "status": "", "pageSize": "16", "pageNumber": "1"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         return cast(
             OngoingResult,
             await ssc_rest_call_async(
@@ -154,13 +188,7 @@ class DreamcastAPI:
                 DREAMCAST_API_MATCHERS,
                 "POST",
                 "https://dreamerscast.com/",
-                headers={
-                    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Origin": "https://dreamerscast.com",
-                    "Referer": "https://dreamerscast.com/",
-                },
-                data={"search": "", "status": "", "pageSize": "16", "pageNumber": "1"},
+                **_kw,
             ),
         )
 
@@ -187,22 +215,36 @@ class PageAnime:
             self._doc = document
 
     @classmethod
-    def fetch(cls, client: httpx.Client, *, url_path: str) -> "PageAnime":
+    def fetch(cls, client: httpx.Client, *, url_path: str, **kwargs: Any) -> "PageAnime":
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Referer": "https://dreamerscast.com/"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = client.request(
             "GET",
             f"https://dreamerscast.com{url_path}",
-            headers={"Referer": "https://dreamerscast.com/"},
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text
         return cls(_body)
 
     @classmethod
-    async def async_fetch(cls, client: httpx.AsyncClient, *, url_path: str) -> "PageAnime":
+    async def async_fetch(cls, client: httpx.AsyncClient, *, url_path: str, **kwargs: Any) -> "PageAnime":
+        _kw: Dict[str, Any] = {}
+        _kw["headers"] = {"Referer": "https://dreamerscast.com/"}
+        for _k, _v in kwargs.items():
+            if isinstance(_kw.get(_k), dict) and isinstance(_v, dict):
+                _kw[_k] = {**_kw[_k], **_v}
+            else:
+                _kw[_k] = _v
         _resp = await client.request(
             "GET",
             f"https://dreamerscast.com{url_path}",
-            headers={"Referer": "https://dreamerscast.com/"},
+            **_kw,
         )
         _resp.raise_for_status()
         _body = _resp.text
