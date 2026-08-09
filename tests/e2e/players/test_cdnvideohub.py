@@ -9,9 +9,8 @@ pytestmark = pytest.mark.e2e
 
 # TODO: add stable cdnvideohub player URL(s); format:
 #   https://animego.<tld>/cdn-iframe/<id>/<title>/<x>/<y>
-URLS: list[str] = [
-    "https://animego.me/cdn-iframe/56854/AniLiberty/1/1"
-]
+URLS: list[str] = ["https://animego.me/cdn-iframe/56854/AniLiberty/1/1"]
+
 
 @pytest.mark.parametrize("url", URLS)
 def test_parse(http_bundle: HttpBundle, assert_video_reachable: VideoChecker, url: str) -> None:

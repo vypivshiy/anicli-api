@@ -18,13 +18,19 @@ class CsstOnline(BaseVideoExtractor):
     RE_URLS = re.compile(r"\[(?P<quality>\d{3,4})p\](?P<url>https?://(?:www\.)?.*?\.mp4)")
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> list[Video]:
-        response = self.http.get(url).text
+    def parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
+        response = self.http.get(url, **req).text
         return self._extract(response)
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        response = (await self.a_http.get(url)).text
+    async def a_parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
+        response = (await self.a_http.get(url, **req)).text
         return self._extract(response)
 
     def _extract(self, response: str) -> list[Video]:

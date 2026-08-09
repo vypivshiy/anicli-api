@@ -305,10 +305,12 @@ class Episode(BaseEpisode):
 class Source(BaseSource):
     data: PlayerJson
 
-    def get_videos(self, **httpx_kwargs) -> list[Video]:
+    def get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
         # implemended, run original extractors
         if self.data["player"].lower() == "kodik":
-            return super().get_videos(**httpx_kwargs)  # type: ignore
+            return super().get_videos(headers=headers, cookies=cookies, timeout=timeout)  # type: ignore
 
         elif self.data["player"].lower() == "animelib":
             results: List[Video] = []
@@ -325,10 +327,12 @@ class Source(BaseSource):
             return results
         return []
 
-    async def a_get_videos(self, **httpx_kwargs) -> list[Video]:
+    async def a_get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
         # implemended, run original extractors
         if self.data["player"].lower() == "kodik":
-            return super().a_get_videos(**httpx_kwargs)  # type: ignore
+            return await super().a_get_videos(headers=headers, cookies=cookies, timeout=timeout)  # type: ignore
 
         elif self.data["player"].lower() == "animelib":
             results: List[Video] = []

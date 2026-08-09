@@ -8,6 +8,8 @@ AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114
 
 """
 
+from __future__ import annotations
+
 import asyncio
 from time import sleep
 
@@ -47,10 +49,21 @@ __all__ = (
     "HTTPRetryConnectSyncTransport",
     "HTTPRetryConnectAsyncTransport",
     "DDOSServerDetectError",
+    "ANUBIS_BYPASS_HEADERS",
 )
 
 # DDoS protection check by "Server" key header
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
+
+# Anubis bot-protect bypass: User-Agent without "Mozilla" substring.
+# https://github.com/TecharoHQ/anubis/blob/main/docs/docs/design/how-anubis-works.mdx
+#
+# Anubis decides to challenge based on UA containing "Mozilla"; stripping that
+# substring bypasses the challenge. Pass per-call via `headers=ANUBIS_BYPASS_HEADERS`
+# to any fetch() / client.request() - the sscgen-generated fetchers already
+# accept **kwargs and merge dict-valued keys (headers/params/data) with their
+# own defaults, so this overrides the client's UA without mutating shared state.
+ANUBIS_BYPASS_HEADERS: dict[str, str] = {"User-Agent": HEADERS["User-Agent"].replace("Mozilla", "")}
 
 
 def have_ddos_protect(response: Response) -> bool:
@@ -73,6 +86,43 @@ class DDOSServerDetectError(NetworkError):
     pass
 
 
+def _parse_retry_after(resp: Response) -> float | None:
+    """Parse Retry-After header. Returns seconds or None if absent/malformed.
+
+    Supports both delta-seconds (integer) and HTTP-date formats (RFC 7231).
+    """
+    val = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+    if not val:
+        return None
+    val = val.strip()
+    # delta-seconds form
+    try:
+        secs = float(val)
+        return secs if secs >= 0 else None
+    except ValueError:
+        pass
+    # HTTP-date form
+    try:
+        from email.utils import parsedate_to_datetime
+        from datetime import datetime, timezone
+
+        dt = parsedate_to_datetime(val)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        delta = (dt - now).total_seconds()
+        return max(0.0, delta)
+    except (TypeError, ValueError):
+        return None
+
+
+# Server-side transient failures worth retrying. 500 excluded (server bug, retry
+# won't help). 429 needs Retry-After handling and is a separate concern.
+RETRYABLE_STATUS_CODES: tuple[int, ...] = (502, 503, 504)
+MAX_5XX_RETRIES = 3
+MAX_RETRY_AFTER_SECONDS = 30.0
+
+
 class HTTPRetryConnectSyncTransport(HTTPTransport):
     """Handle attempts connects with delay"""
 
@@ -88,6 +138,22 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}': {request.url} returns code {resp.status_code}"
                     raise DDOSServerDetectError(msg)
+
+                # Retry transient 5xx (e.g. cloudflare 502/503/504 on upstream timeout)
+                if resp.status_code in RETRYABLE_STATUS_CODES and i < MAX_5XX_RETRIES:
+                    retry_after = _parse_retry_after(resp)
+                    sleep_for = min(retry_after, MAX_RETRY_AFTER_SECONDS) if retry_after else delay
+                    logger.warning(
+                        "[%s] %s status %d, retry in %.1fs",
+                        i + 1,
+                        request.url,
+                        resp.status_code,
+                        sleep_for,
+                    )
+                    sleep(sleep_for)
+                    delay += self.DELAY_INCREASE_STEP
+                    continue
+
                 logger.debug("%s -> %s", repr(request), repr(resp))
                 return resp
 
@@ -123,6 +189,22 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}': {request.url} returns code {resp.status_code}"
                     raise DDOSServerDetectError(msg)
+
+                # Retry transient 5xx (e.g. cloudflare 502/503/504 on upstream timeout)
+                if resp.status_code in RETRYABLE_STATUS_CODES and i < MAX_5XX_RETRIES:
+                    retry_after = _parse_retry_after(resp)
+                    sleep_for = min(retry_after, MAX_RETRY_AFTER_SECONDS) if retry_after else delay
+                    logger.warning(
+                        "[%s] %s status %d, retry in %.1fs",
+                        i + 1,
+                        request.url,
+                        resp.status_code,
+                        sleep_for,
+                    )
+                    await asyncio.sleep(sleep_for)
+                    delay += self.DELAY_INCREASE_STEP
+                    continue
+
                 logger.debug(
                     "%s -> %s",
                     repr(request),

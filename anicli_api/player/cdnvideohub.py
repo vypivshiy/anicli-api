@@ -41,9 +41,23 @@ _RESOLUTION_MAPPING = {
 }
 
 
-def video_playlist_from_vk_id(http_client: Client, vkid: str) -> list["Video"]:
+def video_playlist_from_vk_id(
+    http_client: Client,
+    vkid: str,
+    *,
+    headers: dict | None = None,
+    cookies: dict | None = None,
+    timeout: float | None = None,
+) -> list["Video"]:
     user_agent = http_client.headers["User-Agent"]
-    result = CdnVideoHubAPI.from_vkid(http_client, id=vkid)
+    req: dict = {}
+    if headers is not None:
+        req["headers"] = headers
+    if cookies is not None:
+        req["cookies"] = cookies
+    if timeout is not None:
+        req["timeout"] = timeout
+    result = CdnVideoHubAPI.from_vkid(http_client, id=vkid, **req)
     if not result.is_ok:
         return []
     value = result.value
@@ -74,9 +88,23 @@ def video_playlist_from_vk_id(http_client: Client, vkid: str) -> list["Video"]:
     return videos
 
 
-async def a_video_playlist_from_vk_id(http_client: AsyncClient, vkid: str) -> list["Video"]:
+async def a_video_playlist_from_vk_id(
+    http_client: AsyncClient,
+    vkid: str,
+    *,
+    headers: dict | None = None,
+    cookies: dict | None = None,
+    timeout: float | None = None,
+) -> list["Video"]:
     user_agent = http_client.headers["User-Agent"]
-    result = await CdnVideoHubAPI.async_from_vkid(http_client, id=vkid)
+    req: dict = {}
+    if headers is not None:
+        req["headers"] = headers
+    if cookies is not None:
+        req["cookies"] = cookies
+    if timeout is not None:
+        req["timeout"] = timeout
+    result = await CdnVideoHubAPI.async_from_vkid(http_client, id=vkid, **req)
     if not result.is_ok:
         return []
     value = result.value
@@ -109,6 +137,7 @@ async def a_video_playlist_from_vk_id(http_client: AsyncClient, vkid: str) -> li
 
 class CdnVideoHub(BaseVideoExtractor):
     URL_RULE = _URL_EQ
+    DEFAULT_REQUEST_CONFIG = {"headers": {"referer": "https://animego.me"}}
 
     @staticmethod
     def _parse_url_parts(url: str) -> tuple[str, str, str, str]:
@@ -120,12 +149,19 @@ class CdnVideoHub(BaseVideoExtractor):
         return id_, dubber_name, season, episode_num
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> list[Video]:
+    def parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
-        response = self.http.get(url, headers={"referer": "https://animego.me"})
+        response = self.http.get(url, **req)
         options = PageParseCdnVideoData(response.text).parse()
         resp = CdnVideoHubAPI.get_params_from_page(
-            self.http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["data_title_id"]
+            self.http,
+            pub=options["data_publisher_id"],
+            aggr=options["data_aggregator"],
+            id=options["data_title_id"],
+            **req,
         )
         if not resp.is_ok:
             # TODO: handle errors
@@ -139,18 +175,31 @@ class CdnVideoHub(BaseVideoExtractor):
                 and data["voiceStudio"] == dubber_name
             ):
                 vkid = data["vkId"]
-                return video_playlist_from_vk_id(self.http, vkid=vkid)
+                return video_playlist_from_vk_id(
+                    self.http,
+                    vkid,
+                    headers=headers,
+                    cookies=cookies,
+                    timeout=timeout,
+                )
 
         logger.warning("[cdnvideohub] failed get videos candidates")
         return []
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
+    async def a_parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
         _id, dubber_name, season, episode_num = self._parse_url_parts(url)
-        response = await self.a_http.get(url, headers={"referer": "https://animego.me"})
+        response = await self.a_http.get(url, **req)
         options = PageParseCdnVideoData(response.text).parse()
         resp = await CdnVideoHubAPI.async_get_params_from_page(
-            self.a_http, pub=options["data_publisher_id"], aggr=options["data_aggregator"], id=options["data_title_id"]
+            self.a_http,
+            pub=options["data_publisher_id"],
+            aggr=options["data_aggregator"],
+            id=options["data_title_id"],
+            **req,
         )
         if not resp.is_ok:
             # TODO: handle errors
@@ -164,7 +213,13 @@ class CdnVideoHub(BaseVideoExtractor):
                 and data["voiceStudio"] == dubber_name
             ):
                 vkid = data["vkId"]
-                return await a_video_playlist_from_vk_id(self.a_http, vkid=vkid)
+                return await a_video_playlist_from_vk_id(
+                    self.a_http,
+                    vkid,
+                    headers=headers,
+                    cookies=cookies,
+                    timeout=timeout,
+                )
 
         logger.warning("[cdnvideohub] failed get videos candidates")
         return []

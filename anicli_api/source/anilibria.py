@@ -213,7 +213,9 @@ class Source(BaseSource):
     _hls_720: Optional[str] = field(alias="hls_720")
     _hls_1080: Optional[str] = field(alias="hls_1080")
 
-    def get_videos(self, **_) -> list["Video"]:
+    def get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list["Video"]:
         videos = []
         if self._hls_480:
             videos.append(Video(type="m3u8", quality=480, url=self._hls_480))
@@ -225,7 +227,9 @@ class Source(BaseSource):
             videos.append(Video(type="m3u8", quality=1080, url=self._hls_1080))
         return videos
 
-    async def a_get_videos(self, **_) -> list["Video"]:
+    async def a_get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list["Video"]:
         return self.get_videos()
 
 

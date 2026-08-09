@@ -39,7 +39,7 @@ async def test_ongoiong_pipeline_async(http_bundle: HttpBundle, assert_video_rea
     assert anime.title
     episodes = await anime.a_get_episodes()
     assert episodes
-    
+
     sources = await episodes[0].a_get_sources()
     assert sources
 
@@ -47,7 +47,6 @@ async def test_ongoiong_pipeline_async(http_bundle: HttpBundle, assert_video_rea
     assert videos
     for v in videos:
         assert_video_reachable(v)
-
 
 
 @pytest.mark.parametrize("query", PARAMS_QUERIES)

@@ -20,7 +20,7 @@ class Kodik(BaseVideoExtractor):
     URL_RULE = _URL_EQ
     # cached API path to avoid extra requests
     _CACHED_API_PATH = None
-    DEFAULT_HTTP_CONFIG = {"http2": True}
+    DEFAULT_CLIENT_CONFIG = {"http2": True}
     API_CONSTS_PAYLOAD = {"bad_user": False, "info": {}, "cdn_is_working": True}
 
     @staticmethod
@@ -41,9 +41,15 @@ class Kodik(BaseVideoExtractor):
         return response.status_code == 500 and "text/html" in response.headers["content-type"]
 
     @kodik_validator
-    def parse(self, url: str, **kwargs) -> list[Video]:
-        # result = PageMainKodikMin.fetch(self.http, kodik_player_url=url)
-        response = self.http.get(url)
+    def parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        # user headers go to page GETs only; kodik API POST requires exact
+        # origin/referer from _create_api_headers and must NOT be overridden.
+        page_req = self._merge_request_kwargs(headers, cookies, timeout)
+        api_req = self._merge_request_kwargs(headers=None, cookies=cookies, timeout=timeout)
+
+        response = self.http.get(url, **page_req)
         if self._is_unhandled_error_response(response):
             return []
         if self._is_not_founded_video(response):
@@ -54,21 +60,21 @@ class Kodik(BaseVideoExtractor):
 
         if not self._CACHED_API_PATH:
             url_js_player = f"https://{netloc}{page['player_js_path']}"
-            response_player = self.http.get(url_js_player)
+            response_player = self.http.get(url_js_player, **page_req)
             self._update_api_path(response_player)
 
         url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
         headers = self._create_api_headers(url=url, netloc=netloc)
-        response_api = self.http.post(url_api, data=payload, headers=headers)
+        response_api = self.http.post(url_api, data=payload, headers=headers, **api_req)
 
         # expired API entry point, update
         if not response_api.is_success:
             url_js_player = f"https://{netloc}{page['player_js_path']}"
-            response_player = self.http.get(url_js_player)
+            response_player = self.http.get(url_js_player, **page_req)
             self._update_api_path(response_player)
 
             url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
-            response_api = self.http.post(url_api, data=payload, headers=headers)
+            response_api = self.http.post(url_api, data=payload, headers=headers, **api_req)
 
         if self._is_cache_manifest_error(response_api):
             html_msg = re.search(r'<div class="message">(.*?)</div>', response.text)
@@ -81,8 +87,15 @@ class Kodik(BaseVideoExtractor):
         return self._extract(response_api.json()["links"])
 
     @kodik_validator
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        response = await self.a_http.get(url)
+    async def a_parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        # user headers go to page GETs only; kodik API POST requires exact
+        # origin/referer from _create_api_headers and must NOT be overridden.
+        page_req = self._merge_request_kwargs(headers, cookies, timeout)
+        api_req = self._merge_request_kwargs(headers=None, cookies=cookies, timeout=timeout)
+
+        response = await self.a_http.get(url, **page_req)
         if self._is_unhandled_error_response(response):
             return []
         if self._is_not_founded_video(response):
@@ -92,21 +105,21 @@ class Kodik(BaseVideoExtractor):
 
         if not self._CACHED_API_PATH:
             url_js_player = f"https://{netloc}{page['player_js_path']}"
-            response_player = await self.a_http.get(url_js_player)
+            response_player = await self.a_http.get(url_js_player, **page_req)
             self._update_api_path(response_player)
 
         url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
         headers = self._create_api_headers(url=url, netloc=netloc)
-        response_api = await self.a_http.post(url_api, data=payload, headers=headers)
+        response_api = await self.a_http.post(url_api, data=payload, headers=headers, **api_req)
 
         # expired API entry point, update
         if not response_api.is_success:
             url_js_player = f"https://{netloc}{page['player_js_path']}"
-            response_player = await self.a_http.get(url_js_player)
+            response_player = await self.a_http.get(url_js_player, **page_req)
             self._update_api_path(response_player)
 
             url_api = self._create_url_api(netloc, path=self._CACHED_API_PATH)  # type: ignore
-            response_api = await self.a_http.post(url_api, data=payload, headers=headers)
+            response_api = await self.a_http.post(url_api, data=payload, headers=headers, **api_req)
 
         if self._is_cache_manifest_error(response_api):
             html_msg = re.search(r'<div class="message">(.*?)</div>', response.text)

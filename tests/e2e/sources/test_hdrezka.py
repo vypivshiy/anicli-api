@@ -4,6 +4,7 @@ import pytest
 
 from anicli_api.source.hdrezka import Extractor
 from tests.e2e.conftest import HttpBundle, VideoChecker
+
 pytestmark = pytest.mark.e2e
 
 PARAMS_QUERIES = [("lain",), ("Фильм",)]
@@ -38,7 +39,7 @@ async def test_ongoiong_pipeline_async(http_bundle: HttpBundle, assert_video_rea
     assert anime.title
     episodes = await anime.a_get_episodes()
     assert episodes
-    
+
     sources = await episodes[0].a_get_sources()
     assert sources
 

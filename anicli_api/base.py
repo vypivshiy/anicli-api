@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import warnings
 from abc import abstractmethod
 from typing import TYPE_CHECKING, Optional
@@ -259,51 +261,84 @@ class BaseSource(HttpMixin):
     def _async_cdn_videohub_extractor(self):
         return async_cdnvideohub_playlist_from_vkid
 
-    def get_videos(self, **httpx_kwargs) -> MutableSequence["Video"]:
+    def get_videos(
+        self,
+        *,
+        headers: dict | None = None,
+        cookies: dict | None = None,
+        timeout: float | None = None,
+    ) -> MutableSequence["Video"]:
         """get direct video information for direct play
 
-        Args:
-            **httpx_kwargs: httpx.Client configuration. ``http`` and ``a_http`` keys
-                are reserved; if passed, they override the source's own clients.
-                Otherwise the source's pre-configured ``http``/``http_async`` clients
-                (and therefore any proxy/socks5 settings) are propagated to the
-                player extractor.
+        Per-call ``headers`` / ``cookies`` / ``timeout`` apply to every HTTP
+        request made inside the chosen player extractor for this call only.
+        They are forwarded as per-call request kwargs to ``client.get``/``post``
+        and DO NOT mutate the source's underlying ``httpx.Client``.
+
+        For per-tenant isolation (separate proxies, IP regions) instantiate a
+        separate ``httpx.Client`` per tenant and assign via ``source.http``.
 
         Returns:
             extracted video list
         """
         if self.cdn_videohub_vk_id:
-            return cdnvideohub_playlist_from_vkid(self.http, self.cdn_videohub_vk_id)
+            return cdnvideohub_playlist_from_vkid(
+                self.http,
+                self.cdn_videohub_vk_id,
+                headers=headers,
+                cookies=cookies,
+                timeout=timeout,
+            )
 
         for extractor in self._all_video_extractors:
             if self.url == extractor():
-                kwargs = {"http": self.http, "a_http": self.http_async}
-                kwargs.update(httpx_kwargs)
-                return extractor(**kwargs).parse(self.url)
+                return extractor(http=self.http, a_http=self.http_async).parse(
+                    self.url,
+                    headers=headers,
+                    cookies=cookies,
+                    timeout=timeout,
+                )
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 
-    async def a_get_videos(self, **httpx_kwargs) -> MutableSequence["Video"]:
+    async def a_get_videos(
+        self,
+        *,
+        headers: dict | None = None,
+        cookies: dict | None = None,
+        timeout: float | None = None,
+    ) -> MutableSequence["Video"]:
         """get direct video information for direct play in async mode
 
-        Args:
-            **httpx_kwargs: httpx.AsyncClient configuration. ``http`` and ``a_http``
-                keys are reserved; if passed, they override the source's own clients.
-                Otherwise the source's pre-configured ``http``/``http_async`` clients
-                (and therefore any proxy/socks5 settings) are propagated to the
-                player extractor.
+        Per-call ``headers`` / ``cookies`` / ``timeout`` apply to every HTTP
+        request made inside the chosen player extractor for this call only.
+        They are forwarded as per-call request kwargs to ``client.get``/``post``
+        and DO NOT mutate the source's underlying ``httpx.AsyncClient``.
+
+        For per-tenant isolation (separate proxies, IP regions) instantiate a
+        separate ``httpx.AsyncClient`` per tenant and assign via
+        ``source.http_async``.
 
         Returns:
             extracted video list
         """
         if self.cdn_videohub_vk_id:
-            return await async_cdnvideohub_playlist_from_vkid(self.http_async, self.cdn_videohub_vk_id)
+            return await async_cdnvideohub_playlist_from_vkid(
+                self.http_async,
+                self.cdn_videohub_vk_id,
+                headers=headers,
+                cookies=cookies,
+                timeout=timeout,
+            )
 
         for extractor in self._all_video_extractors:
             if self.url == extractor():
-                kwargs = {"http": self.http, "a_http": self.http_async}
-                kwargs.update(httpx_kwargs)
-                return await extractor(**kwargs).a_parse(self.url)  # type: ignore
+                return await extractor(http=self.http, a_http=self.http_async).a_parse(
+                    self.url,
+                    headers=headers,
+                    cookies=cookies,
+                    timeout=timeout,
+                )
         warnings.warn(f"Failed extractor videos from {self.url}")
         return []
 

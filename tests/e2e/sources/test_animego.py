@@ -74,8 +74,7 @@ def test_ongoing_pipeline(http_bundle: HttpBundle, assert_video_reachable: Video
 
 
 @pytest.mark.asyncio
-async def test_ongoing_pipeline_async(
-    http_bundle: HttpBundle, assert_video_reachable: VideoChecker) -> None:
+async def test_ongoing_pipeline_async(http_bundle: HttpBundle, assert_video_reachable: VideoChecker) -> None:
     ex = Extractor(**http_bundle.extractor_kwargs)
     ongs = ex.ongoing()
     # animego specific:

@@ -30,10 +30,13 @@ class Aksor(BaseVideoExtractor):
     _QUALITY_KEYS = {"q1080": 1080, "q360": 360, "q480": 480, "q720": 720, "q2k": 2048, "q4k": 4096}
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> list[Video]:
+    def parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
         url = url.split("?", 1)[0]
         video_id = url.split("/")[-1]
-        result = AksorPlayerApi.fetch(self.http, video_id=video_id)
+        result = AksorPlayerApi.fetch(self.http, video_id=video_id, **req)
         if not result.is_ok:
             return []
         value = result.value
@@ -54,10 +57,13 @@ class Aksor(BaseVideoExtractor):
         return videos
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
+    async def a_parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
         url = url.split("?", 1)[0]
         video_id = url.split("/")[-1]
-        result = await AksorPlayerApi.async_fetch(self.a_http, video_id=video_id)
+        result = await AksorPlayerApi.async_fetch(self.a_http, video_id=video_id, **req)
         if not result.is_ok:
             return []
         value = result.value

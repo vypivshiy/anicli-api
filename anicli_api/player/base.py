@@ -98,39 +98,78 @@ class ABCVideoExtractor(ABC):
     # attribute for `==` statement, for auto-detect needed extractor
     URL_RULE: Union[str, re.Pattern] = NotImplemented
     """regular expression for validate urls for `==` (__eq__) stmt"""
-    # config if needed configurate HTTP classes for requests
-    DEFAULT_HTTP_CONFIG: dict[str, Any] = {}
-    """minimal httpx.Client, httpx.AsyncClient configuration for correct work player provider"""
+    # config for new-client construction only (http2, transport, proxies).
+    # NEVER used to mutate externally-passed http/a_http clients.
+    DEFAULT_CLIENT_CONFIG: dict[str, Any] = {}
+    """httpx.Client/AsyncClient configuration used ONLY when constructing new
+    clients (when http/a_http not passed). Never mutates externally-passed clients."""
 
-    def __init__(self, http: "Client | None" = None, a_http: "AsyncClient | None" = None, **httpx_kwargs):
+    # per-call request defaults merged into every client.get/post call.
+    DEFAULT_REQUEST_CONFIG: dict[str, Any] = {}
+    """Per-call request defaults (headers, cookies). Merged into every request
+    this extractor makes; can be overridden per-call via parse/a_parse kwargs."""
+
+    def __init__(self, http: "Client | None" = None, a_http: "AsyncClient | None" = None):
         """
-        :param http: pre-configured httpx.Client. If provided, DEFAULT_HTTP_CONFIG headers are merged in
-        :param a_http: pre-configured httpx.AsyncClient. If provided, DEFAULT_HTTP_CONFIG headers are merged in
-        :param httpx_kwargs: httpx.Client and httpx.AsyncClient configuration (used only when http/a_http not provided)
+        :param http: pre-configured httpx.Client. Stored as-is, NEVER mutated.
+        :param a_http: pre-configured httpx.AsyncClient. Stored as-is, NEVER mutated.
+
+        Note: per-instance request defaults come from ``DEFAULT_REQUEST_CONFIG``
+        and are merged per-call via ``_merge_request_kwargs``. The previous
+        behavior of mutating ``http.headers`` / ``a_http.headers`` at
+        construction was racy when a client was shared across concurrent
+        asyncio tasks and has been removed.
         """
-        default_kwargs = self.DEFAULT_HTTP_CONFIG.copy()
-        default_kwargs.update(httpx_kwargs)
+        self.http = http if http is not None else BaseHTTPSync(**self.DEFAULT_CLIENT_CONFIG)
+        self.a_http = a_http if a_http is not None else BaseHTTPAsync(**self.DEFAULT_CLIENT_CONFIG)
 
-        if http is not None:
-            if "headers" in default_kwargs:
-                http.headers.update(default_kwargs["headers"])
-            self.http = http
-        else:
-            self.http = BaseHTTPSync(**default_kwargs)
+    def _merge_request_kwargs(
+        self,
+        headers: dict[str, str] | None,
+        cookies: dict[str, str] | None,
+        timeout: float | None,
+    ) -> dict[str, Any]:
+        """Merge per-call kwargs over DEFAULT_REQUEST_CONFIG.
 
-        if a_http is not None:
-            if "headers" in default_kwargs:
-                a_http.headers.update(default_kwargs["headers"])
-            self.a_http = a_http
-        else:
-            self.a_http = BaseHTTPAsync(**default_kwargs)
+        Caller-supplied ``headers`` are merged ON TOP of (not replacing)
+        ``DEFAULT_REQUEST_CONFIG['headers']`` so default referer/UA etc are
+        preserved unless explicitly overridden.
+
+        Returns a plain dict ready to splat into ``client.get(..., **kwargs)``.
+        """
+        cfg: dict[str, Any] = {}
+        defaults = self.DEFAULT_REQUEST_CONFIG.copy()
+        default_headers = defaults.get("headers")
+        if default_headers:
+            cfg["headers"] = dict(default_headers)
+        if headers:
+            cfg["headers"] = {**cfg.get("headers", {}), **headers}
+        if cookies is not None:
+            cfg["cookies"] = cookies
+        if timeout is not None:
+            cfg["timeout"] = timeout
+        return cfg
 
     @abstractmethod
-    def parse(self, url: str, **kwargs) -> list[Video]:
+    def parse(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> list[Video]:
         pass
 
     @abstractmethod
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
+    async def a_parse(
+        self,
+        url: str,
+        *,
+        headers: dict[str, str] | None = None,
+        cookies: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> list[Video]:
         pass
 
     @classmethod

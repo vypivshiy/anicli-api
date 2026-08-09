@@ -9,16 +9,14 @@ pytestmark = pytest.mark.e2e
 
 # TODO: add stable kodik player URL(s); format:
 #   https://<sub>.<domain>/(?:serial|season|video|film)/<id>/<hash>/<quality>p
-URLS: list[str] = [
-
-]
+URLS: list[str] = []
 
 URLS_FAILED: list[str] = [
     # deleted
     "https://kodik.info/seria/310427/09985563d891b56b1e9b01142ae11872/720p",
     # ULTRA rare kodik backend bug
     # Spotted in 'Cyberpunk: Edgerunners' ep5 Anilibria dub
-    "https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p"
+    "https://kodik.info/seria/1051016/af405efc5e061f5ac344d4811de3bc16/720p",
 ]
 
 _skip_no_urls = pytest.mark.skipif(not URLS, reason="no fixture URL configured for Kodik")

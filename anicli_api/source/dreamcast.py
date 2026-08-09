@@ -197,7 +197,9 @@ class Episode(BaseEpisode):
 class Source(BaseSource):
     _file: str = field(alias="file")
 
-    def get_videos(self, **httpx_kwargs) -> list["Video"]:
+    def get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list["Video"]:
         parts = self._file.split()
         videos = []
         for part in parts:
@@ -216,7 +218,9 @@ class Source(BaseSource):
         videos.reverse()
         return videos
 
-    async def a_get_videos(self, **httpx_kwargs) -> list["Video"]:
+    async def a_get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list["Video"]:
         return self.get_videos()
 
 

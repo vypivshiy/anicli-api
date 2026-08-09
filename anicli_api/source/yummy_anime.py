@@ -267,7 +267,9 @@ class Source(BaseSource):
         ]
         return candidates[0]["vkId"] if candidates else None
 
-    def get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
+    def get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> MutableSequence[Video]:
         # TODO: move to anicli-api.player scope
         # https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=%D0%9E%D0%B7%D0%B2%D1%83%D1%87%D0%BA%D0%B0+Sanae
         if "/iframeCVH.html?" in self.url:
@@ -299,9 +301,11 @@ class Source(BaseSource):
                 # studio listed in source metadata but no actual video in cdnvideohub
                 return []
             return self._cdn_videohub_extractor(self.http, vkid=vkid)
-        return super().get_videos(**httpx_kwargs)
+        return super().get_videos(headers=headers, cookies=cookies, timeout=timeout)
 
-    async def a_get_videos(self, **httpx_kwargs) -> MutableSequence[Video]:
+    async def a_get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> MutableSequence[Video]:
         if "/iframeCVH.html?" in self.url:
             resp = await self.http_async.get(self.url)
             base_url = urlsplit(self.url).netloc
@@ -332,7 +336,7 @@ class Source(BaseSource):
                 # studio listed in source metadata but no actual video in cdnvideohub
                 return []
             return await self._async_cdn_videohub_extractor(self.http_async, vkid=vkid)
-        return await super().a_get_videos(**httpx_kwargs)
+        return await super().a_get_videos(headers=headers, cookies=cookies, timeout=timeout)
 
 
 if __name__ == "__main__":

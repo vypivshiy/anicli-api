@@ -136,10 +136,14 @@ class Episode(BaseEpisode):
 class Source(BaseSource):
     _sources: list[T_SOURCE] = field(repr=False, alias="sources")
 
-    def get_videos(self, **_) -> list["Video"]:
+    def get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list["Video"]:
         return [Video(type=kw["type"], url=kw["url"], quality=kw["quality"]) for kw in self._sources]
 
-    async def a_get_videos(self, **_) -> list["Video"]:
+    async def a_get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list["Video"]:
         return self.get_videos()
 
 

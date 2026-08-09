@@ -15,6 +15,7 @@ URLS: list[str] = [
     # "https://video.sibnet.ru/shell.php?videoid=432356",
 ]
 
+
 @pytest.mark.parametrize("url", URLS)
 def test_parse(http_bundle: HttpBundle, assert_video_reachable: VideoChecker, url: str) -> None:
     player = SibNet(http=http_bundle.sync, a_http=http_bundle.async_)

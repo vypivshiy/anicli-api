@@ -9,7 +9,7 @@ from attr import field, define
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.source.parsers.hdrezka_parser import PageAnime, PageOngoing, PageSearch, HdrezkaCdnSeriesAPI
 
-from anicli_api.tools.anubis import path_anubis_user_agent
+from anicli_api._http import ANUBIS_BYPASS_HEADERS
 
 # types
 from anicli_api.source.parsers.hdrezka_parser import EpisodeType, PageAnimeType, HdrezkaCdnResponseJson
@@ -36,8 +36,7 @@ class Extractor(BaseExtractor):
     BASE_URL = "https://hdrezka-home.tv"
 
     def search(self, query: str):
-        with path_anubis_user_agent(self.http):
-            result = PageSearch.fetch(self.http, query=query).parse()
+        result = PageSearch.fetch(self.http, query=query, headers=ANUBIS_BYPASS_HEADERS).parse()
         return [
             Search(
                 title=f"{data['title']} {data['season']}",
@@ -49,8 +48,7 @@ class Extractor(BaseExtractor):
         ]
 
     async def a_search(self, query: str):
-        with path_anubis_user_agent(self.http_async):
-            result = (await PageSearch.async_fetch(self.http_async, query=query)).parse()
+        result = (await PageSearch.async_fetch(self.http_async, query=query, headers=ANUBIS_BYPASS_HEADERS)).parse()
         return [
             Search(
                 title=f"{data['title']} {data['season']}",
@@ -62,8 +60,7 @@ class Extractor(BaseExtractor):
         ]
 
     def ongoing(self):
-        with path_anubis_user_agent(self.http):
-            result = PageOngoing.fetch(self.http).parse()
+        result = PageOngoing.fetch(self.http, headers=ANUBIS_BYPASS_HEADERS).parse()
         return [
             Ongoing(
                 title=f"{data['title']} {data['season']}",
@@ -75,8 +72,7 @@ class Extractor(BaseExtractor):
         ]
 
     async def a_ongoing(self):
-        with path_anubis_user_agent(self.http_async):
-            result = (await PageOngoing.async_fetch(self.http_async)).parse()
+        result = (await PageOngoing.async_fetch(self.http_async, headers=ANUBIS_BYPASS_HEADERS)).parse()
         return [
             Ongoing(
                 title=f"{data['title']} {data['season']}",
@@ -91,8 +87,7 @@ class Extractor(BaseExtractor):
 @define(kw_only=True)
 class Search(BaseSearch):
     def get_anime(self):
-        with path_anubis_user_agent(self.http):
-            data = PageAnime.fetch_from_url(self.http, anime_url=self.url).parse()
+        data = PageAnime.fetch_from_url(self.http, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -103,8 +98,9 @@ class Search(BaseSearch):
         )
 
     async def a_get_anime(self):
-        with path_anubis_user_agent(self.http_async):
-            data = (await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url)).parse()
+        data = (
+            await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS)
+        ).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -118,8 +114,7 @@ class Search(BaseSearch):
 @define(kw_only=True)
 class Ongoing(BaseOngoing):
     def get_anime(self):
-        with path_anubis_user_agent(self.http):
-            data = PageAnime.fetch_from_url(self.http, anime_url=self.url).parse()
+        data = PageAnime.fetch_from_url(self.http, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -130,8 +125,9 @@ class Ongoing(BaseOngoing):
         )
 
     async def a_get_anime(self):
-        with path_anubis_user_agent(self.http_async):
-            data = (await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url)).parse()
+        data = (
+            await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS)
+        ).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -277,40 +273,44 @@ class Source(BaseSource):
                 videos.append(Video(type=type_, quality=int(quality), url=url, headers={"Referer": self.url}))
         return videos
 
-    def get_videos(self, **httpx_kwargs):
-        with path_anubis_user_agent(self.http):
-            if self.is_movie:
-                result = HdrezkaCdnSeriesAPI.get_movie(
-                    self.http,
-                    timestamp=int(time() - 40),
-                    **self._api_payload,
-                )
-            else:
-                result = HdrezkaCdnSeriesAPI.get_stream(
-                    self.http,
-                    timestamp=int(time() - 40),
-                    **self._api_payload,
-                )
+    def get_videos(self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None):
+        if self.is_movie:
+            result = HdrezkaCdnSeriesAPI.get_movie(
+                self.http,
+                timestamp=int(time() - 40),
+                headers=ANUBIS_BYPASS_HEADERS,
+                **self._api_payload,
+            )
+        else:
+            result = HdrezkaCdnSeriesAPI.get_stream(
+                self.http,
+                timestamp=int(time() - 40),
+                headers=ANUBIS_BYPASS_HEADERS,
+                **self._api_payload,
+            )
         if not result.is_ok:
             return []
         value = result.value
         value = cast(HdrezkaCdnResponseJson, value)
         return self._parse_videos(value["url"])
 
-    async def a_get_videos(self, **httpx_kwargs):
-        with path_anubis_user_agent(self.http_async):
-            if self.is_movie:
-                result = await HdrezkaCdnSeriesAPI.async_get_movie(
-                    self.http_async,
-                    timestamp=int(time() - 40),
-                    **self._api_payload,
-                )
-            else:
-                result = await HdrezkaCdnSeriesAPI.async_get_stream(
-                    self.http_async,
-                    timestamp=int(time() - 40),
-                    **self._api_payload,
-                )
+    async def a_get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ):
+        if self.is_movie:
+            result = await HdrezkaCdnSeriesAPI.async_get_movie(
+                self.http_async,
+                timestamp=int(time() - 40),
+                headers=ANUBIS_BYPASS_HEADERS,
+                **self._api_payload,
+            )
+        else:
+            result = await HdrezkaCdnSeriesAPI.async_get_stream(
+                self.http_async,
+                timestamp=int(time() - 40),
+                headers=ANUBIS_BYPASS_HEADERS,
+                **self._api_payload,
+            )
         if not result.is_ok:
             return []
         value = result.value

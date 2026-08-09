@@ -212,7 +212,12 @@ result.http_async = my_async_client
 
 ### player
 
-В player для модификации httpx клиентов (Client, AsyncioClient) необходимо передать kwargs аргументы:
+Per-call `headers` / `cookies` / `timeout` применяются к каждому HTTP-запросу внутри
+экстрактора для этого вызова и НЕ мутируют сам `httpx.Client`. Это безопасно для
+конкурентных `asyncio` вызовов на одном клиенте/экстракторе.
+
+Для per-tenant изоляции (разные прокси / IP-регионы) создавай отдельный
+`httpx.AsyncClient` per tenant и присваивай через `source.http_async`.
 
 ```python
 from anicli_api.source.animego import Extractor
@@ -226,6 +231,27 @@ sources = (
     .get_sources()
 )
 
-videos = sources[0].get_videos(transport=None,  # reset to default httpx.HTTPTransport
-                               headers={"User-Agent": "i'm crushing :("})
+# новый API: per-call kwargs (без мутации клиента)
+videos = sources[0].get_videos(
+    headers={"User-Agent": "custom-ua"},
+    cookies={"session": "..."},
+    timeout=30.0,
+)
+
+#Migration: ранее можно было передать http=/a_http= в get_videos для override
+#клиента целиком. Теперь нужно присваивать на source:
+# source.http = my_proxy_client
+# source.get_videos()
+```
+
+Для per-tenant изоляции между конкурентными задачами:
+```python
+import httpx
+from anicli_api.source.animego import Extractor
+
+async def run_for_tenant(proxy_url: str):
+    # свой клиент на tenant - никаких гонок
+    async with httpx.AsyncClient(proxy=proxy_url) as client:
+        ex = Extractor(http_async_client=client)
+        ...
 ```

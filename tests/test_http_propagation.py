@@ -1,15 +1,20 @@
-"""Verify pre-configured HTTP clients (carrying proxy / socks5 settings) propagate
-from BaseExtractor all the way down to the player extractor when BaseSource.get_videos
-runs the default extractor-dispatch path.
+"""Verify per-call request kwargs (headers/cookies/timeout) flow from BaseSource
+all the way down to player extractor's httpx client.get/post, and that the
+source's pre-configured http/http_async clients are propagated to the player
+extractor without mutation.
 
-Regression for the bug where ``BaseSource.get_videos`` constructed extractors without
-forwarding ``self.http`` / ``self.http_async``, so any proxy configured on the source
-was silently dropped for kodik / aniboom / cdnvideohub / etc. players.
+Regression for:
+1. The bug where ``BaseSource.get_videos`` constructed extractors without
+   forwarding ``self.http`` / ``self.http_async`` (proxy dropped for kodik /
+   aniboom / cdnvideohub / etc players).
+2. The race where ``ABCVideoExtractor.__init__`` mutated
+   ``passed_client.headers.update(...)`` - clients shared across extractor
+   instances or concurrent asyncio tasks would stomp each other's headers.
 """
+
 from __future__ import annotations
 
 from typing import List
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -17,23 +22,22 @@ from anicli_api.base import BaseExtractor, BaseSource
 from anicli_api.player.base import Video
 
 
-PROXY_URL = "socks5://user:pass@127.0.0.1:1080"
-
-
 class _CaptureExtractor:
-    """Minimal stand-in for a BaseVideoExtractor used by BaseSource.get_videos.
+    """Stand-in for a BaseVideoExtractor.
 
-    Records the http clients received in ``__init__`` so the test can assert identity
-    with the source's own clients.
+    Records the http clients received in ``__init__`` and the per-call kwargs
+    received in ``parse`` / ``a_parse`` so the test can assert both.
     """
 
-    # captured across all instances for assertions
     received: List["_CaptureExtractor"] = []
+    parse_calls: List[dict] = []
+    a_parse_calls: List[dict] = []
 
-    def __init__(self, http=None, a_http=None, **kwargs):
+    DEFAULT_REQUEST_CONFIG: dict = {}
+
+    def __init__(self, http=None, a_http=None):
         self.http = http
         self.a_http = a_http
-        self.kwargs = kwargs
         type(self).received.append(self)
 
     def _compare_url(self, url: str) -> bool:  # pragma: no cover - trivial
@@ -44,15 +48,16 @@ class _CaptureExtractor:
             return NotImplemented
         return self._compare_url(other)
 
-    def parse(self, url: str, **kwargs) -> list[Video]:
+    def parse(self, url, *, headers=None, cookies=None, timeout=None):
+        type(self).parse_calls.append({"headers": headers, "cookies": cookies, "timeout": timeout})
         return [Video(type="mp4", quality=720, url="https://player.example.com/v.mp4")]
 
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
+    async def a_parse(self, url, *, headers=None, cookies=None, timeout=None):
+        type(self).a_parse_calls.append({"headers": headers, "cookies": cookies, "timeout": timeout})
         return [Video(type="mp4", quality=720, url="https://player.example.com/v.mp4")]
 
 
 def _make_source(http, http_async) -> BaseSource:
-    """Build a minimal BaseSource instance with proxy-carrying clients."""
     return BaseSource(
         title="t",
         url="https://player.example.com/x",
@@ -62,33 +67,36 @@ def _make_source(http, http_async) -> BaseSource:
 
 
 def _patch_decoders(monkeypatch):
-    """Force BaseSource to dispatch to our capture extractor."""
-    monkeypatch.setattr(
-        BaseSource, "_all_video_extractors", property(lambda self: (_CaptureExtractor,))
-    )
+    monkeypatch.setattr(BaseSource, "_all_video_extractors", property(lambda self: (_CaptureExtractor,)))
     _CaptureExtractor.received.clear()
+    _CaptureExtractor.parse_calls.clear()
+    _CaptureExtractor.a_parse_calls.clear()
 
 
 def _patch_cdn(monkeypatch, capture_sync, capture_async):
-    """Stub the module-level cdnvideohub helpers used by the ``cdn_videohub_vk_id`` branch."""
     import anicli_api.base as base_mod
 
     monkeypatch.setattr(base_mod, "cdnvideohub_playlist_from_vkid", capture_sync)
     monkeypatch.setattr(base_mod, "async_cdnvideohub_playlist_from_vkid", capture_async)
 
 
+# ---------------------------------------------------------------------------
+# client propagation: source.http / source.http_async reach the extractor
+# ---------------------------------------------------------------------------
+
+
 def test_get_videos_propagates_source_http_to_extractor(monkeypatch):
     """Default dispatch path must forward source's http/http_async to the player extractor."""
     _patch_decoders(monkeypatch)
-    sync_client = MagicMock(name="sync_proxy_client")
-    async_client = MagicMock(name="async_proxy_client")
+    sync_client = object()  # sentinel - identity is what we assert
+    async_client = object()
     source = _make_source(sync_client, async_client)
 
     result = source.get_videos()
 
-    # BaseSource.get_videos instantiates the extractor twice:
-    #   1) bare `extractor()` for url-equality check, 2) `extractor(**kwargs)` for parse.
-    # The last instance carries the propagated clients.
+    # BaseSource.get_videos instantiates extractor twice:
+    #   1) bare `extractor()` for url-equality check,
+    #   2) `extractor(http=..., a_http=...)` for parse.
     assert len(_CaptureExtractor.received) == 2
     captured = _CaptureExtractor.received[-1]
     assert captured.http is sync_client, "sync client (with proxy) dropped on source -> player"
@@ -99,8 +107,8 @@ def test_get_videos_propagates_source_http_to_extractor(monkeypatch):
 async def test_a_get_videos_propagates_source_http_to_extractor(monkeypatch):
     """Async dispatch path must forward source's http_async to the player extractor."""
     _patch_decoders(monkeypatch)
-    sync_client = MagicMock(name="sync_proxy_client")
-    async_client = MagicMock(name="async_proxy_client")
+    sync_client = object()
+    async_client = object()
     source = _make_source(sync_client, async_client)
 
     result = await source.a_get_videos()
@@ -112,31 +120,75 @@ async def test_a_get_videos_propagates_source_http_to_extractor(monkeypatch):
     assert result
 
 
-def test_get_videos_explicit_kwargs_override_source_clients(monkeypatch):
-    """Caller-provided http/a_http via httpx_kwargs must win over source's defaults."""
+# ---------------------------------------------------------------------------
+# per-call kwargs: headers/cookies/timeout flow through to parse/a_parse
+# ---------------------------------------------------------------------------
+
+
+def test_get_videos_propagates_per_call_kwargs(monkeypatch):
+    """Per-call headers/cookies/timeout must reach extractor.parse."""
     _patch_decoders(monkeypatch)
-    source = _make_source(MagicMock(), MagicMock())
-    override_sync = MagicMock(name="override_sync")
-    override_async = MagicMock(name="override_async")
+    source = _make_source(object(), object())
 
-    source.get_videos(http=override_sync, a_http=override_async)
+    source.get_videos(
+        headers={"X-Custom": "1"},
+        cookies={"session": "abc"},
+        timeout=12.5,
+    )
 
-    assert len(_CaptureExtractor.received) == 2
-    captured = _CaptureExtractor.received[-1]
-    assert captured.http is override_sync
-    assert captured.a_http is override_async
+    assert len(_CaptureExtractor.parse_calls) == 1
+    call = _CaptureExtractor.parse_calls[0]
+    assert call["headers"] == {"X-Custom": "1"}
+    assert call["cookies"] == {"session": "abc"}
+    assert call["timeout"] == 12.5
+
+
+async def test_a_get_videos_propagates_per_call_kwargs(monkeypatch):
+    """Per-call headers/cookies/timeout must reach extractor.a_parse."""
+    _patch_decoders(monkeypatch)
+    source = _make_source(object(), object())
+
+    await source.a_get_videos(
+        headers={"X-Custom": "async"},
+        cookies={"session": "xyz"},
+        timeout=7.0,
+    )
+
+    assert len(_CaptureExtractor.a_parse_calls) == 1
+    call = _CaptureExtractor.a_parse_calls[0]
+    assert call["headers"] == {"X-Custom": "async"}
+    assert call["cookies"] == {"session": "xyz"}
+    assert call["timeout"] == 7.0
+
+
+def test_get_videos_no_kwargs_passes_none(monkeypatch):
+    """When caller passes nothing, extractor receives None for each kwarg."""
+    _patch_decoders(monkeypatch)
+    source = _make_source(object(), object())
+
+    source.get_videos()
+
+    assert len(_CaptureExtractor.parse_calls) == 1
+    call = _CaptureExtractor.parse_calls[0]
+    assert call["headers"] is None
+    assert call["cookies"] is None
+    assert call["timeout"] is None
+
+
+# ---------------------------------------------------------------------------
+# cdn-videohub branch still propagates source clients
+# ---------------------------------------------------------------------------
 
 
 def test_get_videos_cdn_videohub_branch_uses_source_http(monkeypatch):
-    """cdn_videohub_vk_id path must pass source's http directly to the helper."""
+    from unittest.mock import MagicMock
+
     captured_sync = MagicMock(return_value=[Video(type="m3u8", quality=1080, url="https://x/x.m3u8")])
-    captured_async = AsyncMock(
-        return_value=[Video(type="m3u8", quality=1080, url="https://x/x.m3u8")]
-    )
+    captured_async = MagicMock()
     _patch_cdn(monkeypatch, captured_sync, captured_async)
 
-    sync_client = MagicMock(name="sync_proxy_client")
-    async_client = MagicMock(name="async_proxy_client")
+    sync_client = object()
+    async_client = object()
     src = BaseSource(
         title="t",
         url="https://ignored",
@@ -149,17 +201,18 @@ def test_get_videos_cdn_videohub_branch_uses_source_http(monkeypatch):
 
     captured_sync.assert_called_once()
     assert captured_sync.call_args.args[0] is sync_client, "proxy client dropped for cdn-videohub sync path"
-    # cdnvideohub_playlist_from_vkid(http, vkid) — positional args
     assert captured_sync.call_args.args[1] == "42"
 
 
 async def test_a_get_videos_cdn_videohub_branch_uses_source_http(monkeypatch):
+    from unittest.mock import AsyncMock, MagicMock
+
     captured_sync = MagicMock(return_value=[])
     captured_async = AsyncMock(return_value=[Video(type="m3u8", quality=1080, url="https://x/x.m3u8")])
     _patch_cdn(monkeypatch, captured_sync, captured_async)
 
-    sync_client = MagicMock(name="sync_proxy_client")
-    async_client = MagicMock(name="async_proxy_client")
+    sync_client = object()
+    async_client = object()
     src = BaseSource(
         title="t",
         url="https://ignored",
@@ -175,10 +228,129 @@ async def test_a_get_videos_cdn_videohub_branch_uses_source_http(monkeypatch):
     assert captured_async.call_args.args[1] == "42"
 
 
+def test_get_videos_cdn_videohub_branch_forwards_per_call_kwargs(monkeypatch):
+    """Per-call kwargs must also reach cdn-videohub helper on the vkid path."""
+    from unittest.mock import MagicMock
+
+    captured_sync = MagicMock(return_value=[Video(type="m3u8", quality=1080, url="https://x/x.m3u8")])
+    captured_async = MagicMock()
+    _patch_cdn(monkeypatch, captured_sync, captured_async)
+
+    src = BaseSource(
+        title="t",
+        url="https://ignored",
+        cdn_videohub_vk_id="42",
+        http=object(),
+        http_async=object(),
+    )
+    src.get_videos(headers={"X": "1"}, cookies={"c": "v"}, timeout=5.0)
+
+    captured_sync.assert_called_once()
+    kw = captured_sync.call_args.kwargs
+    assert kw["headers"] == {"X": "1"}
+    assert kw["cookies"] == {"c": "v"}
+    assert kw["timeout"] == 5.0
+
+
+# ---------------------------------------------------------------------------
+# ABCVideoExtractor: no client mutation, default config merge
+# ---------------------------------------------------------------------------
+
+
+def test_extractor_init_does_not_mutate_passed_client_headers():
+    """Passing a client to ABCVideoExtractor must NOT mutate client.headers.
+
+    Regression for the pre-refactor behavior where __init__ did
+    ``http.headers.update(default_kwargs["headers"])`` on a caller-supplied
+    client - this caused races when one client was shared between extractors
+    or concurrent asyncio tasks.
+    """
+    from anicli_api.player.base import BaseVideoExtractor
+
+    class _Ext(BaseVideoExtractor):
+        URL_RULE = "https://player.example.com"
+        DEFAULT_REQUEST_CONFIG = {"headers": {"referer": "https://default.example"}}
+        DEFAULT_CLIENT_CONFIG = {"http2": True}
+
+        def parse(self, url, *, headers=None, cookies=None, timeout=None):
+            return []
+
+        async def a_parse(self, url, *, headers=None, cookies=None, timeout=None):
+            return []
+
+        @classmethod
+        def _compare_url(cls, url):
+            return True
+
+    from anicli_api._http import BaseHTTPSync, BaseHTTPAsync
+
+    sync = BaseHTTPSync()
+    async_ = BaseHTTPAsync()
+    sync_ua_before = sync.headers.get("User-Agent")
+    sync_referer_before = sync.headers.get("referer")
+    async_ua_before = async_.headers.get("User-Agent")
+
+    _Ext(http=sync, a_http=async_)
+
+    assert sync.headers.get("User-Agent") == sync_ua_before, "sync client UA mutated by __init__"
+    assert sync.headers.get("referer") == sync_referer_before, "sync client referer mutated by __init__"
+    assert async_.headers.get("User-Agent") == async_ua_before, "async client UA mutated by __init__"
+    # Crucially, the DEFAULT_REQUEST_CONFIG referer must NOT leak onto the client.
+    assert sync.headers.get("referer") is None
+
+
+def test_default_request_config_merges_per_call_headers():
+    """_merge_request_kwargs merges user headers on top of DEFAULT_REQUEST_CONFIG.
+
+    Defaults must be preserved; user headers override matching keys.
+    """
+    from anicli_api.player.base import BaseVideoExtractor
+
+    class _Ext(BaseVideoExtractor):
+        URL_RULE = "https://player.example"
+        DEFAULT_REQUEST_CONFIG = {"headers": {"referer": "https://default.example", "x-foo": "default"}}
+
+        def parse(self, url, *, headers=None, cookies=None, timeout=None):
+            return []
+
+        async def a_parse(self, url, *, headers=None, cookies=None, timeout=None):
+            return []
+
+        @classmethod
+        def _compare_url(cls, url):
+            return True
+
+    ext = _Ext()
+
+    # 1) no overrides -> defaults surface
+    merged = ext._merge_request_kwargs(None, None, None)
+    assert merged["headers"] == {"referer": "https://default.example", "x-foo": "default"}
+    assert "cookies" not in merged
+    assert "timeout" not in merged
+
+    # 2) user override for x-foo, addition of x-bar; referer preserved
+    merged = ext._merge_request_kwargs({"x-foo": "user", "x-bar": "added"}, None, None)
+    assert merged["headers"] == {
+        "referer": "https://default.example",
+        "x-foo": "user",
+        "x-bar": "added",
+    }
+
+    # 3) cookies + timeout flow through
+    merged = ext._merge_request_kwargs(None, {"s": "1"}, 5.0)
+    assert merged["cookies"] == {"s": "1"}
+    assert merged["timeout"] == 5.0
+
+
+# ---------------------------------------------------------------------------
+# BaseExtractor constructible with explicit http/http_async kwargs
+# ---------------------------------------------------------------------------
+
+
 def test_kwargs_http_dict_carries_clients_through_extractor_chain():
-    """BaseExtractor._kwargs_http is the shape consumed by BaseVideoExtractor.__init__ after the fix."""
-    sync_client = MagicMock(name="sync_proxy_client")
-    async_client = MagicMock(name="async_proxy_client")
+    """BaseExtractor._kwargs_http is the shape consumed downstream."""
+    sync_client = object()
+    async_client = object()
 
     class _Ext(BaseExtractor):
         BASE_URL = "https://example.com"
@@ -196,7 +368,6 @@ def test_kwargs_http_dict_carries_clients_through_extractor_chain():
             raise NotImplementedError
 
     ext = _Ext(http_client=sync_client, http_async_client=async_client)
-    # Source must be constructible with explicit http/http_async kwargs
     src = BaseSource(
         title="t",
         url="https://player.example.com/x",

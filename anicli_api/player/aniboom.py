@@ -18,7 +18,7 @@ logger = logging.getLogger("anicli-api")  # type: ignore
 
 class Aniboom(BaseVideoExtractor):
     URL_RULE = _URL_EQ
-    DEFAULT_HTTP_CONFIG = {"headers": {"referer": "https://animego.org/"}}
+    DEFAULT_REQUEST_CONFIG = {"headers": {"referer": "https://animego.org/"}}
     VIDEO_HEADERS = {
         # KEYS SHOULD BE STARTED IN Title case, else hls/mpd links return 403 error
         "Referer": "https://aniboom.one/",
@@ -28,13 +28,19 @@ class Aniboom(BaseVideoExtractor):
     }
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> list[Video]:
-        response = self.http.get(url)
+    def parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
+        response = self.http.get(url, **req)
         return self._extract(response)
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        response = await self.a_http.get(url)
+    async def a_parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
+        response = await self.a_http.get(url, **req)
         return self._extract(response)
 
     @staticmethod

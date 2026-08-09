@@ -181,7 +181,9 @@ class Source(BaseSource):
     _hd: str = field(alias="hd")
     _std: str = field(alias="std")
 
-    def get_videos(self, **_) -> list[Video]:
+    def get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
         videos = [Video(type="mp4", quality=480, url=self._std)]
         try:
             # может отстуствовать HD (720p) видео
@@ -192,7 +194,9 @@ class Source(BaseSource):
             pass
         return videos
 
-    async def a_get_videos(self, **_) -> list[Video]:
+    async def a_get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
         # может отстуствовать HD (720p) видео
         # делаем пробу
         videos = [Video(type="mp4", quality=480, url=self._std)]

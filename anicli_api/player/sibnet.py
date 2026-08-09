@@ -13,13 +13,19 @@ class SibNet(BaseVideoExtractor):
     URL_RULE = _URL_EQ
 
     @player_validator
-    def parse(self, url: str, **kwargs) -> list[Video]:
-        response = self.http.get(url).text
+    def parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
+        response = self.http.get(url, **req).text
         return self._extract(response, referer=url)
 
     @player_validator
-    async def a_parse(self, url: str, **kwargs) -> list[Video]:
-        response = (await self.a_http.get(url)).text
+    async def a_parse(
+        self, url: str, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        req = self._merge_request_kwargs(headers, cookies, timeout)
+        response = (await self.a_http.get(url, **req)).text
         return self._extract(response, referer=url)
 
     def _extract(self, response: str, referer: str) -> list[Video]:
