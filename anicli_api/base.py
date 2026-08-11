@@ -5,7 +5,7 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Optional
 
 from urllib.parse import urlsplit
-from anicli_api.typing import MutableSequence, TypedDict
+from anicli_api.typing import Sequence, TypedDict
 
 from attrs import define, field
 
@@ -63,7 +63,7 @@ class BaseExtractor:
         return {"http": self.http, "http_async": self.http_async}
 
     @abstractmethod
-    def search(self, query: str) -> MutableSequence["BaseSearch"]:
+    def search(self, query: str) -> Sequence["BaseSearch"]:
         """search anime by string query
 
         :param query: string search query
@@ -71,7 +71,7 @@ class BaseExtractor:
         pass
 
     @abstractmethod
-    async def a_search(self, query: str) -> MutableSequence["BaseSearch"]:
+    async def a_search(self, query: str) -> Sequence["BaseSearch"]:
         """search anime by string query in async mode
 
         :param query: string search query
@@ -79,12 +79,12 @@ class BaseExtractor:
         pass
 
     @abstractmethod
-    def ongoing(self) -> MutableSequence["BaseOngoing"]:
+    def ongoing(self) -> Sequence["BaseOngoing"]:
         """get ongoings"""
         pass
 
     @abstractmethod
-    async def a_ongoing(self) -> MutableSequence["BaseOngoing"]:
+    async def a_ongoing(self) -> Sequence["BaseOngoing"]:
         """get ongoings in async mode"""
         pass
 
@@ -182,12 +182,12 @@ class BaseAnime(HttpMixin):
     """anime description"""
 
     @abstractmethod
-    def get_episodes(self) -> MutableSequence["BaseEpisode"]:
+    def get_episodes(self) -> Sequence["BaseEpisode"]:
         """get episodes"""
         pass
 
     @abstractmethod
-    async def a_get_episodes(self) -> MutableSequence["BaseEpisode"]:
+    async def a_get_episodes(self) -> Sequence["BaseEpisode"]:
         """get episodes in async mode"""
         pass
 
@@ -219,12 +219,12 @@ class BaseEpisode(HttpMixin):
     """episode number. Stars from 1"""
 
     @abstractmethod
-    def get_sources(self) -> MutableSequence["BaseSource"]:
+    def get_sources(self) -> Sequence["BaseSource"]:
         """get raw source player information"""
         pass
 
     @abstractmethod
-    async def a_get_sources(self) -> MutableSequence["BaseSource"]:
+    async def a_get_sources(self) -> Sequence["BaseSource"]:
         """get raw source player information in async mode"""
         pass
 
@@ -267,7 +267,7 @@ class BaseSource(HttpMixin):
         headers: dict | None = None,
         cookies: dict | None = None,
         timeout: float | None = None,
-    ) -> MutableSequence["Video"]:
+    ) -> Sequence["Video"]:
         """get direct video information for direct play
 
         Per-call ``headers`` / ``cookies`` / ``timeout`` apply to every HTTP
@@ -307,7 +307,7 @@ class BaseSource(HttpMixin):
         headers: dict | None = None,
         cookies: dict | None = None,
         timeout: float | None = None,
-    ) -> MutableSequence["Video"]:
+    ) -> Sequence["Video"]:
         """get direct video information for direct play in async mode
 
         Per-call ``headers`` / ``cookies`` / ``timeout`` apply to every HTTP
@@ -347,3 +347,4 @@ class BaseSource(HttpMixin):
 
     def __hash__(self):
         return hash(tuple((self.title, self.url)))
+

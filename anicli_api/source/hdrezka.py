@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Union, cast, TypedDict
+from typing import Literal, TypedDict, Union, cast
 from time import time
 import re
 
 from attr import field, define
 from anicli_api.base import BaseAnime, BaseEpisode, BaseExtractor, BaseOngoing, BaseSearch, BaseSource
 from anicli_api.source.parsers.hdrezka_parser import PageAnime, PageOngoing, PageSearch, HdrezkaCdnSeriesAPI
-
-from anicli_api._http import ANUBIS_BYPASS_HEADERS
 
 # types
 from anicli_api.source.parsers.hdrezka_parser import EpisodeType, PageAnimeType, HdrezkaCdnResponseJson
@@ -18,16 +16,18 @@ from anicli_api.player.base import Video
 logger = logging.getLogger("anicli-api")
 
 
+# API payload types. NOTE: hdrezka's CDN endpoint expects every form-field as
+# string, even numeric ids (parser yields int) -> caller casts to str.
 class HdrezkaApiPayloadSeries(TypedDict):
-    id: int
+    id: str
     translator_id: str
-    season: int
-    episode: int
+    season: str
+    episode: str
     favs: str
 
 
 class HdrezkaApiPayloadMovie(TypedDict):
-    id: int
+    id: str
     translator_id: str
     favs: str
 
@@ -35,8 +35,8 @@ class HdrezkaApiPayloadMovie(TypedDict):
 class Extractor(BaseExtractor):
     BASE_URL = "https://hdrezka-home.tv"
 
-    def search(self, query: str):
-        result = PageSearch.fetch(self.http, query=query, headers=ANUBIS_BYPASS_HEADERS).parse()
+    def search(self, query: str) -> list["Search"]:
+        result = PageSearch.fetch(self.http, query=query).parse()
         return [
             Search(
                 title=f"{data['title']} {data['season']}",
@@ -47,8 +47,8 @@ class Extractor(BaseExtractor):
             for data in result
         ]
 
-    async def a_search(self, query: str):
-        result = (await PageSearch.async_fetch(self.http_async, query=query, headers=ANUBIS_BYPASS_HEADERS)).parse()
+    async def a_search(self, query: str) -> list["Search"]:
+        result = (await PageSearch.async_fetch(self.http_async, query=query)).parse()
         return [
             Search(
                 title=f"{data['title']} {data['season']}",
@@ -59,8 +59,8 @@ class Extractor(BaseExtractor):
             for data in result
         ]
 
-    def ongoing(self):
-        result = PageOngoing.fetch(self.http, headers=ANUBIS_BYPASS_HEADERS).parse()
+    def ongoing(self) -> list["Ongoing"]:
+        result = PageOngoing.fetch(self.http).parse()
         return [
             Ongoing(
                 title=f"{data['title']} {data['season']}",
@@ -71,8 +71,8 @@ class Extractor(BaseExtractor):
             for data in result
         ]
 
-    async def a_ongoing(self):
-        result = (await PageOngoing.async_fetch(self.http_async, headers=ANUBIS_BYPASS_HEADERS)).parse()
+    async def a_ongoing(self) -> list["Ongoing"]:
+        result = (await PageOngoing.async_fetch(self.http_async)).parse()
         return [
             Ongoing(
                 title=f"{data['title']} {data['season']}",
@@ -86,8 +86,8 @@ class Extractor(BaseExtractor):
 
 @define(kw_only=True)
 class Search(BaseSearch):
-    def get_anime(self):
-        data = PageAnime.fetch_from_url(self.http, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS).parse()
+    def get_anime(self) -> "Anime":
+        data = PageAnime.fetch_from_url(self.http, anime_url=self.url).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -97,10 +97,8 @@ class Search(BaseSearch):
             **self._kwargs_http,
         )
 
-    async def a_get_anime(self):
-        data = (
-            await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS)
-        ).parse()
+    async def a_get_anime(self) -> "Anime":
+        data = (await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url)).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -113,8 +111,8 @@ class Search(BaseSearch):
 
 @define(kw_only=True)
 class Ongoing(BaseOngoing):
-    def get_anime(self):
-        data = PageAnime.fetch_from_url(self.http, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS).parse()
+    def get_anime(self) -> "Anime":
+        data = PageAnime.fetch_from_url(self.http, anime_url=self.url).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -124,10 +122,8 @@ class Ongoing(BaseOngoing):
             **self._kwargs_http,
         )
 
-    async def a_get_anime(self):
-        data = (
-            await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url, headers=ANUBIS_BYPASS_HEADERS)
-        ).parse()
+    async def a_get_anime(self) -> "Anime":
+        data = (await PageAnime.async_fetch_from_url(self.http_async, anime_url=self.url)).parse()
         return Anime(
             title=data["title"],
             thumbnail=data["thumbnail"],
@@ -144,7 +140,7 @@ class Anime(BaseAnime):
     _url: str = field(alias="url")
 
     # note: lazy create instances: every episode required send API request
-    def get_episodes(self):
+    def get_episodes(self) -> list["Episode"]:
         if self.data["episode_list"]:
             return [
                 Episode(title=e["title"], data=self.data, data_episode=e, ordinal=i, **self._kwargs_http)
@@ -167,7 +163,7 @@ class Anime(BaseAnime):
             )
         ]
 
-    async def a_get_episodes(self):
+    async def a_get_episodes(self) -> list["Episode"]:
         return self.get_episodes()
 
 
@@ -177,12 +173,12 @@ class Episode(BaseEpisode):
     data_episode: EpisodeType
     is_movie: bool = False
 
-    def get_sources(self):
+    def get_sources(self) -> list["Source"]:
         if self.is_movie:
             return self._get_movie_sources()
         return self._get_series_sources()
 
-    def _get_movie_sources(self):
+    def _get_movie_sources(self) -> list["Source"]:
         if not self.data["translation_list"]:
             return [
                 Source(
@@ -190,7 +186,7 @@ class Episode(BaseEpisode):
                     url=Extractor.BASE_URL,
                     is_movie=True,
                     api_payload={
-                        "id": self.data["id"],
+                        "id": str(self.data["id"]),
                         "translator_id": self.data["translation_id"],
                         "favs": self.data["favs"],
                     },
@@ -203,7 +199,7 @@ class Episode(BaseEpisode):
                 url=Extractor.BASE_URL,
                 is_movie=True,
                 api_payload={
-                    "id": self.data["id"],
+                    "id": str(self.data["id"]),
                     "translator_id": translation["data_translator_id"],
                     "favs": self.data["favs"],
                 },
@@ -212,7 +208,7 @@ class Episode(BaseEpisode):
             for translation in self.data["translation_list"]
         ]
 
-    def _get_series_sources(self):
+    def _get_series_sources(self) -> list["Source"]:
         # single translation option allowed
         if not self.data["translation_list"]:
             return [
@@ -220,11 +216,11 @@ class Episode(BaseEpisode):
                     title="hdrezka",
                     url=Extractor.BASE_URL,
                     api_payload={
-                        "id": self.data_episode["data_id"],
+                        "id": str(self.data_episode["data_id"]),
                         "translator_id": self.data["translation_id"],
-                        "season": self.data_episode["data_season_id"],
+                        "season": str(self.data_episode["data_season_id"]),
                         "favs": self.data["favs"],
-                        "episode": self.data_episode["data_episode_id"],
+                        "episode": str(self.data_episode["data_episode_id"]),
                     },
                     **self._kwargs_http,
                 )
@@ -235,11 +231,11 @@ class Episode(BaseEpisode):
                 title=f"{translation['title']}",
                 url=Extractor.BASE_URL,  # stub, real url generated in Source object
                 api_payload={
-                    "id": self.data_episode["data_id"],
+                    "id": str(self.data_episode["data_id"]),
                     "translator_id": translation["data_translator_id"],
-                    "season": self.data_episode["data_season_id"],
+                    "season": str(self.data_episode["data_season_id"]),
                     "favs": self.data["favs"],
-                    "episode": self.data_episode["data_episode_id"],
+                    "episode": str(self.data_episode["data_episode_id"]),
                 },
                 **self._kwargs_http,
             )
@@ -247,7 +243,7 @@ class Episode(BaseEpisode):
         ]
         return sources
 
-    async def a_get_sources(self):
+    async def a_get_sources(self) -> list["Source"]:
         return self.get_sources()
 
 
@@ -257,64 +253,49 @@ class Source(BaseSource):
     is_movie: bool = False
 
     def _parse_videos(self, raw_urls: str) -> list["Video"]:
-        videos = []
+        videos: list[Video] = []
         for part in raw_urls.split(","):
             # item signature:
             # "[{int}p (Ultra)?]https://...manifest.m3u8 or https://...mp4"
-            quality = re.search(r"\[.*?(\d+).*?\]", part)[1]  # type: ignore
+            match = re.search(r"\[.*?(\d+).*?\]", part)
+            if not match:
+                continue
+            quality = match[1]
             url = part.split("]", 1)[1]
             urls = url.split(" or ", 1)
             for url in urls:
-                if url.endswith(".mp4"):
-                    type_ = "mp4"
-                # apologize, include only mp4 or m3u8
-                else:
-                    type_ = "m3u8"
+                type_: Literal["mp4", "m3u8"] = "mp4" if url.endswith(".mp4") else "m3u8"
                 videos.append(Video(type=type_, quality=int(quality), url=url, headers={"Referer": self.url}))
         return videos
 
-    def get_videos(self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None):
+    def get_videos(
+        self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
+    ) -> list[Video]:
+        ts = int(time() - 40)
         if self.is_movie:
-            result = HdrezkaCdnSeriesAPI.get_movie(
-                self.http,
-                timestamp=int(time() - 40),
-                headers=ANUBIS_BYPASS_HEADERS,
-                **self._api_payload,
-            )
+            payload = cast(HdrezkaApiPayloadMovie, self._api_payload)
+            result = HdrezkaCdnSeriesAPI.get_movie(self.http, timestamp=ts, **payload)
         else:
-            result = HdrezkaCdnSeriesAPI.get_stream(
-                self.http,
-                timestamp=int(time() - 40),
-                headers=ANUBIS_BYPASS_HEADERS,
-                **self._api_payload,
-            )
+            payload = cast(HdrezkaApiPayloadSeries, self._api_payload)
+            result = HdrezkaCdnSeriesAPI.get_stream(self.http, timestamp=ts, **payload)
         if not result.is_ok:
             return []
-        value = result.value
-        value = cast(HdrezkaCdnResponseJson, value)
+        value = cast(HdrezkaCdnResponseJson, result.value)
         return self._parse_videos(value["url"])
 
     async def a_get_videos(
         self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
-    ):
+    ) -> list[Video]:
+        ts = int(time() - 40)
         if self.is_movie:
-            result = await HdrezkaCdnSeriesAPI.async_get_movie(
-                self.http_async,
-                timestamp=int(time() - 40),
-                headers=ANUBIS_BYPASS_HEADERS,
-                **self._api_payload,
-            )
+            payload = cast(HdrezkaApiPayloadMovie, self._api_payload)
+            result = await HdrezkaCdnSeriesAPI.async_get_movie(self.http_async, timestamp=ts, **payload)
         else:
-            result = await HdrezkaCdnSeriesAPI.async_get_stream(
-                self.http_async,
-                timestamp=int(time() - 40),
-                headers=ANUBIS_BYPASS_HEADERS,
-                **self._api_payload,
-            )
+            payload = cast(HdrezkaApiPayloadSeries, self._api_payload)
+            result = await HdrezkaCdnSeriesAPI.async_get_stream(self.http_async, timestamp=ts, **payload)
         if not result.is_ok:
             return []
-        value = result.value
-        value = cast(HdrezkaCdnResponseJson, value)
+        value = cast(HdrezkaCdnResponseJson, result.value)
         return self._parse_videos(value["url"])
 
 

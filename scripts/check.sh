@@ -11,4 +11,5 @@ set -x
 ${PREFIX}ruff format $SOURCE_FILES
 ${PREFIX}ruff check $SOURCE_FILES
 ${PREFIX}pytest
-${PREFIX}mypy $SOURCE_FILES
+# NOTE: invoke mypy via `python -m mypy` for cross-platform parity with check.ps1
+${PREFIX}python -m mypy $SOURCE_FILES

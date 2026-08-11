@@ -77,11 +77,9 @@ exclude = [
     ".env",
     "__pycache__",
     "examples",
-    # auto generated files
-    "^anicli_api/source/parsers/[a-z]+_parser.py$",
-    "^anicli_api/players/parsers/[a-z]+_parser.py$",
-    "^anicli_api/source/parsers/apis/*$",
-    "^anicli_api/players/parsers/apis/*$",
+    # ssc-gen auto-generated modules (parsers + runtime helpers)
+    "^anicli_api/source/parsers/",
+    "^anicli_api/player/parsers/",
 ]
 files=["anicli_api/*"]
 

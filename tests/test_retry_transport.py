@@ -94,8 +94,8 @@ def test_sync_transport_returns_504_after_max_retries():
     assert call_count["n"] == MAX_5XX_RETRIES + 1
 
 
-def test_sync_transport_does_not_retry_500():
-    """500 is a server bug, not transient - must not retry."""
+def test_sync_transport_retries_500():
+    """500 is retried: some upstreams (hdrezka CDN) glitch 500 intermittently."""
     transport = HTTPRetryConnectSyncTransport()
     call_count = {"n": 0}
 
@@ -107,7 +107,7 @@ def test_sync_transport_does_not_retry_500():
         resp = transport.handle_request(_build_request())
 
     assert resp.status_code == 500
-    assert call_count["n"] == 1
+    assert call_count["n"] == MAX_5XX_RETRIES + 1
 
 
 def test_sync_transport_does_not_retry_200():
@@ -226,8 +226,7 @@ async def test_async_transport_honors_retry_after_header():
 
 
 def test_retryable_status_codes_set():
-    assert RETRYABLE_STATUS_CODES == (502, 503, 504)
-    assert 500 not in RETRYABLE_STATUS_CODES
+    assert RETRYABLE_STATUS_CODES == (500, 502, 503, 504)
     assert 429 not in RETRYABLE_STATUS_CODES
 
 

@@ -11,7 +11,7 @@ AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114
 from __future__ import annotations
 
 import asyncio
-from time import sleep
+from time import monotonic, sleep
 
 from httpx import (
     AsyncClient,
@@ -49,21 +49,89 @@ __all__ = (
     "HTTPRetryConnectSyncTransport",
     "HTTPRetryConnectAsyncTransport",
     "DDOSServerDetectError",
-    "ANUBIS_BYPASS_HEADERS",
+    "ANUBIS_CHALLENGE_MARKERS",
 )
 
 # DDoS protection check by "Server" key header
 DDOS_SERVICES = ("cloudflare", "ddos-guard")
 
-# Anubis bot-protect bypass: User-Agent without "Mozilla" substring.
-# https://github.com/TecharoHQ/anubis/blob/main/docs/docs/design/how-anubis-works.mdx
+# Anubis bot-protect passive bypass.
 #
-# Anubis decides to challenge based on UA containing "Mozilla"; stripping that
-# substring bypasses the challenge. Pass per-call via `headers=ANUBIS_BYPASS_HEADERS`
-# to any fetch() / client.request() - the sscgen-generated fetchers already
-# accept **kwargs and merge dict-valued keys (headers/params/data) with their
-# own defaults, so this overrides the client's UA without mutating shared state.
-ANUBIS_BYPASS_HEADERS: dict[str, str] = {"User-Agent": HEADERS["User-Agent"].replace("Mozilla", "")}
+# Anubis (https://github.com/TecharoHQ/anubis) challenges clients whose
+# User-Agent contains "Mozilla". Stripping that substring from the UA bypasses
+# the challenge entirely - by design, so RSS/git clients pass through.
+#
+# Challenge HTML page is detected by 2 stable script-id markers in the body:
+#   <script id="anubis_version" ...>
+#   <script id="anubis_challenge" ...>
+# Ref: https://github.com/TecharoHQ/anubis/blob/main/docs/docs/design/how-anubis-works.mdx
+ANUBIS_CHALLENGE_MARKERS: tuple[str, ...] = (
+    'id="anubis_version"',
+    'id="anubis_challenge"',
+)
+
+# Per-process cache: netloc -> timestamp (monotonic) when bypass was applied.
+# TTL-bounded; never downgrades within TTL. Race-safe: dict ops are atomic in
+# CPython; idempotent re-marking within TTL is a no-op.
+_ANUBIS_TTL_SECONDS: float = 3600.0
+_anubis_bypass_hosts: dict[str, float] = {}
+
+
+def _anubis_netloc(url) -> str:
+    nl = url.netloc
+    return nl.decode() if isinstance(nl, bytes) else nl
+
+
+def _anubis_needs_bypass(netloc: str) -> bool:
+    ts = _anubis_bypass_hosts.get(netloc)
+    if ts is None:
+        return False
+    if (monotonic() - ts) > _ANUBIS_TTL_SECONDS:
+        _anubis_bypass_hosts.pop(netloc, None)
+        return False
+    return True
+
+
+def _mark_anubis_host(netloc: str) -> None:
+    _anubis_bypass_hosts[netloc] = monotonic()
+
+
+def _is_anubis_challenge(resp: Response) -> bool:
+    """Detect Anubis challenge page in a (sync) response.
+
+    Gates: status 200 + Content-Type contains "html" + both markers in body.
+    Materializes the streaming body via resp.read() if not yet buffered.
+    """
+    if resp.status_code != 200:
+        return False
+    if "html" not in resp.headers.get("content-type", "").lower():
+        return False
+    if not hasattr(resp, "_content"):
+        resp.read()
+    body = resp.text
+    return all(marker in body for marker in ANUBIS_CHALLENGE_MARKERS)
+
+
+async def _is_anubis_challenge_async(resp: Response) -> bool:
+    """Async counterpart of _is_anubis_challenge. Awaits resp.aread() if needed."""
+    if resp.status_code != 200:
+        return False
+    if "html" not in resp.headers.get("content-type", "").lower():
+        return False
+    if not hasattr(resp, "_content"):
+        await resp.aread()
+    body = resp.text
+    return all(marker in body for marker in ANUBIS_CHALLENGE_MARKERS)
+
+
+def apply_anubis_bypass(request: Request) -> None:
+    """Strip 'Mozilla' substring from request's User-Agent header (in-place).
+
+    Per Anubis design: UA without "Mozilla" passes the challenge gate.
+    """
+    ua = request.headers.get("User-Agent", "")
+    if "Mozilla" in ua:
+        request.headers["User-Agent"] = ua.replace("Mozilla", "")
 
 
 def have_ddos_protect(response: Response) -> bool:
@@ -116,9 +184,10 @@ def _parse_retry_after(resp: Response) -> float | None:
         return None
 
 
-# Server-side transient failures worth retrying. 500 excluded (server bug, retry
-# won't help). 429 needs Retry-After handling and is a separate concern.
-RETRYABLE_STATUS_CODES: tuple[int, ...] = (502, 503, 504)
+# Server-side transient failures worth retrying. 500 included: some upstreams
+# (notably hdrezka CDN) return 500 intermittently and a retry succeeds.
+# 429 needs Retry-After handling and is a separate concern.
+RETRYABLE_STATUS_CODES: tuple[int, ...] = (500, 502, 503, 504)
 MAX_5XX_RETRIES = 3
 MAX_RETRY_AFTER_SECONDS = 30.0
 
@@ -132,6 +201,12 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
 
     def handle_request(self, request: Request) -> Response:
         delay = self.RETRY_CONNECT_DELAY
+        netloc = _anubis_netloc(request.url)
+        pre_bypass = _anubis_needs_bypass(netloc)
+        if pre_bypass:
+            apply_anubis_bypass(request)
+        anubis_attempted = False
+
         for i in range(self.ATTEMPTS_CONNECT):
             try:
                 resp = super().handle_request(request)
@@ -152,6 +227,14 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                     )
                     sleep(sleep_for)
                     delay += self.DELAY_INCREASE_STEP
+                    continue
+
+                # Anubis bot-protect passive bypass (one attempt per request)
+                if not pre_bypass and not anubis_attempted and _is_anubis_challenge(resp):
+                    anubis_attempted = True
+                    _mark_anubis_host(netloc)
+                    apply_anubis_bypass(request)
+                    logger.info("Anubis challenge detected for %s, applying UA bypass", netloc)
                     continue
 
                 logger.debug("%s -> %s", repr(request), repr(resp))
@@ -183,6 +266,12 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
         request: Request,
     ) -> Response:
         delay = self.RETRY_CONNECT_DELAY
+        netloc = _anubis_netloc(request.url)
+        pre_bypass = _anubis_needs_bypass(netloc)
+        if pre_bypass:
+            apply_anubis_bypass(request)
+        anubis_attempted = False
+
         for i in range(self.ATTEMPTS_CONNECT):
             try:
                 resp = await super().handle_async_request(request)
@@ -203,6 +292,14 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
                     )
                     await asyncio.sleep(sleep_for)
                     delay += self.DELAY_INCREASE_STEP
+                    continue
+
+                # Anubis bot-protect passive bypass (one attempt per request)
+                if not pre_bypass and not anubis_attempted and await _is_anubis_challenge_async(resp):
+                    anubis_attempted = True
+                    _mark_anubis_host(netloc)
+                    apply_anubis_bypass(request)
+                    logger.info("Anubis challenge detected for %s, applying UA bypass", netloc)
                     continue
 
                 logger.debug(
