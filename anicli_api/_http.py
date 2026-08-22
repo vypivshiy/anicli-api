@@ -139,13 +139,11 @@ def have_ddos_protect(response: Response) -> bool:
 
     - Server header AND Connection = close (this project usage keep-alive sessions)
 
-    - status_code = 403
+    - known DDoS service returns status_code = 403
     """
-    return (
-        response.headers.get("Server") in DDOS_SERVICES
-        and response.headers.get("Connection", None) == "close"
-        or response.status_code == 403
-    )
+    server = response.headers.get("Server", "").lower()
+    connection = response.headers.get("Connection", "").lower()
+    return server in DDOS_SERVICES and (connection == "close" or response.status_code == 403)
 
 
 class DDOSServerDetectError(NetworkError):
@@ -212,12 +210,13 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                 resp = super().handle_request(request)
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}': {request.url} returns code {resp.status_code}"
+                    resp.close()
                     raise DDOSServerDetectError(msg)
 
                 # Retry transient 5xx (e.g. cloudflare 502/503/504 on upstream timeout)
                 if resp.status_code in RETRYABLE_STATUS_CODES and i < MAX_5XX_RETRIES:
                     retry_after = _parse_retry_after(resp)
-                    sleep_for = min(retry_after, MAX_RETRY_AFTER_SECONDS) if retry_after else delay
+                    sleep_for = min(retry_after, MAX_RETRY_AFTER_SECONDS) if retry_after is not None else delay
                     logger.warning(
                         "[%s] %s status %d, retry in %.1fs",
                         i + 1,
@@ -225,6 +224,7 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                         resp.status_code,
                         sleep_for,
                     )
+                    resp.close()
                     sleep(sleep_for)
                     delay += self.DELAY_INCREASE_STEP
                     continue
@@ -235,6 +235,7 @@ class HTTPRetryConnectSyncTransport(HTTPTransport):
                     _mark_anubis_host(netloc)
                     apply_anubis_bypass(request)
                     logger.info("Anubis challenge detected for %s, applying UA bypass", netloc)
+                    resp.close()
                     continue
 
                 logger.debug("%s -> %s", repr(request), repr(resp))
@@ -277,12 +278,13 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
                 resp = await super().handle_async_request(request)
                 if have_ddos_protect(resp):
                     msg = f"'{resp.headers.get('Server')}': {request.url} returns code {resp.status_code}"
+                    await resp.aclose()
                     raise DDOSServerDetectError(msg)
 
                 # Retry transient 5xx (e.g. cloudflare 502/503/504 on upstream timeout)
                 if resp.status_code in RETRYABLE_STATUS_CODES and i < MAX_5XX_RETRIES:
                     retry_after = _parse_retry_after(resp)
-                    sleep_for = min(retry_after, MAX_RETRY_AFTER_SECONDS) if retry_after else delay
+                    sleep_for = min(retry_after, MAX_RETRY_AFTER_SECONDS) if retry_after is not None else delay
                     logger.warning(
                         "[%s] %s status %d, retry in %.1fs",
                         i + 1,
@@ -290,6 +292,7 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
                         resp.status_code,
                         sleep_for,
                     )
+                    await resp.aclose()
                     await asyncio.sleep(sleep_for)
                     delay += self.DELAY_INCREASE_STEP
                     continue
@@ -300,6 +303,7 @@ class HTTPRetryConnectAsyncTransport(AsyncHTTPTransport):
                     _mark_anubis_host(netloc)
                     apply_anubis_bypass(request)
                     logger.info("Anubis challenge detected for %s, applying UA bypass", netloc)
+                    await resp.aclose()
                     continue
 
                 logger.debug(
@@ -331,11 +335,37 @@ class BaseHTTPSync(Client):
 
     def __init__(self, **kwargs):
         http2 = kwargs.pop("http2", True)
-        transport = kwargs.pop("transport", HTTPRetryConnectSyncTransport())
-        headers = kwargs.pop("headers", HEADERS.copy())
+        transport = kwargs.pop("transport", None)
+        headers = HEADERS.copy()
+        custom_headers = kwargs.pop("headers", None)
+        if custom_headers is not None:
+            headers.update(custom_headers)
         follow_redirects = kwargs.pop("follow_redirects", True)
 
         super().__init__(http2=http2, transport=transport, headers=headers, follow_redirects=follow_redirects, **kwargs)
+
+    def _init_transport(self, *, verify, cert, trust_env, http1, http2, limits, transport):
+        if transport is not None:
+            return transport
+        return HTTPRetryConnectSyncTransport(
+            verify=verify,
+            cert=cert,
+            trust_env=trust_env,
+            http1=http1,
+            http2=http2,
+            limits=limits,
+        )
+
+    def _init_proxy_transport(self, proxy, *, verify, cert, trust_env, http1, http2, limits):
+        return HTTPRetryConnectSyncTransport(
+            verify=verify,
+            cert=cert,
+            trust_env=trust_env,
+            http1=http1,
+            http2=http2,
+            limits=limits,
+            proxy=proxy,
+        )
 
 
 class BaseHTTPAsync(AsyncClient):
@@ -343,11 +373,37 @@ class BaseHTTPAsync(AsyncClient):
 
     def __init__(self, **kwargs):
         http2 = kwargs.pop("http2", True)
-        transport = kwargs.pop("transport", HTTPRetryConnectAsyncTransport())
-        headers = kwargs.pop("headers", HEADERS.copy())
+        transport = kwargs.pop("transport", None)
+        headers = HEADERS.copy()
+        custom_headers = kwargs.pop("headers", None)
+        if custom_headers is not None:
+            headers.update(custom_headers)
         follow_redirects = kwargs.pop("follow_redirects", True)
 
         super().__init__(http2=http2, transport=transport, headers=headers, follow_redirects=follow_redirects, **kwargs)
+
+    def _init_transport(self, *, verify, cert, trust_env, http1, http2, limits, transport):
+        if transport is not None:
+            return transport
+        return HTTPRetryConnectAsyncTransport(
+            verify=verify,
+            cert=cert,
+            trust_env=trust_env,
+            http1=http1,
+            http2=http2,
+            limits=limits,
+        )
+
+    def _init_proxy_transport(self, proxy, *, verify, cert, trust_env, http1, http2, limits):
+        return HTTPRetryConnectAsyncTransport(
+            verify=verify,
+            cert=cert,
+            trust_env=trust_env,
+            http1=http1,
+            http2=http2,
+            limits=limits,
+            proxy=proxy,
+        )
 
 
 HTTPSync = BaseHTTPSync

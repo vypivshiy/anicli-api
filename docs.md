@@ -186,29 +186,49 @@ playlist_async = asyncio.run(generate_asyncio_playlist(sources))
 
 ### source
 
-Если по какой-то либо причине вас не устраивают настройки по умолчанию - то вы можете задать конфигурацию http клиентов для экстракторов. Или если необходимо подключить proxy
+Каждый `Extractor()` без аргументов создаёт собственную пару настроенных
+`BaseHTTPSync` / `BaseHTTPAsync`. Эта пара передаётся всем дочерним объектам и
+player-экстрактору. Разные root extractors не разделяют cookies, headers и
+connection pool неявно.
+
+Можно передать обычные `httpx.Client` / `httpx.AsyncClient`. Они сохраняются без
+замены и мутации:
 
 ```python
 from anicli_api.source.animego import Extractor
 import httpx
-# не обязательно настраивать все клиенты, зависит от режима использования
-# например, если вы будете использовать только asyncio - настраивайте только http_async_client
+
 my_client = httpx.Client(headers={"user-agent": "007"}, proxy="http://127.0.0.1:8080")
 my_async_client = httpx.AsyncClient(headers={"user-agent": "007"}, proxy="http://127.0.0.1:8080")
 
-# настройки клиентов будут передаваться всем объектам кроме методов Source.get_videos()
-# и Source.a_get_videos()
-
 ex = Extractor(http_client=my_client, http_async_client=my_async_client)
-
-# изменение http клиента для объекта
-results = ex.search("lain")
-result = results[0]
-result.http = my_client
-result.http_async = my_async_client
-...
-
+# Те же instances дойдут до Search -> Anime -> Episode -> Source -> player.
 ```
+
+Переданные clients считаются borrowed: библиотека их не закрывает. Lifecycle
+остаётся ответственностью вызывающего кода. Для clients, созданных самим root
+`Extractor`, `close()` / `with` закрывают sync client, а `aclose()` /
+`async with` закрывают оба owned clients.
+
+Для общей сессии нескольких extractors создайте clients один раз и передайте
+одни и те же instances:
+
+```python
+from anicli_api._http import BaseHTTPAsync, BaseHTTPSync
+from anicli_api.source.animego import Extractor as AnimeGo
+from anicli_api.source.sameband import Extractor as SameBand
+
+sync_client = BaseHTTPSync(headers={"Authorization": "Bearer ..."}, proxy="http://127.0.0.1:8080")
+async_client = BaseHTTPAsync(headers={"Authorization": "Bearer ..."}, proxy="http://127.0.0.1:8080")
+
+animego = AnimeGo(http_client=sync_client, http_async_client=async_client)
+sameband = SameBand(http_client=sync_client, http_async_client=async_client)
+```
+
+`BaseHTTP*` добавляют retry/reconnect и Anubis transport. Обычные custom
+`httpx.Client` используют только собственный transport. Для opt-in middleware
+передайте `HTTPRetryConnectSyncTransport` / `HTTPRetryConnectAsyncTransport`
+при создании custom client.
 
 ### player
 
@@ -238,8 +258,8 @@ videos = sources[0].get_videos(
     timeout=30.0,
 )
 
-#Migration: ранее можно было передать http=/a_http= в get_videos для override
-#клиента целиком. Теперь нужно присваивать на source:
+# Migration: ранее можно было передать http=/a_http= в get_videos для override
+# клиента целиком. Теперь нужно присваивать на source:
 # source.http = my_proxy_client
 # source.get_videos()
 ```

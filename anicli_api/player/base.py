@@ -120,8 +120,51 @@ class ABCVideoExtractor(ABC):
         construction was racy when a client was shared across concurrent
         asyncio tasks and has been removed.
         """
-        self.http = http if http is not None else BaseHTTPSync(**self.DEFAULT_CLIENT_CONFIG)
-        self.a_http = a_http if a_http is not None else BaseHTTPAsync(**self.DEFAULT_CLIENT_CONFIG)
+        self._owns_http = http is None
+        self._owns_a_http = a_http is None
+        self._http = http if http is not None else BaseHTTPSync(**self.DEFAULT_CLIENT_CONFIG)
+        self._a_http = a_http if a_http is not None else BaseHTTPAsync(**self.DEFAULT_CLIENT_CONFIG)
+
+    @property
+    def http(self) -> "Client":
+        return self._http
+
+    @http.setter
+    def http(self, client: "Client") -> None:
+        self._http = client
+        self._owns_http = False
+
+    @property
+    def a_http(self) -> "AsyncClient":
+        return self._a_http
+
+    @a_http.setter
+    def a_http(self, client: "AsyncClient") -> None:
+        self._a_http = client
+        self._owns_a_http = False
+
+    def close(self) -> None:
+        """Close the internally-created sync client, if any."""
+        if self._owns_http and not self.http.is_closed:
+            self.http.close()
+
+    async def aclose(self) -> None:
+        """Close clients created by this extractor without touching borrowed clients."""
+        self.close()
+        if self._owns_a_http and not self.a_http.is_closed:
+            await self.a_http.aclose()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        await self.aclose()
 
     def _merge_request_kwargs(
         self,
@@ -137,15 +180,17 @@ class ABCVideoExtractor(ABC):
 
         Returns a plain dict ready to splat into ``client.get(..., **kwargs)``.
         """
-        cfg: dict[str, Any] = {}
-        defaults = self.DEFAULT_REQUEST_CONFIG.copy()
-        default_headers = defaults.get("headers")
-        if default_headers:
+        cfg = self.DEFAULT_REQUEST_CONFIG.copy()
+        default_headers = cfg.get("headers")
+        if default_headers is not None:
             cfg["headers"] = dict(default_headers)
-        if headers:
+        default_cookies = cfg.get("cookies")
+        if default_cookies is not None:
+            cfg["cookies"] = dict(default_cookies)
+        if headers is not None:
             cfg["headers"] = {**cfg.get("headers", {}), **headers}
         if cookies is not None:
-            cfg["cookies"] = cookies
+            cfg["cookies"] = {**cfg.get("cookies", {}), **cookies}
         if timeout is not None:
             cfg["timeout"] = timeout
         return cfg

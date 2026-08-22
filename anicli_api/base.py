@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from urllib.parse import urlsplit
 from anicli_api.typing import Sequence, TypedDict
@@ -37,25 +37,56 @@ class BaseExtractor:
         """return source name (by url netloc)"""
         return urlsplit(self.BASE_URL).netloc
 
-    def __init__(self, http_client: "Client" = HTTPSync(), http_async_client: "AsyncClient" = HTTPAsync()):
-        self._http = http_client
-        self._http_async = http_async_client
+    def __init__(
+        self,
+        http_client: "Client | None" = None,
+        http_async_client: "AsyncClient | None" = None,
+    ):
+        self._owns_http = http_client is None
+        self._owns_http_async = http_async_client is None
+        self._http = http_client if http_client is not None else HTTPSync()
+        self._http_async = http_async_client if http_async_client is not None else HTTPAsync()
 
     @property
     def http(self) -> "Client":
         return self._http
 
+    @http.setter
+    def http(self, http_client: "Client"):
+        self._http = http_client
+        self._owns_http = False
+
     @property
     def http_async(self) -> "AsyncClient":
         return self._http_async
 
-    @http.setter
-    def http(self, http_client: "Client"):
-        self._http = http_client
-
     @http_async.setter
     def http_async(self, http_async_client: "AsyncClient"):
         self._http_async = http_async_client
+        self._owns_http_async = False
+
+    def close(self) -> None:
+        """Close the internally-created sync client, if any."""
+        if self._owns_http and not self.http.is_closed:
+            self.http.close()
+
+    async def aclose(self) -> None:
+        """Close clients created by this extractor without touching borrowed clients."""
+        self.close()
+        if self._owns_http_async and not self.http_async.is_closed:
+            await self.http_async.aclose()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        await self.aclose()
 
     @property
     def _kwargs_http(self) -> T_KW_HTTPS:
@@ -93,9 +124,9 @@ class BaseExtractor:
 class HttpMixin:
     """this dataclass provide pre-configured http clients"""
 
-    _http: "Client" = field(default=HTTPSync(), repr=False, kw_only=True, hash=False, alias="http")
+    _http: "Client" = field(factory=HTTPSync, repr=False, kw_only=True, hash=False, alias="http")
     """pre-configured sync httpx Client"""
-    _http_async: "AsyncClient" = field(default=HTTPAsync(), repr=False, kw_only=True, hash=False, alias="http_async")
+    _http_async: "AsyncClient" = field(factory=HTTPAsync, repr=False, kw_only=True, hash=False, alias="http_async")
     """pre-configured async httpx Client"""
 
     @property
@@ -118,6 +149,21 @@ class HttpMixin:
     def _kwargs_http(self) -> T_KW_HTTPS:
         """shortcut for pass http arguments in kwargs style"""
         return {"http": self.http, "http_async": self.http_async}
+
+    @staticmethod
+    def _request_kwargs(
+        headers: dict | None,
+        cookies: dict | None,
+        timeout: float | None,
+    ) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {}
+        if headers is not None:
+            kwargs["headers"] = headers
+        if cookies is not None:
+            kwargs["cookies"] = cookies
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+        return kwargs
 
 
 @define(kw_only=True)
@@ -291,7 +337,7 @@ class BaseSource(HttpMixin):
             )
 
         for extractor in self._all_video_extractors:
-            if self.url == extractor():
+            if extractor._compare_url(self.url):
                 return extractor(http=self.http, a_http=self.http_async).parse(
                     self.url,
                     headers=headers,
@@ -332,7 +378,7 @@ class BaseSource(HttpMixin):
             )
 
         for extractor in self._all_video_extractors:
-            if self.url == extractor():
+            if extractor._compare_url(self.url):
                 return await extractor(http=self.http, a_http=self.http_async).a_parse(
                     self.url,
                     headers=headers,
@@ -347,4 +393,3 @@ class BaseSource(HttpMixin):
 
     def __hash__(self):
         return hash(tuple((self.title, self.url)))
-

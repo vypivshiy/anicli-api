@@ -40,7 +40,8 @@ class _CaptureExtractor:
         self.a_http = a_http
         type(self).received.append(self)
 
-    def _compare_url(self, url: str) -> bool:  # pragma: no cover - trivial
+    @classmethod
+    def _compare_url(cls, url: str) -> bool:  # pragma: no cover - trivial
         return url.startswith("https://player.example.com")
 
     def __eq__(self, other):  # type: ignore[override]
@@ -94,10 +95,7 @@ def test_get_videos_propagates_source_http_to_extractor(monkeypatch):
 
     result = source.get_videos()
 
-    # BaseSource.get_videos instantiates extractor twice:
-    #   1) bare `extractor()` for url-equality check,
-    #   2) `extractor(http=..., a_http=...)` for parse.
-    assert len(_CaptureExtractor.received) == 2
+    assert len(_CaptureExtractor.received) == 1
     captured = _CaptureExtractor.received[-1]
     assert captured.http is sync_client, "sync client (with proxy) dropped on source -> player"
     assert captured.a_http is async_client, "async client (with proxy) dropped on source -> player"
@@ -113,7 +111,7 @@ async def test_a_get_videos_propagates_source_http_to_extractor(monkeypatch):
 
     result = await source.a_get_videos()
 
-    assert len(_CaptureExtractor.received) == 2
+    assert len(_CaptureExtractor.received) == 1
     captured = _CaptureExtractor.received[-1]
     assert captured.http is sync_client
     assert captured.a_http is async_client
@@ -308,7 +306,12 @@ def test_default_request_config_merges_per_call_headers():
 
     class _Ext(BaseVideoExtractor):
         URL_RULE = "https://player.example"
-        DEFAULT_REQUEST_CONFIG = {"headers": {"referer": "https://default.example", "x-foo": "default"}}
+        DEFAULT_REQUEST_CONFIG = {
+            "headers": {"referer": "https://default.example", "x-foo": "default"},
+            "cookies": {"default": "cookie"},
+            "timeout": 3.0,
+            "follow_redirects": False,
+        }
 
         def parse(self, url, *, headers=None, cookies=None, timeout=None):
             return []
@@ -325,8 +328,9 @@ def test_default_request_config_merges_per_call_headers():
     # 1) no overrides -> defaults surface
     merged = ext._merge_request_kwargs(None, None, None)
     assert merged["headers"] == {"referer": "https://default.example", "x-foo": "default"}
-    assert "cookies" not in merged
-    assert "timeout" not in merged
+    assert merged["cookies"] == {"default": "cookie"}
+    assert merged["timeout"] == 3.0
+    assert merged["follow_redirects"] is False
 
     # 2) user override for x-foo, addition of x-bar; referer preserved
     merged = ext._merge_request_kwargs({"x-foo": "user", "x-bar": "added"}, None, None)
@@ -338,8 +342,117 @@ def test_default_request_config_merges_per_call_headers():
 
     # 3) cookies + timeout flow through
     merged = ext._merge_request_kwargs(None, {"s": "1"}, 5.0)
-    assert merged["cookies"] == {"s": "1"}
+    assert merged["cookies"] == {"default": "cookie", "s": "1"}
     assert merged["timeout"] == 5.0
+
+
+async def test_default_clients_are_scoped_per_root_extractor():
+    class _Ext(BaseExtractor):
+        BASE_URL = "https://example.com"
+
+        def search(self, query):
+            return []
+
+        async def a_search(self, query):
+            return []
+
+        def ongoing(self):
+            return []
+
+        async def a_ongoing(self):
+            return []
+
+    first = _Ext()
+    second = _Ext()
+    try:
+        assert first.http is not second.http
+        assert first.http_async is not second.http_async
+    finally:
+        await first.aclose()
+        await second.aclose()
+
+
+async def test_custom_httpx_clients_are_borrowed_and_not_closed():
+    import httpx
+
+    class _Ext(BaseExtractor):
+        BASE_URL = "https://example.com"
+
+        def search(self, query):
+            return []
+
+        async def a_search(self, query):
+            return []
+
+        def ongoing(self):
+            return []
+
+        async def a_ongoing(self):
+            return []
+
+    sync = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200)))
+    async_ = httpx.AsyncClient(transport=httpx.MockTransport(lambda request: httpx.Response(200)))
+    ext = _Ext(http_client=sync, http_async_client=async_)
+
+    await ext.aclose()
+
+    assert ext.http is sync
+    assert ext.http_async is async_
+    assert not sync.is_closed
+    assert not async_.is_closed
+    sync.close()
+    await async_.aclose()
+
+
+async def test_owned_clients_are_closed_by_root_extractor():
+    class _Ext(BaseExtractor):
+        BASE_URL = "https://example.com"
+
+        def search(self, query):
+            return []
+
+        async def a_search(self, query):
+            return []
+
+        def ongoing(self):
+            return []
+
+        async def a_ongoing(self):
+            return []
+
+    ext = _Ext()
+    sync = ext.http
+    async_ = ext.http_async
+
+    await ext.aclose()
+
+    assert sync.is_closed
+    assert async_.is_closed
+
+
+def test_sameband_preserves_clients_through_episode_and_source():
+    from anicli_api.source.sameband import Anime
+
+    sync = object()
+    async_ = object()
+    anime = Anime(
+        title="t",
+        thumbnail="thumb",
+        description="d",
+        player_url="https://sameband.studio/player",
+        http=sync,
+        http_async=async_,
+    )
+
+    episodes = anime._extract(
+        [{"title": "Episode 1", "file": "[720p]/video/episode.m3u8", "thumbnails": ""}]
+    )
+    source = episodes[0].get_sources()[0]
+
+    assert episodes[0].http is sync
+    assert episodes[0].http_async is async_
+    assert source.http is sync
+    assert source.http_async is async_
 
 
 # ---------------------------------------------------------------------------

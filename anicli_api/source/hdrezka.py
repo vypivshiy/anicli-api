@@ -271,13 +271,14 @@ class Source(BaseSource):
     def get_videos(
         self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
     ) -> list[Video]:
+        req = self._request_kwargs(headers, cookies, timeout)
         ts = int(time() - 40)
         if self.is_movie:
             payload = cast(HdrezkaApiPayloadMovie, self._api_payload)
-            result = HdrezkaCdnSeriesAPI.get_movie(self.http, timestamp=ts, **payload)
+            result = HdrezkaCdnSeriesAPI.get_movie(self.http, timestamp=ts, **payload, **req)
         else:
             payload = cast(HdrezkaApiPayloadSeries, self._api_payload)
-            result = HdrezkaCdnSeriesAPI.get_stream(self.http, timestamp=ts, **payload)
+            result = HdrezkaCdnSeriesAPI.get_stream(self.http, timestamp=ts, **payload, **req)
         if not result.is_ok:
             return []
         value = cast(HdrezkaCdnResponseJson, result.value)
@@ -286,13 +287,14 @@ class Source(BaseSource):
     async def a_get_videos(
         self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
     ) -> list[Video]:
+        req = self._request_kwargs(headers, cookies, timeout)
         ts = int(time() - 40)
         if self.is_movie:
             payload = cast(HdrezkaApiPayloadMovie, self._api_payload)
-            result = await HdrezkaCdnSeriesAPI.async_get_movie(self.http_async, timestamp=ts, **payload)
+            result = await HdrezkaCdnSeriesAPI.async_get_movie(self.http_async, timestamp=ts, **payload, **req)
         else:
             payload = cast(HdrezkaApiPayloadSeries, self._api_payload)
-            result = await HdrezkaCdnSeriesAPI.async_get_stream(self.http_async, timestamp=ts, **payload)
+            result = await HdrezkaCdnSeriesAPI.async_get_stream(self.http_async, timestamp=ts, **payload, **req)
         if not result.is_ok:
             return []
         value = cast(HdrezkaCdnResponseJson, result.value)

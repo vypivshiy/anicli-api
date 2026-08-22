@@ -71,8 +71,7 @@ class Ongoing(BaseOngoing):
 class Anime(BaseAnime):
     _player_url: str = field(repr=False, alias="player_url")
 
-    @staticmethod
-    def _extract(playlist: list[PlaylistJson]) -> list["Episode"]:
+    def _extract(self, playlist: list[PlaylistJson]) -> list["Episode"]:
         return [
             Episode(
                 sources=[
@@ -88,6 +87,7 @@ class Anime(BaseAnime):
                 ordinal=i,
                 # TODO extract from item['title'] ???
                 title="Серия",
+                **self._kwargs_http,
             )
             for i, item in enumerate(playlist, 1)
         ]
@@ -125,6 +125,7 @@ class Episode(BaseEpisode):
                 # STUBS
                 title="sameband.studio",
                 url="https://sameband.studio",
+                **self._kwargs_http,
             )
         ]
 

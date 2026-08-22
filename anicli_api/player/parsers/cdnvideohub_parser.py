@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 from typing import cast
 import httpx
+
 from .sscgen_runtime import (
     FALLBACK_HTML_STR,
     Ok,
@@ -114,9 +115,7 @@ CDN_VIDEO_HUB_API_MATCHERS: List[ErrMatcher] = [
 
 
 class CdnVideoHubAPI:
-    """
-    get required arguments from PageParseCdnVideoData structure
-    """
+    "get required arguments from PageParseCdnVideoData structure"
 
     @classmethod
     def get_params_from_page(
@@ -206,11 +205,7 @@ class CdnVideoHubAPI:
 
 
 class PageParseCdnVideoData:
-    """
-    universal extractor cdnvideohub API params
-
-    page should be contains <video-player> tag
-    """
+    "universal extractor cdnvideohub API params\n\npage should be contains <video-player> tag"
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):

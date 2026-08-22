@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Literal
 from typing import cast
 import httpx
+
 from .sscgen_runtime import (
     Ok,
     Err,
@@ -64,11 +65,7 @@ AKSOR_PLAYER_API_MATCHERS: List[ErrMatcher] = [
 
 
 class AksorPlayerApi:
-    """
-
-    USAGE:
-        GET https://player.aksor.tv/video/6e497a9db21b99162350c5153bd25a48
-    """
+    "\nUSAGE:\n    GET https://player.aksor.tv/video/6e497a9db21b99162350c5153bd25a48"
 
     @classmethod
     def fetch(cls, client: httpx.Client, *, video_id: str, **kwargs: Any) -> FetchResult:

@@ -270,10 +270,11 @@ class Source(BaseSource):
     def get_videos(
         self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
     ) -> MutableSequence[Video]:
+        req = self._request_kwargs(headers, cookies, timeout)
         # TODO: move to anicli-api.player scope
         # https://ru.yummyani.me/iframeCVH.html?dubbing_code=Sanae&anime_id=339&episode=1&dubbing=%D0%9E%D0%B7%D0%B2%D1%83%D1%87%D0%BA%D0%B0+Sanae
         if "/iframeCVH.html?" in self.url:
-            resp = self.http.get(self.url)
+            resp = self.http.get(self.url, **req)
             base_url = urlsplit(self.url).netloc
             js_path = extract_cvh_path(resp.text)
             js_url = "https://" + base_url + js_path
@@ -283,10 +284,14 @@ class Source(BaseSource):
             iframe_params["dubbing_code"] = unquote_plus(iframe_params["dubbing_code"])
             # WARNING: used brotli encoding algorithm
             # required httpx[brotli] dependency
-            script_resp = self.http.get(js_url)
+            script_resp = self.http.get(js_url, **req)
             script_params = PageJsCVHParams(script_resp.text).parse()
             resp_api = CdnVideoHubAPI.get_params_from_page(
-                self.http, pub=script_params["data_pub_id"], aggr=script_params["aggr"], id=iframe_params["anime_id"]
+                self.http,
+                pub=script_params["data_pub_id"],
+                aggr=script_params["aggr"],
+                id=iframe_params["anime_id"],
+                **req,
             )
             if not resp_api.is_ok:
                 # TODO: handle error
@@ -300,14 +305,21 @@ class Source(BaseSource):
             if not vkid:
                 # studio listed in source metadata but no actual video in cdnvideohub
                 return []
-            return self._cdn_videohub_extractor(self.http, vkid=vkid)
+            return self._cdn_videohub_extractor(
+                self.http,
+                vkid=vkid,
+                headers=headers,
+                cookies=cookies,
+                timeout=timeout,
+            )
         return super().get_videos(headers=headers, cookies=cookies, timeout=timeout)
 
     async def a_get_videos(
         self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
     ) -> MutableSequence[Video]:
+        req = self._request_kwargs(headers, cookies, timeout)
         if "/iframeCVH.html?" in self.url:
-            resp = await self.http_async.get(self.url)
+            resp = await self.http_async.get(self.url, **req)
             base_url = urlsplit(self.url).netloc
             js_path = extract_cvh_path(resp.text)
             js_url = "https://" + base_url + js_path
@@ -315,13 +327,14 @@ class Source(BaseSource):
             # dubbing_code captured raw from query; url-decode (+ -> space, %XX -> char)
             # so it matches voiceStudio key in cdnvideohub API response
             iframe_params["dubbing_code"] = unquote_plus(iframe_params["dubbing_code"])
-            script_resp = await self.http_async.get(js_url)
+            script_resp = await self.http_async.get(js_url, **req)
             script_params = PageJsCVHParams(script_resp.text).parse()
             resp_api = await CdnVideoHubAPI.async_get_params_from_page(
                 self.http_async,
                 pub=script_params["data_pub_id"],
                 aggr=script_params["aggr"],
                 id=iframe_params["anime_id"],
+                **req,
             )
             if not resp_api.is_ok:
                 # TODO: handle error
@@ -335,7 +348,13 @@ class Source(BaseSource):
             if not vkid:
                 # studio listed in source metadata but no actual video in cdnvideohub
                 return []
-            return await self._async_cdn_videohub_extractor(self.http_async, vkid=vkid)
+            return await self._async_cdn_videohub_extractor(
+                self.http_async,
+                vkid=vkid,
+                headers=headers,
+                cookies=cookies,
+                timeout=timeout,
+            )
         return await super().a_get_videos(headers=headers, cookies=cookies, timeout=timeout)
 
 

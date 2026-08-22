@@ -85,14 +85,16 @@ class Aniboom(BaseVideoExtractor):
             logger.warning("[aniboom] Missing dash link")
 
         # backend sometimes return m3u8 link in src.dash key
-        if self._is_failed_dash_key(dash):
+        if dash and self._is_failed_dash_key(dash):
             # in this case, hls.src == dash.src - return one Video object
-            return [Video(type="m3u8", quality=1080, url=hls, headers=self.VIDEO_HEADERS)]
+            return [Video(type="m3u8", quality=1080, url=hls or dash, headers=self.VIDEO_HEADERS)]
 
-        return [
-            Video(type="mpd", quality=1080, url=dash, headers=self.VIDEO_HEADERS),
-            Video(type="m3u8", quality=1080, url=hls, headers=self.VIDEO_HEADERS),
-        ]
+        videos = []
+        if dash:
+            videos.append(Video(type="mpd", quality=1080, url=dash, headers=self.VIDEO_HEADERS))
+        if hls:
+            videos.append(Video(type="m3u8", quality=1080, url=hls, headers=self.VIDEO_HEADERS))
+        return videos
 
 
 if __name__ == "__main__":

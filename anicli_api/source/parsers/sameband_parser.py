@@ -4,6 +4,7 @@ from lxml.html import HtmlElement
 from typing import Any, Dict, List, TypedDict, Union
 from typing import cast
 import httpx
+
 from .sscgen_runtime import (
     FALLBACK_HTML_STR,
     Ok,
@@ -58,10 +59,7 @@ PagePlaylistURLType = TypedDict(
 
 
 class PageOngoing:
-    """
-    USAGE:
-    GET https://sameband.studio/novinki
-    """
+    "USAGE: \nGET https://sameband.studio/novinki"
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):
@@ -135,19 +133,7 @@ class PageOngoing:
 
 
 class PageSearch:
-    """
-    USAGE:
-        POST https://sameband.studio/index.php?do=search
-        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>
-
-    NOTE:
-        search query len should be 4 or more characters. And in manual tests, works only cyrillic queries
-
-    EXAMPLE:
-
-        POST https://sameband.studio/index.php?do=search
-        do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ
-    """
+    "USAGE:\n    POST https://sameband.studio/index.php?do=search\n    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=<QUERY>\n\nNOTE:\n    search query len should be 4 or more characters. And in manual tests, works only cyrillic queries\n\nEXAMPLE:\n\n    POST https://sameband.studio/index.php?do=search\n    do=search&subaction=search&search_start=0&full_search=0&result_from=1&story=ВЕДЬ"
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):
@@ -241,15 +227,7 @@ class PageSearch:
 
 
 class PageAnime:
-    """
-    USAGE:
-
-        GET https://sameband.studio/anime/<ANIME PATH>.html
-
-    EXAMPLE:
-        curl https://sameband.studio/anime/20-госпожа-кагуя-3.html
-        curl https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html
-    """
+    "USAGE:\n\n    GET https://sameband.studio/anime/<ANIME PATH>.html\n\nEXAMPLE:\n    curl https://sameband.studio/anime/20-госпожа-кагуя-3.html\n    curl https://sameband.studio/anime/20-%D0%B3%D0%BE%D1%81%D0%BF%D0%BE%D0%B6%D0%B0-%D0%BA%D0%B0%D0%B3%D1%83%D1%8F-3.html"
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):
@@ -369,42 +347,7 @@ class PlaylistTxtAPI:
 
 
 class PagePlaylistURL:
-    """
-    USAGE:
-
-        GET https://sameband.studio/pl/a/<PLAYLIST NAME>.html
-
-    EXAMPLE:
-
-        GET https://sameband.studio/pl/a/Mashle_2nd_Season.html
-
-    NOTE:
-
-        url contains in AnimeView.player_url key:
-
-        playlist items signature (need manually provide json unmarshall logic):
-
-        ```
-            [
-                {
-                    "title": "<img src='/v/anime/...01 RUS_snapshot.jpg' class=playlist_poster><div class=playlist_duration>23:37</div>... 01",
-                    ### delimiter - ','
-                    "file": "[480p]/v/anime/... - 01 RUS_480p/... - 01 RUS_r480p.m3u8,[720p]/v/anime/.../... - 01 RUS_720p/... - 01 RUS_r720p.m3u8,[1080p]/v/anime/.../... -
-                    01 RUS_1080p/... - 01 RUS_r1080p.m3u8",
-                    ### thumbnails images for video
-                    "thumbnails": "/v/anime/.../thumbnails/... - 01 RUS.txt"  # contains
-                },
-                {
-                    ...
-                },
-                ...
-            ]
-        ```
-        player script signature:
-        ```
-        <script>var player = new Playerjs({id:"player",file:"/v/list/....txt"});
-        ```
-    """
+    'USAGE:\n\n    GET https://sameband.studio/pl/a/<PLAYLIST NAME>.html\n\nEXAMPLE:\n\n    GET https://sameband.studio/pl/a/Mashle_2nd_Season.html\n\nNOTE:\n\n    url contains in AnimeView.player_url key:\n\n    playlist items signature (need manually provide json unmarshall logic):\n\n    ```\n        [\n            {\n                "title": "<img src=\'/v/anime/...01 RUS_snapshot.jpg\' class=playlist_poster><div class=playlist_duration>23:37</div>... 01",\n                ### delimiter - \',\'\n                "file": "[480p]/v/anime/... - 01 RUS_480p/... - 01 RUS_r480p.m3u8,[720p]/v/anime/.../... - 01 RUS_720p/... - 01 RUS_r720p.m3u8,[1080p]/v/anime/.../... -\n                01 RUS_1080p/... - 01 RUS_r1080p.m3u8",\n                ### thumbnails images for video\n                "thumbnails": "/v/anime/.../thumbnails/... - 01 RUS.txt"  # contains\n            },\n            {\n                ...\n            },\n            ...\n        ]\n    ```\n    player script signature:\n    ```\n    <script>var player = new Playerjs({id:"player",file:"/v/list/....txt"});\n    ```'
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):

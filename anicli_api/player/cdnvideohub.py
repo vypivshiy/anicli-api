@@ -3,7 +3,7 @@ import logging
 import re
 from typing import List, cast
 
-from httpx import AsyncClient, Client
+from httpx import AsyncClient, Client, Headers
 
 from anicli_api.player.base import BaseVideoExtractor, Video, url_validator
 from anicli_api.player.parsers.cdnvideohub_parser import (
@@ -49,7 +49,9 @@ def video_playlist_from_vk_id(
     cookies: dict | None = None,
     timeout: float | None = None,
 ) -> list["Video"]:
-    user_agent = http_client.headers["User-Agent"]
+    effective_headers = Headers(http_client.headers)
+    effective_headers.update(headers or {})
+    user_agent = effective_headers["User-Agent"]
     req: dict = {}
     if headers is not None:
         req["headers"] = headers
@@ -96,7 +98,9 @@ async def a_video_playlist_from_vk_id(
     cookies: dict | None = None,
     timeout: float | None = None,
 ) -> list["Video"]:
-    user_agent = http_client.headers["User-Agent"]
+    effective_headers = Headers(http_client.headers)
+    effective_headers.update(headers or {})
+    user_agent = effective_headers["User-Agent"]
     req: dict = {}
     if headers is not None:
         req["headers"] = headers

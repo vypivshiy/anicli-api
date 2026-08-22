@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Literal
 from typing import cast
 import httpx
+
 from .sscgen_runtime import (
     FALLBACK_HTML_STR,
     Ok,
@@ -98,12 +99,7 @@ PageAnimeType = TypedDict(
 
 
 class PageOngoing:
-    """
-    Get all available ongoings from the main page
-
-    USAGE
-        GET https://hdrezka-home.tv/?filter=last&genre=82
-    """
+    "Get all available ongoings from the main page\n\nUSAGE\n    GET https://hdrezka-home.tv/?filter=last&genre=82"
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):
@@ -188,14 +184,7 @@ class PageOngoing:
 
 
 class PageSearch:
-    """
-    USAGE
-        GET https://hdrezka-home.tv/search/
-        do=search&subaction=search&q={query}
-
-    EXAMPLE
-    https://hdrezka-home.tv/search/?do=search&subaction=search&q=isekai
-    """
+    "USAGE\n    GET https://hdrezka-home.tv/search/\n    do=search&subaction=search&q={query}\n\nEXAMPLE\nhttps://hdrezka-home.tv/search/?do=search&subaction=search&q=isekai"
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):
@@ -383,32 +372,7 @@ class Episode:
 
 
 class PageAnime:
-    """
-    USAGE
-        GET https://hdrezka-home.tv/animation/<NAME>.html
-
-    EXAMPLE
-        GET https://hdrezka-home.tv/animation/drama/20157-eksperimenty-leyn-1998.html
-
-    NOTE:
-        1. videos required post extract manually
-
-        videos item format (comma separated):
-        "[{int}p (Ultra)?]https://...manifest.m3u8 or https://...mp4,[...."
-
-        2. for extract episodes, use next endpoint:
-
-        POST /ajax/get_cdn_series/?t=1775300155352 HTTP/1.1
-        Host: hdrezka-home.tv
-        X-Requested-With: XMLHttpRequest
-        Origin: https://hdrezka-home.tv
-        Connection: keep-alive
-        Referer: https://hdrezka-home.tv/animation/fiction/88328-daybaster-dotyanis-do-neba-2-2004.html
-
-        id=88328&translator_id=56&season=1&episode=2&favs=aaaaaaaa-bbbb-cccc-dddd-0123456789ab&action=get_stream
-
-        > id, translator_id, season, episode search in 'episode_list', 'season_box', 'translation-list' structs, favs from favs field
-    """
+    "USAGE\n    GET https://hdrezka-home.tv/animation/<NAME>.html\n\nEXAMPLE\n    GET https://hdrezka-home.tv/animation/drama/20157-eksperimenty-leyn-1998.html\n\nNOTE: \n    1. videos required post extract manually\n\n    videos item format (comma separated):\n    \"[{int}p (Ultra)?]https://...manifest.m3u8 or https://...mp4,[....\"\n\n    2. for extract episodes, use next endpoint:\n\n    POST /ajax/get_cdn_series/?t=1775300155352 HTTP/1.1\n    Host: hdrezka-home.tv\n    X-Requested-With: XMLHttpRequest\n    Origin: https://hdrezka-home.tv\n    Connection: keep-alive\n    Referer: https://hdrezka-home.tv/animation/fiction/88328-daybaster-dotyanis-do-neba-2-2004.html\n\n    id=88328&translator_id=56&season=1&episode=2&favs=aaaaaaaa-bbbb-cccc-dddd-0123456789ab&action=get_stream\n\n    > id, translator_id, season, episode search in 'episode_list', 'season_box', 'translation-list' structs, favs from favs field"
 
     def __init__(self, document: Union[str, HtmlElement]):
         if isinstance(document, str):

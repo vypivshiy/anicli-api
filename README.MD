@@ -206,6 +206,10 @@ if __name__ == '__main__':
 | okcdn (cdnvideohub) | 1080, 2060 (4k?)                                                | [streamlink/streamlink/issues/6369](https://github.com/streamlink/streamlink/issues/6369#issuecomment-2565443159): IP адрес и user-agent плеера должны совпадать с user-agent и IP, откуда шёл запрос из объектов Extractor |
 | hdrezka             |            1080|      |
 
+Настроенные `httpx.Client` / `httpx.AsyncClient`, переданные root extractor,
+сохраняют identity во всей цепочке объектов до player. Для общей HTTP-сессии
+нескольких extractors передайте им одни и те же client instances явно.
+
 ## See also
 
 - [docs](docs.md) - lib usage

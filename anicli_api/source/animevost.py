@@ -184,11 +184,12 @@ class Source(BaseSource):
     def get_videos(
         self, *, headers: dict | None = None, cookies: dict | None = None, timeout: float | None = None
     ) -> list[Video]:
+        req = self._request_kwargs(headers, cookies, timeout if timeout is not None else 5.0)
         videos = [Video(type="mp4", quality=480, url=self._std)]
         try:
             # может отстуствовать HD (720p) видео
             # делаем пробу
-            if self.http.head(self._hd, follow_redirects=True, timeout=5.0).is_success:
+            if self.http.head(self._hd, follow_redirects=True, **req).is_success:
                 videos.append(Video(type="mp4", quality=720, url=self._hd))
         except httpx.HTTPError:
             pass
@@ -199,9 +200,10 @@ class Source(BaseSource):
     ) -> list[Video]:
         # может отстуствовать HD (720p) видео
         # делаем пробу
+        req = self._request_kwargs(headers, cookies, timeout if timeout is not None else 5.0)
         videos = [Video(type="mp4", quality=480, url=self._std)]
         try:
-            resp = await self.http_async.head(self._hd, follow_redirects=True, timeout=5.0)
+            resp = await self.http_async.head(self._hd, follow_redirects=True, **req)
             if resp.is_success:
                 videos.append(Video(type="mp4", quality=720, url=self._hd))
         except httpx.HTTPError:
